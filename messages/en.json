@@ -1,0 +1,88 @@
+{
+  "Common": {
+    "title": "QR Gate Access",
+    "dashboard": "Dashboard",
+    "qr": "QR Code",
+    "gates": "Gates",
+    "events": "Events",
+    "reports": "Reports",
+    "settings": "Settings",
+    "members": "Members",
+    "logout": "Logout",
+    "search": "Search...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add New",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "status": "Status",
+    "actions": "Actions",
+    "view": "View Detail"
+  },
+  "Dashboard": {
+    "welcome": "Welcome back",
+    "totalMembers": "Total Members",
+    "activeGates": "Active Gates",
+    "todayEvents": "Today's Events",
+    "gateStatus": "Gate Status",
+    "recentActivity": "Recent Activity",
+    "systemStatus": "System Status",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "Auth": {
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "loginTitle": "Sign in to Dashboard",
+    "error": "Invalid username or password"
+  },
+  "Gate": {
+    "name": "Gate Name",
+    "location": "Location",
+    "hardwareId": "Hardware ID",
+    "status": "Status",
+    "lastPing": "Last Ping",
+    "online": "Online",
+    "offline": "Offline",
+    "maintenance": "Maintenance",
+    "open": "Open",
+    "close": "Close",
+    "restart": "Restart Hardware"
+  },
+  "Member": {
+    "list": "Member List",
+    "addMember": "Add Member",
+    "editMember": "Edit Member",
+    "fullName": "Full Name",
+    "memberType": "Member Type",
+    "email": "Email",
+    "phone": "Phone Number",
+    "expiryDate": "Expiry Date",
+    "active": "Active",
+    "inactive": "Inactive",
+    "type": {
+      "employee": "Employee",
+      "visitor": "Visitor",
+      "vip": "VIP",
+      "contractor": "Contractor"
+    }
+  },
+  "Report": {
+    "generate": "Generate Report",
+    "export": "Export Data",
+    "dateRange": "Date Range",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "type": "Report Type",
+    "preview": "Report Preview"
+  }
+}
