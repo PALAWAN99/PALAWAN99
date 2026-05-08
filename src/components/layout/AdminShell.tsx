@@ -33,6 +33,7 @@ import {
   IconUserShield,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
+import NotificationBell from '../notifications/NotificationBell';
 
 const NAV_ITEMS = [
   { labelKey: 'Common.dashboard', icon: IconLayoutDashboard, href: '/admin' },
@@ -40,7 +41,8 @@ const NAV_ITEMS = [
   { labelKey: 'Common.qr', icon: IconQrcode, href: '/admin/qr' },
   { labelKey: 'Common.gates', icon: IconDoor, href: '/admin/gates' },
   { labelKey: 'Common.members', icon: IconUsers, href: '/admin/members' },
-  { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports/members' },
+  { labelKey: 'Common.idcard', icon: IconId, href: '/admin/idcard' },
+  { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports' },
   { labelKey: 'Common.security', icon: IconShield, href: '/admin/security' },
   { labelKey: 'Common.settings', icon: IconSettings, href: '/admin/settings' },
 ];
@@ -122,19 +124,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip label="Notifications">
-            <ActionIcon variant="subtle" pos="relative">
-              <IconBell size={18} />
-              <Badge
-                size="xs"
-                circle
-                color="red"
-                style={{ position: 'absolute', top: -2, right: -2 }}
-              >
-                3
-              </Badge>
-            </ActionIcon>
-          </Tooltip>
+          <NotificationBell />
 
           <Tooltip label={t('Common.logout')}>
             <ActionIcon variant="subtle" color="red" onClick={() => signOut()}>

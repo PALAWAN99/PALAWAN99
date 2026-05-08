@@ -8,6 +8,7 @@
     "reports": "Reports",
     "settings": "Settings",
     "members": "Members",
+    "idcard": "ID Card Reader",
     "logout": "Logout",
     "search": "Search...",
     "save": "Save",
@@ -64,6 +65,8 @@
     "addMember": "Add Member",
     "editMember": "Edit Member",
     "fullName": "Full Name",
+    "memberNo": "Member No",
+    "citizenId": "Citizen ID",
     "memberType": "Member Type",
     "email": "Email",
     "phone": "Phone Number",
@@ -71,10 +74,11 @@
     "active": "Active",
     "inactive": "Inactive",
     "type": {
-      "employee": "Employee",
-      "visitor": "Visitor",
-      "vip": "VIP",
-      "contractor": "Contractor"
+      "student": "Student",
+      "staff": "Staff",
+      "faculty": "Faculty",
+      "external": "External",
+      "guest": "Guest"
     }
   },
   "Report": {

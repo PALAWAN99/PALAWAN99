@@ -7,6 +7,7 @@ const withNextIntl = createNextIntlPlugin(
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  serverExternalPackages: ['@prisma/client', 'prisma', '.prisma/client'],
   async headers() {
     return [
       {

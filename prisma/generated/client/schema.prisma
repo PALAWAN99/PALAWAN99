@@ -1,14 +1,14 @@
-// Prisma Schema — QR Gate Access System (PostgreSQL Version)
+// Prisma Schema — QR Gate Access System
+// Next.js 16 + Prisma 7 + PostgreSQL 16
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  output          = "../node_modules/.prisma/client"
+  provider   = "prisma-client-js"
+  output     = "./generated/client"
+  engineType = "library"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
 }
 
 // ============================================
@@ -92,25 +92,24 @@ enum IdCardReadStatus {
 
 /// ผู้ใช้ระบบ (Admin / เจ้าหน้าที่ประตู)
 model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  fullName     String    @map("full_name")
-  role         UserRole  @default(VIEWER)
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole @default(VIEWER)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  auditLogs     AuditLog[]
-  notifications Notification[]
+  auditLogs AuditLog[]
 
   @@map("users")
 }
 
 /// สาขา / อาคาร
 model Branch {
-  id        String   @id @default(uuid()) @db.Uuid
-  code      String   @unique @db.VarChar(20)
+  id        String   @id @default(uuid())
+  code      String   @unique
   nameTh    String   @map("name_th")
   nameEn    String   @map("name_en")
   nameZh    String   @map("name_zh")
@@ -125,19 +124,19 @@ model Branch {
 
 /// ประตู / จุดควบคุม
 model Gate {
-  id        String        @id @default(uuid()) @db.Uuid
-  gateCode  String        @unique @map("gate_code") @db.VarChar(20)
+  id        String        @id @default(uuid())
+  gateCode  String        @unique @map("gate_code")
   nameTh    String        @map("name_th")
   nameEn    String        @map("name_en")
   nameZh    String        @map("name_zh")
-  branchId  String        @map("branch_id") @db.Uuid
+  branchId  String        @map("branch_id")
   direction GateDirection @default(BIDIRECTIONAL)
   status    GateStatus    @default(ACTIVE)
   metadata  Json?
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
 
-  branch       Branch          @relation(fields: [branchId], references: [id])
+  branch       Branch           @relation(fields: [branchId], references: [id])
   accessEvents AccessEvent[]
   devices      DeviceRegistry[]
 
@@ -147,9 +146,9 @@ model Gate {
 
 /// สมาชิก / ผู้ใช้บริการ
 model Member {
-  id          String       @id @default(uuid()) @db.Uuid
-  memberNo    String       @unique @map("member_no") @db.VarChar(30)
-  citizenId   String?      @unique @map("citizen_id") @db.VarChar(13)
+  id          String       @id @default(uuid())
+  memberNo    String       @unique @map("member_no")
+  citizenId   String?      @unique @map("citizen_id")
   firstNameTh String       @map("first_name_th")
   lastNameTh  String       @map("last_name_th")
   firstNameEn String?      @map("first_name_en")
@@ -157,10 +156,10 @@ model Member {
   firstNameZh String?      @map("first_name_zh")
   lastNameZh  String?      @map("last_name_zh")
   email       String?
-  phone       String?      @db.VarChar(20)
+  phone       String?
   memberType  MemberType   @default(GUEST) @map("member_type")
   status      MemberStatus @default(ACTIVE)
-  expireDate  DateTime?    @map("expire_date") @db.Date
+  expireDate  DateTime?    @map("expire_date")
   photo       Bytes?
   metadata    Json?
   createdAt   DateTime     @default(now()) @map("created_at")
@@ -177,11 +176,11 @@ model Member {
 
 /// QR Token — หมดอายุทุกเที่ยงคืน
 model QrToken {
-  id         String    @id @default(uuid()) @db.Uuid
+  id         String    @id @default(uuid())
   tokenHash  String    @unique @map("token_hash")
-  memberId   String    @map("member_id") @db.Uuid
+  memberId   String    @map("member_id")
   purpose    QrPurpose @default(ENTRY)
-  issuedDate DateTime  @map("issued_date") @db.Date
+  issuedDate DateTime  @map("issued_date")
   expiresAt  DateTime  @map("expires_at")
   usedAt     DateTime? @map("used_at")
   revokedAt  DateTime? @map("revoked_at")
@@ -199,13 +198,13 @@ model QrToken {
 
 /// นโยบาย QR
 model QrPolicy {
-  id             String   @id @default(uuid()) @db.Uuid
-  name           String   @unique @db.VarChar(50)
+  id             String   @id @default(uuid())
+  name           String   @unique
   ttlSeconds     Int      @default(86400) @map("ttl_seconds")
   oneTimeUse     Boolean  @default(false) @map("one_time_use")
   maxUsesPerDay  Int      @default(10) @map("max_uses_per_day")
-  dailyStartTime String?  @map("daily_start_time") @db.VarChar(5)
-  dailyEndTime   String?  @map("daily_end_time") @db.VarChar(5)
+  dailyStartTime String?  @map("daily_start_time")
+  dailyEndTime   String?  @map("daily_end_time")
   isDefault      Boolean  @default(false) @map("is_default")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -215,14 +214,14 @@ model QrPolicy {
 
 /// เหตุการณ์เข้า-ออก
 model AccessEvent {
-  id         String         @id @default(uuid()) @db.Uuid
-  gateId     String         @map("gate_id") @db.Uuid
-  memberId   String         @map("member_id") @db.Uuid
-  qrTokenId  String?        @unique @map("qr_token_id") @db.Uuid
+  id         String         @id @default(uuid())
+  gateId     String         @map("gate_id")
+  memberId   String         @map("member_id")
+  qrTokenId  String?        @unique @map("qr_token_id")
   direction  GateDirection
   source     AccessSource   @default(QR_CODE)
   decision   AccessDecision
-  reasonCode String?        @map("reason_code") @db.VarChar(50)
+  reasonCode String?        @map("reason_code")
   ipAddress  String?        @map("ip_address")
   userAgent  String?        @map("user_agent")
   metadata   Json?
@@ -239,12 +238,12 @@ model AccessEvent {
   @@map("access_events")
 }
 
-/// ทะเบียนอุปกรณ์ประตู
+/// ทะเบียนอุปกรณ์
 model DeviceRegistry {
-  id         String       @id @default(uuid()) @db.Uuid
-  deviceCode String       @unique @map("device_code") @db.VarChar(30)
+  id         String       @id @default(uuid())
+  deviceCode String       @unique @map("device_code")
   name       String
-  gateId     String       @map("gate_id") @db.Uuid
+  gateId     String       @map("gate_id")
   deviceType DeviceType   @map("device_type")
   secretHash String       @map("secret_hash")
   status     DeviceStatus @default(OFFLINE)
@@ -261,15 +260,15 @@ model DeviceRegistry {
 
 /// เซสชันอ่านบัตรประชาชน
 model IdCardSession {
-  id         String           @id @default(uuid()) @db.Uuid
-  memberId   String?          @map("member_id") @db.Uuid
-  citizenId  String           @map("citizen_id") @db.VarChar(13)
+  id         String           @id @default(uuid())
+  memberId   String?          @map("member_id")
+  citizenId  String           @map("citizen_id")
   fullNameTh String           @map("full_name_th")
   fullNameEn String?          @map("full_name_en")
-  birthDate  DateTime?        @map("birth_date") @db.Date
+  birthDate  DateTime?        @map("birth_date")
   address    String?
   photoRead  Boolean          @default(false) @map("photo_read")
-  deviceId   String?          @map("device_id") @db.Uuid
+  deviceId   String?          @map("device_id")
   status     IdCardReadStatus
   readAt     DateTime         @map("read_at")
   createdAt  DateTime         @default(now()) @map("created_at")
@@ -283,13 +282,13 @@ model IdCardSession {
 
 /// Audit Log
 model AuditLog {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String?  @map("user_id") @db.Uuid
-  action     String   @db.VarChar(50)
-  resource   String   @db.VarChar(50)
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  resource   String
   resourceId String?  @map("resource_id")
-  before     Json?    @map("data_before")
-  after      Json?    @map("data_after")
+  dataBefore Json?    @map("data_before")
+  dataAfter  Json?    @map("data_after")
   ipAddress  String?  @map("ip_address")
   userAgent  String?  @map("user_agent")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -300,34 +299,3 @@ model AuditLog {
   @@index([resource, createdAt])
   @@map("audit_logs")
 }
-
-/// การแจ้งเตือนในระบบ
-model Notification {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String?   @map("user_id") @db.Uuid
-  title     String
-  message   String
-  level     String    @default("info") // critical, warning, info
-  readAt    DateTime? @map("read_at")
-  type      String? // เช่น 'GATE_OFFLINE', 'SYSTEM', 'SECURITY'
-  metadata  Json?
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  user User? @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-  @@index([createdAt])
-  @@map("notifications")
-}
-
-/// ตั้งค่าระบบ
-model SystemSetting {
-  id        String   @id @default(uuid()) @db.Uuid
-  key       String   @unique
-  value     String
-  group     String   @default("general")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("system_settings")
-}
-

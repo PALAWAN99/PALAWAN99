@@ -1,4 +1,8 @@
 import type { Metadata } from 'next';
+<<<<<<< HEAD
+=======
+import { MantineAppProvider } from '@/components/providers/MantineAppProvider';
+>>>>>>> origin/feature/qrcode-access-system
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -20,6 +24,21 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+<<<<<<< HEAD
   return children;
+=======
+  return (
+    <html lang="th" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
+      <body>
+        <MantineAppProvider>
+          {children}
+        </MantineAppProvider>
+      </body>
+    </html>
+  );
+>>>>>>> origin/feature/qrcode-access-system
 }
 
