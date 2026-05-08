@@ -8,6 +8,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -100,7 +101,7 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  auditLogs AuditLog[]
+  auditLogs     AuditLog[]
   notifications Notification[]
 
   @@map("users")
@@ -108,13 +109,13 @@ model User {
 
 /// สาขา / อาคาร
 model Branch {
-  id       String  @id @default(uuid()) @db.Uuid
-  code     String  @unique @db.VarChar(20)
-  nameTh   String  @map("name_th")
-  nameEn   String  @map("name_en")
-  nameZh   String  @map("name_zh")
-  address  String?
-  isActive Boolean @default(true) @map("is_active")
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(20)
+  nameTh    String   @map("name_th")
+  nameEn    String   @map("name_en")
+  nameZh    String   @map("name_zh")
+  address   String?
+  isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
 
   gates Gate[]
@@ -146,27 +147,27 @@ model Gate {
 
 /// สมาชิก / ผู้ใช้บริการ
 model Member {
-  id           String       @id @default(uuid()) @db.Uuid
-  memberNo     String       @unique @map("member_no") @db.VarChar(30)
-  citizenId    String?      @unique @map("citizen_id") @db.VarChar(13)
-  firstNameTh  String       @map("first_name_th")
-  lastNameTh   String       @map("last_name_th")
-  firstNameEn  String?      @map("first_name_en")
-  lastNameEn   String?      @map("last_name_en")
-  firstNameZh  String?      @map("first_name_zh")
-  lastNameZh   String?      @map("last_name_zh")
-  email        String?
-  phone        String?      @db.VarChar(20)
-  memberType   MemberType   @default(GUEST) @map("member_type")
-  status       MemberStatus @default(ACTIVE)
-  expireDate   DateTime?    @map("expire_date") @db.Date
-  photo        Bytes?
-  metadata     Json?
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  id          String       @id @default(uuid()) @db.Uuid
+  memberNo    String       @unique @map("member_no") @db.VarChar(30)
+  citizenId   String?      @unique @map("citizen_id") @db.VarChar(13)
+  firstNameTh String       @map("first_name_th")
+  lastNameTh  String       @map("last_name_th")
+  firstNameEn String?      @map("first_name_en")
+  lastNameEn  String?      @map("last_name_en")
+  firstNameZh String?      @map("first_name_zh")
+  lastNameZh  String?      @map("last_name_zh")
+  email       String?
+  phone       String?      @db.VarChar(20)
+  memberType  MemberType   @default(GUEST) @map("member_type")
+  status      MemberStatus @default(ACTIVE)
+  expireDate  DateTime?    @map("expire_date") @db.Date
+  photo       Bytes?
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  qrTokens      QrToken[]
-  accessEvents  AccessEvent[]
+  qrTokens       QrToken[]
+  accessEvents   AccessEvent[]
   idCardSessions IdCardSession[]
 
   @@index([memberNo])
@@ -188,8 +189,8 @@ model QrToken {
   userAgent  String?   @map("user_agent")
   createdAt  DateTime  @default(now()) @map("created_at")
 
-  member       Member        @relation(fields: [memberId], references: [id])
-  accessEvent  AccessEvent?
+  member      Member       @relation(fields: [memberId], references: [id])
+  accessEvent AccessEvent?
 
   @@index([memberId, issuedDate])
   @@index([expiresAt])
@@ -198,16 +199,16 @@ model QrToken {
 
 /// นโยบาย QR
 model QrPolicy {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String   @unique @db.VarChar(50)
-  ttlSeconds    Int      @default(86400) @map("ttl_seconds")
-  oneTimeUse    Boolean  @default(false) @map("one_time_use")
-  maxUsesPerDay Int      @default(10) @map("max_uses_per_day")
-  dailyStartTime String? @map("daily_start_time") @db.VarChar(5)
-  dailyEndTime   String? @map("daily_end_time") @db.VarChar(5)
-  isDefault     Boolean  @default(false) @map("is_default")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @unique @db.VarChar(50)
+  ttlSeconds     Int      @default(86400) @map("ttl_seconds")
+  oneTimeUse     Boolean  @default(false) @map("one_time_use")
+  maxUsesPerDay  Int      @default(10) @map("max_uses_per_day")
+  dailyStartTime String?  @map("daily_start_time") @db.VarChar(5)
+  dailyEndTime   String?  @map("daily_end_time") @db.VarChar(5)
+  isDefault      Boolean  @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("qr_policies")
 }
@@ -228,9 +229,9 @@ model AccessEvent {
   scannedAt  DateTime       @map("scanned_at")
   createdAt  DateTime       @default(now()) @map("created_at")
 
-  gate     Gate     @relation(fields: [gateId], references: [id])
-  member   Member   @relation(fields: [memberId], references: [id])
-  qrToken  QrToken? @relation(fields: [qrTokenId], references: [id])
+  gate    Gate     @relation(fields: [gateId], references: [id])
+  member  Member   @relation(fields: [memberId], references: [id])
+  qrToken QrToken? @relation(fields: [qrTokenId], references: [id])
 
   @@index([gateId, scannedAt])
   @@index([memberId, scannedAt])
@@ -260,18 +261,18 @@ model DeviceRegistry {
 
 /// เซสชันอ่านบัตรประชาชน
 model IdCardSession {
-  id         String          @id @default(uuid()) @db.Uuid
-  memberId   String?         @map("member_id") @db.Uuid
-  citizenId  String          @map("citizen_id") @db.VarChar(13)
-  fullNameTh String          @map("full_name_th")
-  fullNameEn String?         @map("full_name_en")
-  birthDate  DateTime?       @map("birth_date") @db.Date
+  id         String           @id @default(uuid()) @db.Uuid
+  memberId   String?          @map("member_id") @db.Uuid
+  citizenId  String           @map("citizen_id") @db.VarChar(13)
+  fullNameTh String           @map("full_name_th")
+  fullNameEn String?          @map("full_name_en")
+  birthDate  DateTime?        @map("birth_date") @db.Date
   address    String?
-  photoRead  Boolean         @default(false) @map("photo_read")
-  deviceId   String?         @map("device_id") @db.Uuid
+  photoRead  Boolean          @default(false) @map("photo_read")
+  deviceId   String?          @map("device_id") @db.Uuid
   status     IdCardReadStatus
-  readAt     DateTime        @map("read_at")
-  createdAt  DateTime        @default(now()) @map("created_at")
+  readAt     DateTime         @map("read_at")
+  createdAt  DateTime         @default(now()) @map("created_at")
 
   member Member?         @relation(fields: [memberId], references: [id])
   device DeviceRegistry? @relation(fields: [deviceId], references: [id])
@@ -287,8 +288,8 @@ model AuditLog {
   action     String   @db.VarChar(50)
   resource   String   @db.VarChar(50)
   resourceId String?  @map("resource_id")
-  before     Json?
-  after      Json?
+  before     Json?    @map("data_before")
+  after      Json?    @map("data_after")
   ipAddress  String?  @map("ip_address")
   userAgent  String?  @map("user_agent")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -307,7 +308,7 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false) @map("is_read")
-  type      String?  // เช่น 'GATE_OFFLINE', 'SYSTEM', 'SECURITY'
+  type      String? // เช่น 'GATE_OFFLINE', 'SYSTEM', 'SECURITY'
   createdAt DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id])
@@ -315,3 +316,4 @@ model Notification {
   @@index([userId, createdAt])
   @@map("notifications")
 }
+

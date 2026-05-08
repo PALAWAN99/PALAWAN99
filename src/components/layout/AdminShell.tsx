@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   AppShell,
   Group,
@@ -35,21 +35,31 @@ import {
 import { signOut } from 'next-auth/react';
 
 const NAV_ITEMS = [
-  { label: 'แดชบอร์ด', labelEn: 'Dashboard', icon: IconLayoutDashboard, href: '/admin' },
-  { label: 'จัดการแอดมิน', labelEn: 'Admins', icon: IconUserShield, href: '/admin/users' },
-  { label: 'QR Code', labelEn: 'QR Code', icon: IconQrcode, href: '/admin/qr' },
-  { label: 'ประตู', labelEn: 'Gates', icon: IconDoor, href: '/admin/gates' },
-  { label: 'สมาชิก', labelEn: 'Members', icon: IconUsers, href: '/admin/members' },
-  { label: 'บัตรประชาชน', labelEn: 'ID Card', icon: IconId, href: '/admin/idcard' },
-  { label: 'รายงาน', labelEn: 'Reports', icon: IconChartBar, href: '/admin/reports' },
-  { label: 'ความปลอดภัย', labelEn: 'Security', icon: IconShield, href: '/admin/security' },
-  { label: 'ตั้งค่า', labelEn: 'Settings', icon: IconSettings, href: '/admin/settings' },
+  { labelKey: 'Common.dashboard', icon: IconLayoutDashboard, href: '/admin' },
+  { labelKey: 'Common.admins', icon: IconUserShield, href: '/admin/users' },
+  { labelKey: 'Common.qr', icon: IconQrcode, href: '/admin/qr' },
+  { labelKey: 'Common.gates', icon: IconDoor, href: '/admin/gates' },
+  { labelKey: 'Common.members', icon: IconUsers, href: '/admin/members' },
+  { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports/members' },
+  { labelKey: 'Common.security', icon: IconShield, href: '/admin/security' },
+  { labelKey: 'Common.settings', icon: IconSettings, href: '/admin/settings' },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [opened, setOpened] = useState(true);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const pathname = usePathname();
+  const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations();
+  const [isPending, startTransition] = useTransition();
+
+  const handleLocaleChange = (value: string | null) => {
+    if (!value) return;
+    startTransition(() => {
+      router.replace(pathname, { locale: value });
+    });
+  };
 
   return (
     <AppShell
@@ -85,7 +95,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </Box>
             {opened && (
               <Text fw={700} size="lg" c="var(--text-primary)">
-                QR Gate Access
+                {t('Common.title')}
               </Text>
             )}
           </Group>
@@ -98,7 +108,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               { value: 'en', label: '🇺🇸 EN' },
               { value: 'zh', label: '🇨🇳 中文' },
             ]}
-            defaultValue="th"
+            value={locale}
+            onChange={handleLocaleChange}
+            disabled={isPending}
             size="xs"
             w={100}
             variant="filled"
@@ -124,7 +136,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip label="ออกจากระบบ">
+          <Tooltip label={t('Common.logout')}>
             <ActionIcon variant="subtle" color="red" onClick={() => signOut()}>
               <IconLogout size={18} />
             </ActionIcon>
@@ -136,7 +148,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <AppShell.Navbar
         style={{
           background: 'var(--sidebar-bg)',
-          border: 'none',
+          borderRight: '1px solid var(--border-color)',
           padding: '12px 8px',
         }}
       >
@@ -146,11 +158,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href as any}
                 className={`sidebar-link ${isActive ? 'active' : ''}`}
               >
                 <item.icon size={20} stroke={1.5} />
-                {opened && <span>{item.label}</span>}
+                {opened && <span>{t(item.labelKey)}</span>}
               </Link>
             );
           })}

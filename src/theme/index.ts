@@ -52,9 +52,10 @@ export const theme = createTheme({
     emerald,
     navy,
   },
-  fontFamily: '"Inter", "Noto Sans Thai", "Noto Sans SC", sans-serif',
+  // ใช้ฟอนต์ Outfit สำหรับ Eng และ Noto Sans Thai สำหรับไทย เพื่อความพรีเมียม
+  fontFamily: '"Outfit", "Noto Sans Thai", "Noto Sans SC", sans-serif',
   headings: {
-    fontFamily: '"Inter", "Noto Sans Thai", "Noto Sans SC", sans-serif',
+    fontFamily: '"Outfit", "Noto Sans Thai", "Noto Sans SC", sans-serif',
     fontWeight: '700',
   },
   radius: {
@@ -66,13 +67,34 @@ export const theme = createTheme({
   },
   defaultRadius: 'md',
   components: {
-    Button: { defaultProps: { radius: 'md' } },
-    Card: { defaultProps: { radius: 'lg', shadow: 'sm' } },
+    Button: {
+      defaultProps: {
+        radius: 'md',
+        fw: 600,
+      },
+      styles: {
+        root: { transition: 'transform 0.15s ease, box-shadow 0.15s ease' },
+      },
+    },
+    Card: {
+      defaultProps: {
+        radius: 'lg',
+        shadow: 'sm',
+        withBorder: true,
+      },
+      styles: {
+        root: { transition: 'transform 0.2s ease, box-shadow 0.2s ease' },
+      },
+    },
     TextInput: { defaultProps: { radius: 'md' } },
     Select: { defaultProps: { radius: 'md' } },
-    Badge: { defaultProps: { radius: 'sm' } },
+    Badge: {
+      defaultProps: { radius: 'sm', variant: 'light' },
+      styles: { root: { textTransform: 'none', fontWeight: 600 } },
+    },
   },
   other: {
     appName: 'QR Gate Access',
   },
 });
+

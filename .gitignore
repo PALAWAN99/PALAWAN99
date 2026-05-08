@@ -39,6 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+<<<<<<< HEAD
 
 # local databases
 *.db
@@ -53,3 +54,5 @@ test-*.ts
 check-*.js
 seed-direct.js
 docs_backup/
+=======
+>>>>>>> origin/feature/update-admin-dashboard

@@ -1,0 +1,27 @@
+{
+  "Common": {
+    "title": "QR 门禁系统",
+    "dashboard": "仪表板",
+    "qr": "二维码",
+    "gates": "门禁",
+    "events": "事件",
+    "reports": "报告",
+    "settings": "设置",
+    "logout": "登出",
+    "search": "搜索...",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "loading": "加载中...",
+    "error": "出错了"
+  },
+  "Dashboard": {
+    "welcome": "欢迎回来",
+    "totalMembers": "成员总数",
+    "activeGates": "活动门禁",
+    "todayEvents": "今日事件",
+    "gateStatus": "门禁状态",
+    "recentActivity": "近期活动"
+  }
+}
