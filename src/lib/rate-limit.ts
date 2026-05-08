@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 
-const LRU = require('lru-cache');
+import { LRUCache } from 'lru-cache';
 
 // เก็บข้อมูลการเรียกใช้ API ในหน่วยความจำ (In-memory)
 // หมายเหตุ: ในระบบใหญ่ควรใช้ Redis แทน
-const tokenCache = new LRU({
+const tokenCache = new LRUCache({
   max: 500,
   ttl: 60 * 1000, // 1 นาที
 });

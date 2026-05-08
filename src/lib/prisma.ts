@@ -1,7 +1,6 @@
 import 'dotenv/config';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
 // ป้องกันไม่ให้ไฟล์นี้ถูกรันในฝั่ง Browser
 if (typeof window !== 'undefined') {
@@ -15,10 +14,10 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   if (typeof window !== 'undefined') return null as any;
 
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+  // Prisma 7: ใช้ adapter-better-sqlite3 โดยส่ง URL ของไฟล์ฐานข้อมูล
+  const adapter = new PrismaBetterSqlite3({
+    url: 'file:./dev.db',
   });
-  const adapter = new PrismaPg(pool);
 
   return new PrismaClient({
     adapter,

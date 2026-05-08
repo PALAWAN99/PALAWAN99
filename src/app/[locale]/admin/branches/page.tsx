@@ -69,9 +69,14 @@ export default function BranchManagement() {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/branches');
-      if (!res.ok) throw new Error('Failed to fetch branches');
       const data = await res.json();
-      setBranches(data);
+      
+      if (res.ok && Array.isArray(data)) {
+        setBranches(data);
+      } else {
+        setBranches([]);
+        if (!res.ok) throw new Error(data.message || 'Failed to fetch branches');
+      }
     } catch (error) {
       console.error('Fetch error:', error);
       notifications.show({

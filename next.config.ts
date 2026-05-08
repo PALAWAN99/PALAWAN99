@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-<<<<<<< HEAD
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin(
@@ -37,12 +36,3 @@ const nextConfig: NextConfig = {
 };
 
 export default withNextIntl(nextConfig);
-
-=======
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
->>>>>>> origin/upload/gate-system

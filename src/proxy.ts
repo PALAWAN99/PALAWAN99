@@ -1,9 +1,17 @@
 import NextAuth from 'next-auth';
 import { authConfig } from './auth.config';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
 
-export const { auth: proxy } = NextAuth(authConfig);
+const { auth } = NextAuth(authConfig);
+const intlMiddleware = createMiddleware(routing);
+
+export default auth((req) => {
+  // Chain to next-intl middleware
+  return intlMiddleware(req);
+});
 
 export const config = {
-  // Match all paths except static files and api routes that don't need auth
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // Combine matchers
+  matcher: ['/', '/(th|en|zh)/:path*', '/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

@@ -16,7 +16,12 @@ import {
   Menu,
   Box,
   LoadingOverlay,
+  Modal,
+  PasswordInput,
+  Select,
 } from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import {
   IconUserPlus,
   IconSearch,
@@ -26,7 +31,10 @@ import {
   IconLock,
   IconCheck,
   IconX,
+  IconShield,
 } from '@tabler/icons-react';
+
+import { useTranslations } from 'next-intl';
 
 interface User {
   id: string;
@@ -45,11 +53,38 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function UsersPage() {
+  const t = useTranslations('Users');
+  const tc = useTranslations('Common');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [modalOpened, setModalOpened] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const ROLES_DATA = [
+    { value: 'SUPER_ADMIN', label: `Super Admin (${t('roleSelect')})` },
+    { value: 'ADMIN', label: `Admin (${t('roleSelect')})` },
+    { value: 'GATE_OFFICER', label: `Gate Officer (${t('roleSelect')})` },
+    { value: 'VIEWER', label: `Viewer (${t('roleSelect')})` },
+  ];
+
+  const form = useForm({
+    initialValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      role: 'ADMIN',
+    },
+    validate: {
+      fullName: (value) => (value.length < 2 ? t('fullName') : null),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : t('email')),
+      password: (value) => (value.length < 6 ? t('password') : null),
+      role: (value) => (!value ? t('roleSelect') : null),
+    },
+  });
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/admin/users');
       const data = await res.json();
@@ -67,6 +102,42 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
+  const handleCreateUser = async (values: typeof form.values) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        notifications.show({
+          title: tc('success'),
+          message: t('successMessage') || 'Account created',
+          color: 'green',
+          icon: <IconCheck size={18} />,
+        });
+        setModalOpened(false);
+        form.reset();
+        fetchUsers();
+      } else {
+        throw new Error(data.error || 'Failed to create user');
+      }
+    } catch (error: any) {
+      notifications.show({
+        title: tc('error'),
+        message: error.message,
+        color: 'red',
+        icon: <IconX size={18} />,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
@@ -80,25 +151,26 @@ export default function UsersPage() {
         <Group justify="space-between" align="flex-end">
           <Stack gap={0}>
             <Title order={2} style={{ color: '#F8FAFC' }}>
-              ผู้ใช้ระบบ (System Users)
+              {t('title')}
             </Title>
             <Text size="sm" c="dimmed">
-              จัดการสิทธิ์การเข้าถึงสำหรับผู้ดูแลระบบและเจ้าหน้าที่ประจำจุด
+              {t('subtitle')}
             </Text>
           </Stack>
           <Button 
             leftSection={<IconUserPlus size={18} />} 
             color="skyBlue"
             style={{ fontWeight: 600 }}
+            onClick={() => setModalOpened(true)}
           >
-            เพิ่มผู้ใช้ใหม่
+            {t('addUser')}
           </Button>
         </Group>
 
         {/* Filters & Search */}
         <Card withBorder p="md" radius="lg" style={{ background: 'rgba(30, 41, 59, 0.5)', borderColor: '#334155' }}>
           <TextInput
-            placeholder="ค้นหาชื่อ หรือ อีเมล..."
+            placeholder={t('searchPlaceholder')}
             leftSection={<IconSearch size={16} />}
             value={search}
             onChange={(e) => setSearch(e.currentTarget.value)}
@@ -116,10 +188,10 @@ export default function UsersPage() {
             <Table verticalSpacing="md" highlightOnHover>
               <Table.Thead style={{ background: '#1E293B' }}>
                 <Table.Tr>
-                  <Table.Th style={{ color: '#94A3B8' }}>ผู้ใช้</Table.Th>
-                  <Table.Th style={{ color: '#94A3B8' }}>สิทธิ์ (Role)</Table.Th>
-                  <Table.Th style={{ color: '#94A3B8' }}>สถานะ</Table.Th>
-                  <Table.Th style={{ color: '#94A3B8' }}>วันที่สร้าง</Table.Th>
+                  <Table.Th style={{ color: '#94A3B8' }}>{t('user')}</Table.Th>
+                  <Table.Th style={{ color: '#94A3B8' }}>{t('role')}</Table.Th>
+                  <Table.Th style={{ color: '#94A3B8' }}>{t('status')}</Table.Th>
+                  <Table.Th style={{ color: '#94A3B8' }}>{t('createdAt')}</Table.Th>
                   <Table.Th />
                 </Table.Tr>
               </Table.Thead>
@@ -143,14 +215,14 @@ export default function UsersPage() {
                     </Table.Td>
                     <Table.Td>
                       {user.isActive ? (
-                        <Badge color="green" variant="dot">ปกติ</Badge>
+                        <Badge color="green" variant="dot">{t('active')}</Badge>
                       ) : (
-                        <Badge color="red" variant="dot">ระงับการใช้งาน</Badge>
+                        <Badge color="red" variant="dot">{t('inactive')}</Badge>
                       )}
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" style={{ color: '#94A3B8' }}>
-                        {new Date(user.createdAt).toLocaleDateString('th-TH')}
+                        {new Date(user.createdAt).toLocaleDateString()}
                       </Text>
                     </Table.Td>
                     <Table.Td>
@@ -162,15 +234,15 @@ export default function UsersPage() {
                             </ActionIcon>
                           </Menu.Target>
                           <Menu.Dropdown>
-                            <Menu.Label>การจัดการ</Menu.Label>
-                            <Menu.Item leftSection={<IconEdit size={14} />}>แก้ไขข้อมูล</Menu.Item>
-                            <Menu.Item leftSection={<IconLock size={14} />}>รีเซ็ตรหัสผ่าน</Menu.Item>
+                            <Menu.Label>{t('management')}</Menu.Label>
+                            <Menu.Item leftSection={<IconEdit size={14} />}>{t('edit')}</Menu.Item>
+                            <Menu.Item leftSection={<IconLock size={14} />}>{t('resetPassword')}</Menu.Item>
                             <Menu.Divider />
                             <Menu.Item 
                               color="red" 
                               leftSection={<IconTrash size={14} />}
                             >
-                              ระงับการใช้งาน
+                              {t('suspend')}
                             </Menu.Item>
                           </Menu.Dropdown>
                         </Menu>
@@ -184,10 +256,64 @@ export default function UsersPage() {
           
           {filteredUsers.length === 0 && !loading && (
             <Box py={50} ta="center">
-              <Text c="dimmed">ไม่พบข้อมูลผู้ใช้</Text>
+              <Text c="dimmed">{tc('noData') || 'No records found'}</Text>
             </Box>
           )}
         </Card>
+
+        {/* Add User Modal */}
+        <Modal
+          opened={modalOpened}
+          onClose={() => setModalOpened(false)}
+          title={<Group gap="xs"><IconUserPlus size={20} /><Text fw={700}>{t('modalTitle')}</Text></Group>}
+          size="md"
+          radius="md"
+          overlayProps={{ blur: 3, opacity: 0.55 }}
+        >
+          <form onSubmit={form.onSubmit(handleCreateUser)}>
+            <Stack gap="md">
+              <TextInput
+                label={t('fullName')}
+                placeholder={t('fullName')}
+                required
+                {...form.getInputProps('fullName')}
+              />
+              <TextInput
+                label={t('email')}
+                placeholder={t('email')}
+                required
+                {...form.getInputProps('email')}
+              />
+              <PasswordInput
+                label={t('password')}
+                placeholder={t('password')}
+                required
+                {...form.getInputProps('password')}
+              />
+              <Select
+                label={t('roleSelect')}
+                placeholder={t('roleSelect')}
+                required
+                data={ROLES_DATA}
+                leftSection={<IconShield size={16} />}
+                {...form.getInputProps('role')}
+              />
+              <Group justify="flex-end" mt="xl">
+                <Button variant="subtle" color="gray" onClick={() => setModalOpened(false)}>
+                  {tc('cancel')}
+                </Button>
+                <Button 
+                  color="skyBlue" 
+                  type="submit" 
+                  loading={submitting}
+                  leftSection={<IconUserPlus size={18} />}
+                >
+                  {t('createAccount')}
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Modal>
       </Stack>
     </Container>
   );

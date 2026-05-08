@@ -83,13 +83,25 @@ export default function GateManagement() {
       // Fetch Branches for dropdown
       const branchRes = await fetch('/api/admin/branches');
       const branchData = await branchRes.json();
-      setBranches(branchData);
+      
+      if (branchRes.ok && Array.isArray(branchData)) {
+        setBranches(branchData);
+      } else {
+        setBranches([]);
+        if (!branchRes.ok) throw new Error(branchData.message || 'Failed to fetch branches');
+      }
 
       // Fetch Gates
       const url = filterBranch ? `/api/admin/gates?branchId=${filterBranch}` : '/api/admin/gates';
       const gateRes = await fetch(url);
       const gateData = await gateRes.json();
-      setGates(gateData);
+      
+      if (gateRes.ok && Array.isArray(gateData)) {
+        setGates(gateData);
+      } else {
+        setGates([]);
+        if (!gateRes.ok) throw new Error(gateData.message || 'Failed to fetch gates');
+      }
     } catch (error) {
       console.error('Fetch error:', error);
       notifications.show({
