@@ -11,4 +11,3 @@ export default defineConfig({
     seed: "npx tsx ./prisma/seed.ts",
   },
 });
-

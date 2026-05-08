@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import { MantineAppProvider } from '@/components/providers/MantineAppProvider';
 >>>>>>> origin/feature/qrcode-access-system
+=======
+import { MantineAppProvider } from '@/components/providers/MantineAppProvider';
+>>>>>>> origin/upload/gate-system
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,8 +29,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
 <<<<<<< HEAD
+<<<<<<< HEAD
   return children;
 =======
+=======
+>>>>>>> origin/upload/gate-system
   return (
     <html lang="th" suppressHydrationWarning>
       <head>
@@ -39,6 +46,9 @@ export default function RootLayout({
       </body>
     </html>
   );
+<<<<<<< HEAD
 >>>>>>> origin/feature/qrcode-access-system
+=======
+>>>>>>> origin/upload/gate-system
 }
 

@@ -1,8 +1,11 @@
 'use client';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { redirect } from 'next/navigation';
 export default function RootPage() { redirect('/th'); }
 =======
+=======
+>>>>>>> origin/upload/gate-system
 
 import { useRouter } from 'next/navigation';
 import {
@@ -24,7 +27,10 @@ import {
   IconShieldCheck,
   IconLanguage,
   IconArrowRight,
+<<<<<<< HEAD
   IconUserPlus,
+=======
+>>>>>>> origin/upload/gate-system
 } from '@tabler/icons-react';
 
 const FEATURES = [
@@ -104,6 +110,7 @@ export default function HomePage() {
           <Group gap="md">
             <Button
               size="lg"
+<<<<<<< HEAD
               color="emerald"
               leftSection={<IconUserPlus size={18} />}
               onClick={() => router.push('/register')}
@@ -113,6 +120,8 @@ export default function HomePage() {
             </Button>
             <Button
               size="lg"
+=======
+>>>>>>> origin/upload/gate-system
               color="skyBlue"
               rightSection={<IconArrowRight size={18} />}
               onClick={() => router.push('/admin')}
@@ -184,4 +193,7 @@ export default function HomePage() {
     </Box>
   );
 }
+<<<<<<< HEAD
 >>>>>>> origin/feature/qrcode-access-system
+=======
+>>>>>>> origin/upload/gate-system

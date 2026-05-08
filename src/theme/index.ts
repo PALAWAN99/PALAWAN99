@@ -52,10 +52,16 @@ export const theme = createTheme({
     emerald,
     navy,
   },
+<<<<<<< HEAD
   // ใช้ฟอนต์ Outfit สำหรับ Eng และ Noto Sans Thai สำหรับไทย เพื่อความพรีเมียม
   fontFamily: '"Outfit", "Noto Sans Thai", "Noto Sans SC", sans-serif',
   headings: {
     fontFamily: '"Outfit", "Noto Sans Thai", "Noto Sans SC", sans-serif',
+=======
+  fontFamily: '"Inter", "Noto Sans Thai", "Noto Sans SC", sans-serif',
+  headings: {
+    fontFamily: '"Inter", "Noto Sans Thai", "Noto Sans SC", sans-serif',
+>>>>>>> origin/upload/gate-system
     fontWeight: '700',
   },
   radius: {
@@ -67,6 +73,7 @@ export const theme = createTheme({
   },
   defaultRadius: 'md',
   components: {
+<<<<<<< HEAD
     Button: {
       defaultProps: {
         radius: 'md',
@@ -92,9 +99,19 @@ export const theme = createTheme({
       defaultProps: { radius: 'sm', variant: 'light' },
       styles: { root: { textTransform: 'none', fontWeight: 600 } },
     },
+=======
+    Button: { defaultProps: { radius: 'md' } },
+    Card: { defaultProps: { radius: 'lg', shadow: 'sm' } },
+    TextInput: { defaultProps: { radius: 'md' } },
+    Select: { defaultProps: { radius: 'md' } },
+    Badge: { defaultProps: { radius: 'sm' } },
+>>>>>>> origin/upload/gate-system
   },
   other: {
     appName: 'QR Gate Access',
   },
 });
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/upload/gate-system

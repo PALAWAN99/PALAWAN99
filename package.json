@@ -6,11 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma-generate": "prisma generate",
+    "test-logic": "tsx scratch/test-logic-final.ts",
+    "db:push": "prisma db push"
   },
   "dependencies": {
     "@mantine/core": "^9.1.1",
     "@mantine/dates": "^9.1.1",
+    "@mantine/form": "^9.1.1",
     "@mantine/hooks": "^9.1.1",
     "@mantine/modals": "^9.1.1",
     "@mantine/notifications": "^9.1.1",
