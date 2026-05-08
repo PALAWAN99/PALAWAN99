@@ -24,6 +24,7 @@ import {
   TextInput,
   SegmentedControl,
   Modal,
+  Select,
 } from '@mantine/core';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -39,6 +40,14 @@ import {
 } from '@tabler/icons-react';
 import { ThaiIdCardReader, ThaiIdData } from '@/lib/idcard/reader';
 
+const PREFIX_MAP: Record<string, string> = {
+  'นาย': 'Mr.',
+  'นาง': 'Mrs.',
+  'นางสาว': 'Ms.',
+  'เด็กชาย': 'Master',
+  'เด็กหญิง': 'Miss',
+};
+
 export default function IdCardClient() {
   const [activeTab, setActiveTab] = useState<string | null>('register');
   const [isConnected, setIsConnected] = useState(false);
@@ -47,39 +56,49 @@ export default function IdCardClient() {
   const [error, setError] = useState<string | null>(null);
   const [reader, setReader] = useState<ThaiIdCardReader | null>(null);
 
-  const [isManualMode, setIsManualMode] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [ticketUrl, setTicketUrl] = useState('');
-  const [selectedLog, setSelectedLog] = useState<any>(null);
-  const [manualData, setManualData] = useState({
-    citizenId: '',
-    firstNameTh: '',
-    lastNameTh: '',
-  });
   const [additionalData, setAdditionalData] = useState({
     phone: '',
     email: '',
     school: '',
   });
 
-  // Mock logs
-  const [logs, setLogs] = useState<any[]>([
-    { id: '1', name: 'สมชาย รักชาติ', cid: '1-1001-00xxx-xx-x', time: '2026-04-30 11:20', status: 'SUCCESS', fullData: { citizenId: '1-1001-00xxx-xx-x', fullNameTh: 'สมชาย รักชาติ', fullNameEn: 'Somchai Rakchart', birthDate: '01/01/1990', gender: 'ชาย', address: '123 ถ.สุขุมวิท กรุงเทพมหานคร', expireDate: '01/01/2030' } },
-    { id: '2', name: 'สมหญิง จริงใจ', cid: '3-4501-00xxx-xx-x', time: '2026-04-30 10:45', status: 'SUCCESS', fullData: { citizenId: '3-4501-00xxx-xx-x', fullNameTh: 'สมหญิง จริงใจ', fullNameEn: 'Somying Jingjai', birthDate: '02/02/1992', gender: 'หญิง', address: '456 ถ.นิมมานเหมินท์ เชียงใหม่', expireDate: '02/02/2032' } },
-    { id: '3', name: 'Unknown', cid: '5-2201-00xxx-xx-x', time: '2026-04-30 09:15', status: 'FAILED' },
-  ]);
+  const [manualData, setManualData] = useState({
+    citizenId: '',
+    prefixTh: '',
+    prefixEn: '',
+    firstNameTh: '',
+    lastNameTh: '',
+    firstNameEn: '',
+    lastNameEn: '',
+    birthDate: '',
+    gender: 'ชาย',
+    address: '',
+  });
 
   useEffect(() => {
     setReader(new ThaiIdCardReader());
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        const readBtn = document.getElementById('btn-read-card');
+        if (readBtn && !readBtn.hasAttribute('disabled')) readBtn.click();
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        const connectBtn = document.getElementById('btn-connect-card');
+        if (connectBtn && !connectBtn.hasAttribute('disabled')) connectBtn.click();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
     if (showSuccessModal && typeof window !== 'undefined') {
+      const baseData = activeTab === 'manual' ? manualData : cardData;
       const dataToEncode = {
-        ...(cardData || {
-          citizenId: manualData.citizenId,
-          fullNameTh: `${manualData.firstNameTh} ${manualData.lastNameTh}`.trim() || 'Manual Entry',
-        }),
+        ...baseData,
         ...additionalData
       };
       try {
@@ -89,7 +108,7 @@ export default function IdCardClient() {
         console.error('Failed to encode ticket data', e);
       }
     }
-  }, [showSuccessModal, cardData, manualData]);
+  }, [showSuccessModal, cardData, manualData, additionalData, activeTab]);
 
   const handleConnect = async () => {
     if (!reader) return;
@@ -113,18 +132,17 @@ export default function IdCardClient() {
       const data = await reader.readAllData();
       if (data) {
         setCardData(data);
-        // Add to logs
-        setLogs(prev => [
-          {
-            id: Date.now().toString(),
-            name: data.fullNameTh,
-            cid: data.citizenId.substring(0, 1) + '-' + data.citizenId.substring(1, 5) + '-xxxxx-xx-x',
-            time: new Date().toLocaleString('th-TH'),
-            status: 'SUCCESS',
-            fullData: data
-          },
-          ...prev
-        ]);
+        if (data.expireDate) {
+          const parts = data.expireDate.split('/');
+          if (parts.length === 3) {
+            const year = parseInt(parts[2]);
+            const currentYear = new Date().getFullYear();
+            const yearCe = year > 2500 ? year - 543 : year;
+            if (yearCe < currentYear) {
+              setError('⚠️ คำเตือน: บัตรประชาชนใบนี้หมดอายุแล้ว');
+            }
+          }
+        }
       } else {
         setError('ไม่สามารถอ่านข้อมูลจากบัตรได้ โปรดเสียบบัตรให้แน่น');
       }
@@ -165,13 +183,15 @@ export default function IdCardClient() {
         </div>
         <Group gap="xs">
           {isConnected ? (
-            <Badge color="green" variant="light" size="lg" leftSection={<IconCheck size={14} />}>
-              เชื่อมต่อแล้ว
-            </Badge>
+            <Group gap={8}>
+              <div style={{width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--mantine-color-green-filled)', boxShadow: '0 0 8px var(--mantine-color-green-filled)'}} />
+              <Badge color="green" variant="light" size="lg">เชื่อมต่อแล้ว (พร้อมอ่าน)</Badge>
+            </Group>
           ) : (
-            <Badge color="gray" variant="light" size="lg">
-              ยังไม่ได้เชื่อมต่อ
-            </Badge>
+            <Group gap={8}>
+              <div style={{width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--mantine-color-red-filled)'}} />
+              <Badge color="red" variant="light" size="lg">ตัดการเชื่อมต่อแล้ว</Badge>
+            </Group>
           )}
         </Group>
       </Group>
@@ -179,10 +199,10 @@ export default function IdCardClient() {
       <Tabs value={activeTab} onChange={setActiveTab} variant="pills" radius="md">
         <Tabs.List grow>
           <Tabs.Tab value="register" leftSection={<IconId size={18} />}>
-            ลงทะเบียน / อ่านบัตร
+            อ่านข้อมูลจากบัตร
           </Tabs.Tab>
-          <Tabs.Tab value="history" leftSection={<IconHistory size={18} />}>
-            ประวัติการอ่าน
+          <Tabs.Tab value="manual" leftSection={<IconUserPlus size={18} />}>
+            กรอกข้อมูลเอง
           </Tabs.Tab>
           <Tabs.Tab value="settings" leftSection={<IconSettings size={18} />}>
             ตั้งค่าเครื่องอ่าน
@@ -194,46 +214,11 @@ export default function IdCardClient() {
         {/* --- Register Tab --- */}
         <Tabs.Panel value="register">
           <Stack gap="md">
-            <Paper withBorder p="xs" radius="md" bg="var(--bg-secondary)">
-              <Group justify="flex-start" gap="sm">
-                <Text size="sm" fw={600}>โหมดการลงทะเบียน:</Text>
-                <SegmentedControl
-                  value={isManualMode ? 'manual' : 'reader'}
-                  onChange={(val) => setIsManualMode(val === 'manual')}
-                  data={[
-                    { 
-                      value: 'reader', 
-                      label: (
-                        <Center style={{ gap: 8 }}>
-                          <IconDeviceUsb size={16} />
-                          <span>เครื่องอ่านบัตร (Reader)</span>
-                        </Center>
-                      )
-                    },
-                    { 
-                      value: 'manual', 
-                      label: (
-                        <Center style={{ gap: 8 }}>
-                          <IconId size={16} />
-                          <span>กรอกข้อมูลเอง (Manual)</span>
-                        </Center>
-                      )
-                    },
-                  ]}
-                  color="skyBlue"
-                  radius="md"
-                  size="sm"
-                />
-              </Group>
-            </Paper>
-
             <Grid gutter="md">
               <Grid.Col span={{ base: 12, md: 5 }}>
                 <Card withBorder radius="md" p="xl" h="100%">
                   <Stack align="center" gap="lg" h="100%" justify="center">
-                    {!isManualMode ? (
-                      // --- Reader Mode ---
-                      !isConnected ? (
+                    {!isConnected ? (
                     <>
                       <Box
                         style={{
@@ -258,32 +243,71 @@ export default function IdCardClient() {
                         size="md" 
                         fullWidth 
                         onClick={handleConnect}
+                        id="btn-connect-card"
                         leftSection={<IconDeviceUsb size={18} />}
                         color="skyBlue"
                       >
                         เชื่อมต่อ USB
                       </Button>
+                      {process.env.NODE_ENV === 'development' && (
+                        <Button
+                          size="xs"
+                          variant="subtle"
+                          color="gray"
+                          onClick={() => {
+                            setCardData({
+                              citizenId: '1-2345-67890-12-3',
+                              fullNameTh: 'นาย สมมติ ทดสอบ',
+                              fullNameEn: 'Mr. Sommot Todsob',
+                              birthDate: '15/04/1995',
+                              gender: 'ชาย',
+                              address: '123/45 ถนนสมมติ แขวงทดสอบ เขตจำลอง กรุงเทพมหานคร 10000',
+                              expireDate: '14/04/2030'
+                            } as any);
+                            setIsConnected(true);
+                          }}
+                        >
+                          [Dev] จำลองข้อมูลบัตร (Mock)
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <>
                       <Box
                         className={isReading ? 'pulse-animation' : ''}
                         style={{
-                          width: 120,
-                          height: 120,
-                          borderRadius: '50%',
-                          background: 'rgba(16, 185, 129, 0.1)',
+                          width: 140,
+                          height: 140,
+                          borderRadius: '16px',
+                          background: 'rgba(16, 185, 129, 0.05)',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          border: '2px solid rgba(16, 185, 129, 0.2)',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          boxShadow: isReading ? '0 0 20px rgba(16, 185, 129, 0.2)' : 'none'
                         }}
                       >
-                        {isReading ? (
-                          <Loader color="green" size="lg" />
-                        ) : (
-                          <IconId size={60} color="var(--color-emerald)" />
-                        )}
+                        {isReading && <div className="scanner-line" />}
+                        
+                        <Stack align="center" gap={0}>
+                          {isReading ? (
+                            <Loader color="green" size="lg" variant="dots" />
+                          ) : (
+                            <IconId size={80} color={isConnected ? "var(--color-emerald)" : "gray"} />
+                          )}
+                        </Stack>
                       </Box>
+
+                      <Badge 
+                        variant="light" 
+                        color={isConnected ? "green" : "gray"} 
+                        size="sm"
+                        leftSection={isConnected ? <IconCheck size={10} /> : null}
+                      >
+                        {isConnected ? "เครื่องอ่านพร้อมทำงาน" : "ยังไม่ได้เชื่อมต่อ"}
+                      </Badge>
                       <Stack align="center" gap={4}>
                         <Text fw={700} size="lg">
                           {isReading ? 'กำลังอ่านข้อมูล...' : 'เสียบบัตรเพื่อเริ่มต้น'}
@@ -293,125 +317,27 @@ export default function IdCardClient() {
                         </Text>
                       </Stack>
                       <Group grow w="100%">
+                      <Stack gap={4} w="100%">
+                        {isReading && (
+                          <Text size="xs" c="green" fw={500} ta="center">กำลังสื่อสารกับสมาร์ทการ์ด...</Text>
+                        )}
                         <Button 
-                          size="md" 
+                          size="lg" 
                           onClick={handleRead} 
+                          id="btn-read-card"
                           loading={isReading}
-                          leftSection={<IconRefresh size={18} />}
+                          leftSection={<IconRefresh size={20} />}
                           variant="filled"
                           color="green"
+                          fullWidth
+                          style={{ height: 54 }}
                         >
-                          อ่านข้อมูลบัตร
+                          เริ่มอ่านข้อมูลบัตร
                         </Button>
-                        <Button size="md" variant="light" color="red" onClick={handleDisconnect}>
-                          ตัดการเชื่อมต่อ
-                        </Button>
+                      </Stack>
                       </Group>
                     </>
-                  )
-                ) : (
-                  // --- Manual Mode ---
-                  <Stack w="100%" gap="md">
-                    <Group gap="xs">
-                      <IconId size={24} color="var(--color-sky)" />
-                      <Text fw={700}>กรอกข้อมูลด้วยตนเอง</Text>
-                    </Group>
-                    <Text size="xs" c="dimmed">ใช้ในกรณีที่เครื่องอ่านบัตรไม่ทำงานหรือบัตรชำรุด</Text>
-                    
-                    <TextInput
-                      label="เลขประจำตัวประชาชน"
-                      placeholder="x-xxxx-xxxxx-xx-x"
-                      required
-                      value={manualData.citizenId}
-                      onChange={(e) => setManualData({ ...manualData, citizenId: e.target.value })}
-                    />
-                    <Grid gutter="xs">
-                      <Grid.Col span={6}>
-                        <TextInput
-                          label="ชื่อ (TH)"
-                          placeholder="เช่น สมชาย"
-                          value={manualData.firstNameTh}
-                          onChange={(e) => setManualData({ ...manualData, firstNameTh: e.target.value })}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={6}>
-                        <TextInput
-                          label="นามสกุล (TH)"
-                          placeholder="เช่น รักชาติ"
-                          value={manualData.lastNameTh}
-                          onChange={(e) => setManualData({ ...manualData, lastNameTh: e.target.value })}
-                        />
-                      </Grid.Col>
-                    </Grid>
-                    
-                    <Grid gutter="xs">
-                      <Grid.Col span={6}>
-                        <TextInput 
-                          label="เบอร์โทรศัพท์" 
-                          placeholder="08X-XXX-XXXX" 
-                          value={additionalData.phone}
-                          onChange={(e) => setAdditionalData({...additionalData, phone: e.target.value})}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={6}>
-                        <TextInput 
-                          label="อีเมล" 
-                          placeholder="example@mail.com" 
-                          value={additionalData.email}
-                          onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={12}>
-                        <TextInput 
-                          label="ชื่อสถาบันการศึกษา / โรงเรียน" 
-                          placeholder="กรอกชื่อสถาบันการศึกษา..." 
-                          value={additionalData.school}
-                          onChange={(e) => setAdditionalData({...additionalData, school: e.target.value})}
-                        />
-                      </Grid.Col>
-                    </Grid>
-                    
-                    <Button 
-                      mt="md"
-                      color="skyBlue"
-                      onClick={() => {
-                        if (!manualData.citizenId) return;
-                        setCardData({
-                          citizenId: manualData.citizenId,
-                          fullNameTh: `${manualData.firstNameTh} ${manualData.lastNameTh}`,
-                          fullNameEn: '-',
-                          birthDate: '-',
-                          gender: '-',
-                          address: 'กรอกข้อมูลด้วยตนเอง',
-                          expireDate: '-'
-                        } as any);
-                        // Add to logs
-                        setLogs(prev => [
-                          {
-                            id: Date.now().toString(),
-                            name: `${manualData.firstNameTh} ${manualData.lastNameTh}` || 'Manual Entry',
-                            cid: manualData.citizenId,
-                            time: new Date().toLocaleString('th-TH'),
-                            status: 'MANUAL',
-                            fullData: {
-                              citizenId: manualData.citizenId,
-                              fullNameTh: `${manualData.firstNameTh} ${manualData.lastNameTh}`,
-                              fullNameEn: '-',
-                              birthDate: '-',
-                              gender: '-',
-                              address: 'กรอกข้อมูลด้วยตนเอง',
-                              expireDate: '-'
-                            }
-                          },
-                          ...prev
-                        ]);
-                      }}
-                    >
-                      ยืนยันข้อมูล
-                    </Button>
-                  </Stack>
-                )}
-
+                    )}
                   {error && (
                     <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" variant="light" w="100%">
                       {error}
@@ -428,10 +354,10 @@ export default function IdCardClient() {
                     <Text fw={700}>ข้อมูลที่อ่านได้</Text>
                     {cardData && (
                       <Button 
-                        size="xs" 
+                        size="md" 
                         variant="filled" 
                         color="green"
-                        leftSection={<IconUserPlus size={14} />}
+                        leftSection={<IconUserPlus size={18} />}
                         onClick={handleRegister}
                         loading={isReading}
                       >
@@ -441,7 +367,7 @@ export default function IdCardClient() {
                   </Group>
                   <Divider />
 
-                  {(cardData || (isManualMode && (manualData.citizenId || manualData.firstNameTh))) ? (
+                  {cardData ? (
                     <Stack gap="md">
                       <Group gap="xl">
                         <Avatar size={100} radius="md" color="blue">
@@ -450,10 +376,10 @@ export default function IdCardClient() {
                         <Stack gap={2}>
                           <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Citizen ID</Text>
                           <Text fw={800} size="xl" c="skyBlue">
-                            {cardData?.citizenId || manualData.citizenId || 'x-xxxx-xxxxx-xx-x'}
+                            {cardData?.citizenId || 'x-xxxx-xxxxx-xx-x'}
                           </Text>
                           <Badge color="blue" variant="dot">
-                            {isManualMode ? 'Manual Entry' : 'Thai National'}
+                            Thai National
                           </Badge>
                         </Stack>
                       </Group>
@@ -463,7 +389,7 @@ export default function IdCardClient() {
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
                             <Text size="xs" c="dimmed">ชื่อ-นามสกุล (TH)</Text>
                             <Text fw={600}>
-                              {cardData?.fullNameTh || (manualData.firstNameTh || manualData.lastNameTh ? `${manualData.firstNameTh} ${manualData.lastNameTh}` : '-')}
+                              {cardData?.fullNameTh || '-'}
                             </Text>
                           </Paper>
                         </Grid.Col>
@@ -494,14 +420,12 @@ export default function IdCardClient() {
                         <Grid.Col span={12}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
                             <Text size="xs" c="dimmed">ที่อยู่</Text>
-                            <Text size="sm">{cardData?.address || (isManualMode ? 'กรอกข้อมูลด้วยตนเอง' : '-')}</Text>
+                            <Text size="sm">{cardData?.address || '-'}</Text>
                           </Paper>
                         </Grid.Col>
                       </Grid>
 
                       <Divider my="sm" />
-                      {!isManualMode && (
-                        <>
                           <Text fw={600} size="sm">ข้อมูลเพิ่มเติมสำหรับการติดต่อ</Text>
                           <Grid gutter="xs">
                             <Grid.Col span={6}>
@@ -509,7 +433,15 @@ export default function IdCardClient() {
                                 label="เบอร์โทรศัพท์" 
                                 placeholder="08X-XXX-XXXX" 
                                 value={additionalData.phone}
-                                onChange={(e) => setAdditionalData({...additionalData, phone: e.target.value})}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(/-/g, '');
+                                  const d = raw.slice(0,10);
+                                  let fmt = d;
+                                  if (d.length > 3) fmt = d.slice(0,3) + '-' + d.slice(3);
+                                  if (d.length > 6) fmt = d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+                                  setAdditionalData({...additionalData, phone: fmt});
+                                }}
+                                maxLength={12}
                               />
                             </Grid.Col>
                             <Grid.Col span={6}>
@@ -529,8 +461,6 @@ export default function IdCardClient() {
                               />
                             </Grid.Col>
                           </Grid>
-                        </>
-                      )}
                     </Stack>
                   ) : (
                     <Center h={300}>
@@ -547,69 +477,165 @@ export default function IdCardClient() {
         </Stack>
       </Tabs.Panel>
 
-        {/* --- History Tab --- */}
-        <Tabs.Panel value="history">
-          <Card withBorder radius="md">
+
+
+        {/* --- Manual Entry Tab --- */}
+        <Tabs.Panel value="manual">
+          <Card withBorder radius="md" p="xl">
             <Stack gap="md">
               <Group justify="space-between">
-                <Text fw={700}>ประวัติการสแกนล่าสุด</Text>
-                <Button variant="subtle" size="xs" leftSection={<IconRefresh size={14} />}>
-                  ล้างประวัติ
+                <Text fw={700}>กรอกข้อมูลลงทะเบียนด้วยตนเอง</Text>
+                <Button 
+                  size="md" 
+                  variant="filled" 
+                  color="green"
+                  leftSection={<IconUserPlus size={18} />}
+                  onClick={handleRegister}
+                  loading={isReading}
+                >
+                  ลงทะเบียนสมาชิก
                 </Button>
               </Group>
+              <Divider />
+
+              <TextInput 
+                label="เลขบัตรประชาชน" 
+                placeholder="x-xxxx-xxxxx-xx-x" 
+                value={manualData.citizenId}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/-/g, '');
+                  const d = raw.slice(0,13);
+                  let fmt = d;
+                  if (d.length > 1) fmt = d[0] + '-' + d.slice(1);
+                  if (d.length > 5) fmt = d[0] + '-' + d.slice(1,5) + '-' + d.slice(5);
+                  if (d.length > 10) fmt = d[0] + '-' + d.slice(1,5) + '-' + d.slice(5,10) + '-' + d.slice(10);
+                  if (d.length > 12) fmt = d[0] + '-' + d.slice(1,5) + '-' + d.slice(5,10) + '-' + d.slice(10,12) + '-' + d.slice(12);
+                  setManualData({...manualData, citizenId: fmt});
+                }}
+                maxLength={17}
+              />
+
+              <Group grow>
+                <Select
+                  label="คำนำหน้า (TH)"
+                  placeholder="เลือก"
+                  data={['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง']}
+                  style={{ flex: '0 0 120px' }}
+                  value={manualData.prefixTh}
+                  onChange={(val) => {
+                    const en = val ? PREFIX_MAP[val] : '';
+                    setManualData({ 
+                      ...manualData, 
+                      prefixTh: val || '',
+                      prefixEn: en || manualData.prefixEn
+                    });
+                  }}
+                />
+                <TextInput 
+                  label="ชื่อ (ภาษาไทย)" 
+                  placeholder="ชื่อ" 
+                  value={manualData.firstNameTh}
+                  onChange={(e) => setManualData({...manualData, firstNameTh: e.target.value})}
+                />
+                <TextInput 
+                  label="นามสกุล (ภาษาไทย)" 
+                  placeholder="นามสกุล" 
+                  value={manualData.lastNameTh}
+                  onChange={(e) => setManualData({...manualData, lastNameTh: e.target.value})}
+                />
+              </Group>
+
+              <Group grow>
+                <Select
+                  label="Prefix (EN)"
+                  placeholder="Select"
+                  data={['Mr.', 'Mrs.', 'Ms.', 'Master', 'Miss']}
+                  style={{ flex: '0 0 120px' }}
+                  value={manualData.prefixEn}
+                  onChange={(val) => setManualData({ ...manualData, prefixEn: val || '' })}
+                />
+                <TextInput 
+                  label="ชื่อ (English)" 
+                  placeholder="First Name" 
+                  value={manualData.firstNameEn}
+                  onChange={(e) => setManualData({...manualData, firstNameEn: e.target.value})}
+                />
+                <TextInput 
+                  label="นามสกุล (English)" 
+                  placeholder="Last Name" 
+                  value={manualData.lastNameEn}
+                  onChange={(e) => setManualData({...manualData, lastNameEn: e.target.value})}
+                />
+              </Group>
+
+              <Group grow>
+                <TextInput 
+                  label="วันเกิด (ระบุเป็น พ.ศ.)" 
+                  placeholder="เช่น 15/04/2538" 
+                  value={manualData.birthDate}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\//g, '');
+                    const d = raw.slice(0,8);
+                    let fmt = d;
+                    if (d.length > 2) fmt = d.slice(0,2) + '/' + d.slice(2);
+                    if (d.length > 4) fmt = d.slice(0,2) + '/' + d.slice(2,4) + '/' + d.slice(4);
+                    setManualData({...manualData, birthDate: fmt});
+                  }}
+                  maxLength={10}
+                />
+                <Select
+                  label="เพศ"
+                  placeholder="เลือกเพศ"
+                  data={['ชาย', 'หญิง']}
+                  value={manualData.gender}
+                  onChange={(val) => setManualData({...manualData, gender: val || ''})}
+                />
+              </Group>
+
+              <TextInput 
+                label="ที่อยู่" 
+                placeholder="บ้านเลขที่ หมู่ ซอย ถนน แขวง เขต จังหวัด รหัสไปรษณีย์" 
+                value={manualData.address}
+                onChange={(e) => setManualData({...manualData, address: e.target.value})}
+              />
+
+              <Divider my="sm" />
+              <Text fw={600} size="sm">ข้อมูลเพิ่มเติมสำหรับการติดต่อ</Text>
               
-              <Table.ScrollContainer minWidth={500}>
-                <Table verticalSpacing="sm">
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>ชื่อ-นามสกุล</Table.Th>
-                      <Table.Th>เลขบัตร</Table.Th>
-                      <Table.Th>เวลาที่สแกน</Table.Th>
-                      <Table.Th>สถานะ</Table.Th>
-                      <Table.Th />
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {logs.map((item) => (
-                      <Table.Tr key={item.id}>
-                        <Table.Td>
-                          <Text size="sm" fw={500}>{item.name}</Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Text size="xs" ff="monospace">{item.cid}</Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Text size="xs" c="dimmed">{item.time}</Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Badge 
-                            color={item.status === 'SUCCESS' ? 'green' : 'red'} 
-                            variant="light" 
-                            size="sm"
-                          >
-                            {item.status}
-                          </Badge>
-                        </Table.Td>
-                        <Table.Td>
-                          <Group gap={4} justify="flex-end">
-                            <Tooltip label="ดูรายละเอียด">
-                              <ActionIcon variant="subtle" size="sm" onClick={() => setSelectedLog(item)}>
-                                <IconId size={16} />
-                              </ActionIcon>
-                            </Tooltip>
-                            <ActionIcon variant="subtle" color="red" size="sm">
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
+              <TextInput 
+                label="ชื่อสถาบันการศึกษา / โรงเรียน" 
+                placeholder="กรอกชื่อสถาบันการศึกษา..." 
+                value={additionalData.school}
+                onChange={(e) => setAdditionalData({...additionalData, school: e.target.value})}
+              />
+
+              <Group grow>
+                <TextInput 
+                  label="อีเมล" 
+                  placeholder="example@mail.com" 
+                  value={additionalData.email}
+                  onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
+                />
+                <TextInput 
+                  label="เบอร์โทรศัพท์" 
+                  placeholder="08X-XXX-XXXX" 
+                  value={additionalData.phone}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/-/g, '');
+                    const d = raw.slice(0,10);
+                    let fmt = d;
+                    if (d.length > 3) fmt = d.slice(0,3) + '-' + d.slice(3);
+                    if (d.length > 6) fmt = d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+                    setAdditionalData({...additionalData, phone: fmt});
+                  }}
+                  maxLength={12}
+                />
+              </Group>
             </Stack>
           </Card>
         </Tabs.Panel>
+
+
 
         {/* --- Settings Tab --- */}
         <Tabs.Panel value="settings">
@@ -667,83 +693,31 @@ export default function IdCardClient() {
       <style jsx global>{`
         @keyframes pulse {
           0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.1); opacity: 0.7; }
+          50% { transform: scale(1.05); opacity: 0.8; }
           100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes scan {
+          0% { top: 0%; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
         }
         .pulse-animation {
           animation: pulse 2s infinite ease-in-out;
         }
+        .scanner-line {
+          position: absolute;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: var(--color-emerald);
+          box-shadow: 0 0 8px var(--color-emerald);
+          z-index: 10;
+          animation: scan 2s infinite linear;
+        }
       `}</style>
 
-      {/* --- Detail Modal --- */}
-      <Modal
-        opened={!!selectedLog}
-        onClose={() => setSelectedLog(null)}
-        title={<Text fw={700}>รายละเอียดข้อมูล</Text>}
-        centered
-        size="lg"
-        radius="md"
-      >
-        {selectedLog && (
-          <Stack gap="md">
-            <Group gap="xl">
-              <Avatar size={100} radius="md" color="blue">
-                <IconId size={60} />
-              </Avatar>
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Citizen ID</Text>
-                <Text fw={800} size="xl" c="skyBlue">
-                  {selectedLog.fullData?.citizenId || selectedLog.cid}
-                </Text>
-                <Badge color={selectedLog.status === 'SUCCESS' ? 'green' : selectedLog.status === 'MANUAL' ? 'blue' : 'red'} variant="dot">
-                  {selectedLog.status === 'SUCCESS' ? 'Thai National' : selectedLog.status === 'MANUAL' ? 'Manual Entry' : 'Failed / Unknown'}
-                </Badge>
-              </Stack>
-            </Group>
 
-            <Grid gutter="xs">
-              <Grid.Col span={6}>
-                <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                  <Text size="xs" c="dimmed">ชื่อ-นามสกุล (TH)</Text>
-                  <Text fw={600}>
-                    {selectedLog.fullData?.fullNameTh || selectedLog.name || '-'}
-                  </Text>
-                </Paper>
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                  <Text size="xs" c="dimmed">Full Name (EN)</Text>
-                  <Text fw={600}>{selectedLog.fullData?.fullNameEn || '-'}</Text>
-                </Paper>
-              </Grid.Col>
-              <Grid.Col span={4}>
-                <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                  <Text size="xs" c="dimmed">วันเกิด</Text>
-                  <Text fw={600}>{selectedLog.fullData?.birthDate || '-'}</Text>
-                </Paper>
-              </Grid.Col>
-              <Grid.Col span={4}>
-                <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                  <Text size="xs" c="dimmed">เพศ</Text>
-                  <Text fw={600}>{selectedLog.fullData?.gender || '-'}</Text>
-                </Paper>
-              </Grid.Col>
-              <Grid.Col span={4}>
-                <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                  <Text size="xs" c="dimmed">วันหมดอายุ</Text>
-                  <Text fw={600} color="red">{selectedLog.fullData?.expireDate || '-'}</Text>
-                </Paper>
-              </Grid.Col>
-              <Grid.Col span={12}>
-                <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                  <Text size="xs" c="dimmed">ที่อยู่</Text>
-                  <Text size="sm">{selectedLog.fullData?.address || '-'}</Text>
-                </Paper>
-              </Grid.Col>
-            </Grid>
-          </Stack>
-        )}
-      </Modal>
 
       {/* --- Success Registration Modal --- */}
       <Modal
@@ -783,8 +757,14 @@ export default function IdCardClient() {
           </Box>
           
           <Stack align="center" gap={4}>
-            <Text fw={700}>{cardData?.fullNameTh || `${manualData.firstNameTh} ${manualData.lastNameTh}`.trim() || 'Manual Entry'}</Text>
-            <Text size="sm" c="dimmed">เลขบัตร: {cardData?.citizenId || manualData.citizenId}</Text>
+            <Text fw={700}>
+              {activeTab === 'manual' 
+                ? `${manualData.prefixTh}${manualData.firstNameTh} ${manualData.lastNameTh}` 
+                : cardData?.fullNameTh}
+            </Text>
+            <Text size="sm" c="dimmed">
+              เลขบัตร: {activeTab === 'manual' ? manualData.citizenId : cardData?.citizenId}
+            </Text>
           </Stack>
 
           <Group grow w="100%">

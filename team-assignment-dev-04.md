@@ -15,9 +15,9 @@
 
 | กลุ่มงาน | เมนู / Deliverable | เอกสารอ้างอิง |
 |----------|-------------------|---------------|
-| สมาชิก (UI) | `/admin/members/*` เชื่อม API ที่ Dev 1 กำหนดสัญญา | [08-api-reference.md](./08-api-reference.md) |
-| แจ้งเตือน | In-app bell, ตั้งค่า LINE/Email, trigger ตามสเปก | [12-notification-system.md](./12-notification-system.md) |
-| บัตรประชาชน | Web USB, หน้าลงทะเบียน, `IdCardSession` (**Phase 2**) | [04-thai-id-card-reader.md](./04-thai-id-card-reader.md) |
+| สมาชิก (UI) | `/admin/members/*` เชื่อม API ที่ Dev 1 กำหนดสัญญา<br/>**(เน้น)** มีหน้าดูประวัติเข้า-ออก (Access History) ในโปรไฟล์สมาชิก<br/>**(เพิ่ม)** Bulk Import/Export, กรองข้อมูลแบบละเอียด, Member Dashboard Summary, ปุ่มสร้าง QR Code ใหม่ | [08-api-reference.md](./08-api-reference.md) |
+| แจ้งเตือน | In-app bell, ตั้งค่า LINE/Email, trigger ตามสเปก<br/>**(เพิ่ม)** จัดกลุ่มแจ้งเตือน (Grouping), ปุ่มอ่านทั้งหมด, กรองเฉพาะที่ยังไม่อ่าน, Browser Push Notifications, Custom Alert Sounds | [12-notification-system.md](./12-notification-system.md) |
+| บัตรประชาชน | Web USB **(เน้นสำหรับใช้กรอกข้อมูลลงฟอร์มลงทะเบียนสมาชิกเป็นหลัก)**<br/>**(เพิ่ม)** ดึงรูป/กรอกข้อมูลลงฟอร์มให้อัตโนมัติ (Auto-fill), ตรวจสอบวันหมดอายุบัตร, คีย์ลัด (Keyboard Shortcuts), UI แสดงไฟสถานะ | [04-thai-id-card-reader.md](./04-thai-id-card-reader.md) |
 | ทีม / workflow | ปฏิบัติตาม branching & convention ใน repo | [13-team-collaboration.md](./13-team-collaboration.md) |
 
 ### เส้นทาง UI / API โดยย่อ
