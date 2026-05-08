@@ -13,8 +13,10 @@ import {
   Group,
   Loader,
   Center,
+  Switch,
+  Badge,
 } from '@mantine/core';
-import { IconBell, IconAlertCircle, IconCheck, IconInfoCircle } from '@tabler/icons-react';
+import { IconBell, IconAlertCircle, IconCheck, IconInfoCircle, IconVolume, IconVolume3 } from '@tabler/icons-react';
 import { getNotifications, markAsRead, markAllAsRead } from '@/lib/notifications/actions';
 
 interface Notification {
@@ -30,6 +32,8 @@ export default function NotificationBell() {
   const [opened, setOpened] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [enableSound, setEnableSound] = useState(true);
 
   // ในระบบจริงจะใช้ ID จาก Auth
   const MOCK_USER_ID = 'system-admin';
@@ -51,6 +55,18 @@ export default function NotificationBell() {
   }, []);
 
   const unreadCount = notifications.filter(n => !n.readAt).length;
+
+  const displayedNotifs = notifications
+    .filter(n => showUnreadOnly ? !n.readAt : true)
+    .reduce((acc, current) => {
+      const existing = acc.find(n => n.title === current.title && !!n.readAt === !!current.readAt);
+      if (existing) {
+        existing.groupedCount = (existing.groupedCount || 1) + 1;
+      } else {
+        acc.push({ ...current, groupedCount: 1 });
+      }
+      return acc;
+    }, [] as (Notification & { groupedCount?: number })[]);
 
   const handleMarkAsRead = async (id: string) => {
     const res = await markAsRead(id);
@@ -105,16 +121,25 @@ export default function NotificationBell() {
 
       <Popover.Dropdown p={0}>
         <Box p="xs">
-          <Group justify="space-between">
+          <Group justify="space-between" mb="xs">
             <Text fw={700} size="sm">การแจ้งเตือน</Text>
-            <Text 
-              size="xs" 
-              c="blue" 
-              style={{ cursor: 'pointer' }}
-              onClick={handleMarkAllAsRead}
-            >
-              อ่านทั้งหมด
-            </Text>
+            <Group gap="xs">
+              <ActionIcon variant="subtle" size="sm" onClick={() => setEnableSound(!enableSound)} title="เปิด/ปิด เสียงเตือน">
+                {enableSound ? <IconVolume size={16} /> : <IconVolume3 size={16} />}
+              </ActionIcon>
+              <Text 
+                size="xs" 
+                c="blue" 
+                style={{ cursor: 'pointer' }}
+                onClick={handleMarkAllAsRead}
+              >
+                อ่านทั้งหมด
+              </Text>
+            </Group>
+          </Group>
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed">เฉพาะยังไม่อ่าน</Text>
+            <Switch size="xs" checked={showUnreadOnly} onChange={(event) => setShowUnreadOnly(event.currentTarget.checked)} />
           </Group>
         </Box>
         <Divider />
@@ -125,7 +150,7 @@ export default function NotificationBell() {
             <Center p="xl"><Text size="xs" c="dimmed">ไม่มีการแจ้งเตือน</Text></Center>
           ) : (
             <Stack gap={0}>
-              {notifications.map((notif) => (
+              {displayedNotifs.map((notif) => (
                 <Box 
                   key={notif.id} 
                   p="xs" 
@@ -138,8 +163,15 @@ export default function NotificationBell() {
                 >
                   <Group align="flex-start" wrap="nowrap" gap="sm">
                     <Box mt={4}>{getIcon(notif.level)}</Box>
-                    <Stack gap={2}>
-                      <Text size="sm" fw={notif.readAt ? 500 : 700}>{notif.title}</Text>
+                    <Stack gap={2} style={{ flex: 1 }}>
+                      <Group justify="space-between" wrap="nowrap">
+                        <Text size="sm" fw={notif.readAt ? 500 : 700} lineClamp={1}>{notif.title}</Text>
+                        {notif.groupedCount && notif.groupedCount > 1 && (
+                          <Badge size="xs" variant="filled" color="blue" circle>
+                            {notif.groupedCount}
+                          </Badge>
+                        )}
+                      </Group>
                       <Text size="xs" c="dimmed" lineClamp={2}>{notif.message}</Text>
                       <Text size="xs" c="dimmed" mt={2}>{formatTime(notif.createdAt)}</Text>
                     </Stack>

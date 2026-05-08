@@ -32,6 +32,12 @@ export async function addMember(data: any) {
         memberType: data.memberType as MemberType,
         status: (data.status as MemberStatus) || 'ACTIVE',
         expireDate: data.expireDate ? new Date(data.expireDate) : null,
+        metadata: {
+          birthDate: data.birthDate || '',
+          gender: data.gender || '',
+          address: data.address || '',
+          school: data.school || ''
+        },
       },
     });
     return { success: true, member };
@@ -57,6 +63,12 @@ export async function updateMember(id: string, data: any) {
         memberType: data.memberType as MemberType,
         status: data.status as MemberStatus,
         expireDate: data.expireDate ? new Date(data.expireDate) : null,
+        metadata: {
+          birthDate: data.birthDate || '',
+          gender: data.gender || '',
+          address: data.address || '',
+          school: data.school || ''
+        },
       },
     });
     return { success: true, member };

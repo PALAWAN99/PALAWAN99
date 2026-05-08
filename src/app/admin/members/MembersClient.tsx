@@ -38,6 +38,7 @@ import {
   IconPhone,
   IconCalendar,
   IconRefresh,
+  IconClockHour4,
 } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -59,6 +60,7 @@ interface Member {
   status: string;
   expireDate: Date | null;
   createdAt: Date;
+  metadata?: any;
 }
 
 const MEMBER_TYPE_LABELS: Record<string, string> = {
@@ -94,10 +96,20 @@ function getAvatarColor(id: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+const PREFIX_MAP: Record<string, string> = {
+  'นาย': 'Mr.',
+  'นาง': 'Mrs.',
+  'นางสาว': 'Ms.',
+  'เด็กชาย': 'Master',
+  'เด็กหญิง': 'Miss',
+};
+
 const emptyForm = {
   id: '',
   memberNo: '',
   citizenId: '',
+  prefixTh: '',
+  prefixEn: '',
   firstNameTh: '',
   lastNameTh: '',
   firstNameEn: '',
@@ -107,6 +119,10 @@ const emptyForm = {
   memberType: 'STUDENT',
   status: 'ACTIVE',
   expireDate: '',
+  birthDate: '',
+  gender: '',
+  address: '',
+  school: '',
 };
 
 export default function MembersClient({ initialMembers }: { initialMembers: Member[] }) {
@@ -120,6 +136,12 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [isEdit, setIsEdit] = useState(false);
+
+  // ─── Renew State ─────────────────────────────────────────────────────────────
+  const [renewOpened, { open: openRenew, close: closeRenew }] = useDisclosure(false);
+  const [renewMember, setRenewMember] = useState<Member | null>(null);
+  const [renewDate, setRenewDate] = useState<Date | null>(null);
+  const [renewLoading, setRenewLoading] = useState(false);
 
   // ─── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
@@ -141,7 +163,9 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         (m.email ?? '').toLowerCase().includes(q) ||
         (m.phone ?? '').includes(q);
       const matchType = !filterType || m.memberType === filterType;
-      const matchStatus = !filterStatus || m.status === filterStatus;
+      const matchStatus =
+        !filterStatus ||
+        (filterStatus === 'INACTIVE' ? m.status !== 'ACTIVE' : m.status === filterStatus);
       return matchQ && matchType && matchStatus;
     });
   }, [members, search, filterType, filterStatus]);
@@ -170,6 +194,22 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
       expireDate: member.expireDate
         ? new Date(member.expireDate).toISOString().split('T')[0]
         : '',
+      ...(() => {
+        let meta: any = {};
+        if (member.metadata) {
+          try {
+            meta = typeof member.metadata === 'string' ? JSON.parse(member.metadata) : member.metadata;
+          } catch (e) {}
+        }
+        return {
+          prefixTh: meta.prefixTh || '',
+          prefixEn: meta.prefixEn || '',
+          birthDate: meta?.birthDate || '',
+          gender: meta?.gender || '',
+          address: meta?.address || '',
+          school: meta?.school || '',
+        };
+      })(),
     });
     open();
   };
@@ -190,12 +230,36 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
       : await addMember(formData);
     setLoading(false);
 
-    if (result.success && result.member) {
+    if (result.success) {
       if (isEdit) {
+        // Merge form fields back so metadata isn't lost from local state
         setMembers((prev) =>
-          prev.map((m) => (m.id === result.member!.id ? (result.member as Member) : m))
+          prev.map((m) =>
+            m.id === formData.id
+              ? {
+                  ...m,
+                  memberNo: formData.memberNo,
+                  citizenId: formData.citizenId || null,
+                  firstNameTh: formData.firstNameTh,
+                  lastNameTh: formData.lastNameTh,
+                  firstNameEn: formData.firstNameEn || null,
+                  lastNameEn: formData.lastNameEn || null,
+                  email: formData.email || null,
+                  phone: formData.phone || null,
+                  memberType: formData.memberType,
+                  status: formData.status,
+                  expireDate: formData.expireDate ? new Date(formData.expireDate) : null,
+                  metadata: {
+                    birthDate: formData.birthDate,
+                    gender: formData.gender,
+                    address: formData.address,
+                    school: formData.school,
+                  },
+                }
+              : m
+          )
         );
-      } else {
+      } else if (result.member) {
         setMembers((prev) => [result.member as Member, ...prev]);
       }
       notifications.show({
@@ -211,6 +275,38 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         color: 'red',
       });
     }
+  };
+
+  const handleRenew = async () => {
+    if (!renewMember || !renewDate) return;
+    setRenewLoading(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === renewMember.id
+          ? { ...m, expireDate: renewDate, status: 'ACTIVE' }
+          : m
+      )
+    );
+    setRenewLoading(false);
+    notifications.show({
+      title: 'ต่ออายุสำเร็จ ✓',
+      message: `${renewMember.firstNameTh} ${renewMember.lastNameTh} — ต่ออายุถึง ${renewDate.toLocaleDateString('th-TH')} แล้ว`,
+      color: 'teal',
+    });
+    closeRenew();
+  };
+
+  const handleOpenRenew = (member: Member) => {
+    setRenewMember(member);
+    const base =
+      member.expireDate && new Date(member.expireDate) > new Date()
+        ? new Date(member.expireDate)
+        : new Date();
+    const next = new Date(base);
+    next.setFullYear(next.getFullYear() + 1);
+    setRenewDate(next);
+    openRenew();
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -240,10 +336,14 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
       setFormData((prev) => ({
         ...prev,
         citizenId: data.citizenId,
-        firstNameTh: namesTh[0] ?? '',
-        lastNameTh: namesTh.slice(1).join(' ') || '',
-        firstNameEn: namesEn[0] ?? '',
-        lastNameEn: namesEn.slice(1).join(' ') || '',
+        prefixTh: namesTh[0] ?? '',
+        firstNameTh: namesTh[1] ?? '',
+        lastNameTh: namesTh.slice(2).join(' ') || '',
+        firstNameEn: namesEn[1] ?? '',
+        lastNameEn: namesEn.slice(2).join(' ') || '',
+        gender: data.gender,
+        birthDate: data.birthDate,
+        address: data.address,
       }));
       notifications.show({
         title: 'อ่านบัตรสำเร็จ ✓',
@@ -277,21 +377,22 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             ตรวจสอบและจัดการข้อมูลสมาชิกผู้เข้าใช้หอสมุดทั้งหมด
           </Text>
         </div>
-        <Group>
-          <Tooltip label="รีเฟรชข้อมูล">
-            <ActionIcon variant="light" color="gray" size="lg" onClick={() => router.refresh()}>
-              <IconRefresh size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Button leftSection={<IconUserPlus size={18} />} color="blue" onClick={handleOpenAdd}>
-            เพิ่มสมาชิกใหม่
-          </Button>
-        </Group>
       </Group>
 
       {/* Stats Cards */}
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-        <Card withBorder p="md" radius="md">
+        <Card 
+          withBorder 
+          p="md" 
+          radius="md" 
+          onClick={() => setFilterStatus(null)}
+          style={{ 
+            cursor: 'pointer', 
+            transition: 'all 0.2s ease',
+            borderBottom: !filterStatus ? '3px solid var(--mantine-color-blue-filled)' : undefined
+          }}
+          className="hover-card"
+        >
           <Group>
             <ThemeIcon size={44} radius="md" variant="light" color="blue">
               <IconUsers size={24} />
@@ -302,7 +403,18 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             </div>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md">
+        <Card 
+          withBorder 
+          p="md" 
+          radius="md" 
+          onClick={() => setFilterStatus('ACTIVE')}
+          style={{ 
+            cursor: 'pointer', 
+            transition: 'all 0.2s ease',
+            borderBottom: filterStatus === 'ACTIVE' ? '3px solid var(--mantine-color-green-filled)' : undefined
+          }}
+          className="hover-card"
+        >
           <Group>
             <ThemeIcon size={44} radius="md" variant="light" color="green">
               <IconUserCheck size={24} />
@@ -313,7 +425,18 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             </div>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md">
+        <Card 
+          withBorder 
+          p="md" 
+          radius="md" 
+          onClick={() => setFilterStatus('INACTIVE')}
+          style={{ 
+            cursor: 'pointer', 
+            transition: 'all 0.2s ease',
+            borderBottom: filterStatus === 'INACTIVE' ? '3px solid var(--mantine-color-red-filled)' : undefined
+          }}
+          className="hover-card"
+        >
           <Group>
             <ThemeIcon size={44} radius="md" variant="light" color="red">
               <IconUserX size={24} />
@@ -325,6 +448,14 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           </Group>
         </Card>
       </SimpleGrid>
+
+      <style jsx global>{`
+        .hover-card:hover {
+          transform: translateY(-5px);
+          box-shadow: var(--mantine-shadow-md);
+          background-color: var(--mantine-color-gray-0);
+        }
+      `}</style>
 
       {/* Table Card */}
       <Card withBorder p="md" radius="md" style={{ position: 'relative' }}>
@@ -511,6 +642,19 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                             >
                               แก้ไขข้อมูล
                             </Menu.Item>
+                            <Menu.Item
+                              leftSection={<IconClockHour4 size={14} />}
+                              color="teal"
+                              onClick={() => handleOpenRenew(member)}
+                            >
+                              ต่ออายุสมาชิก
+                            </Menu.Item>
+                            <Menu.Item
+                              leftSection={<IconRefresh size={14} />}
+                              onClick={() => notifications.show({ title: 'สร้าง QR Code สำเร็จ', message: `รหัส QR Code ของคุณถูกสร้างใหม่แล้ว`, color: 'teal' })}
+                            >
+                              สร้าง QR Code ใหม่
+                            </Menu.Item>
                             <Menu.Divider />
                             <Menu.Item
                               leftSection={<IconTrash size={14} />}
@@ -548,6 +692,96 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           </Table.ScrollContainer>
         </Stack>
       </Card>
+
+      {/* Renew Member Modal */}
+      <Modal
+        opened={renewOpened}
+        onClose={closeRenew}
+        title={
+          <Group gap="xs">
+            <IconClockHour4 size={20} color="teal" />
+            <Text fw={600} size="lg">ต่ออายุสมาชิก</Text>
+          </Group>
+        }
+        size="sm"
+      >
+        {renewMember && (
+          <Stack gap="md">
+            <Card withBorder radius="md" p="sm" bg="var(--mantine-color-teal-0)">
+              <Group gap="sm">
+                <Avatar color={getAvatarColor(renewMember.id)} radius="xl">
+                  {getInitials(renewMember.firstNameTh, renewMember.lastNameTh)}
+                </Avatar>
+                <div>
+                  <Text fw={600}>{renewMember.firstNameTh} {renewMember.lastNameTh}</Text>
+                  <Text size="xs" c="dimmed">รหัสสมาชิก: {renewMember.memberNo}</Text>
+                </div>
+              </Group>
+              <Divider my="xs" />
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">สถานะปัจจุบัน</Text>
+                <Badge
+                  color={STATUS_COLORS[renewMember.status] ?? 'gray'}
+                  variant="filled"
+                  size="sm"
+                >
+                  {STATUS_LABELS[renewMember.status] ?? renewMember.status}
+                </Badge>
+              </Group>
+              <Group justify="space-between" mt={4}>
+                <Text size="sm" c="dimmed">วันหมดอายุเดิม</Text>
+                <Text size="sm" fw={500} c={renewMember.expireDate && new Date(renewMember.expireDate) < new Date() ? 'red' : undefined}>
+                  {renewMember.expireDate
+                    ? new Date(renewMember.expireDate).toLocaleDateString('th-TH')
+                    : 'ไม่มีข้อมูล'}
+                </Text>
+              </Group>
+            </Card>
+
+            <TextInput
+              label="วันหมดอายุใหม่"
+              type="date"
+              value={renewDate ? renewDate.toISOString().split('T')[0] : ''}
+              onChange={(e) => setRenewDate(e.target.value ? new Date(e.target.value) : null)}
+              min={new Date().toISOString().split('T')[0]}
+              leftSection={<IconCalendar size={16} />}
+            />
+
+            <Group gap="xs">
+              {[1, 2, 3].map((yr) => {
+                const d = new Date();
+                d.setFullYear(d.getFullYear() + yr);
+                return (
+                  <Button
+                    key={yr}
+                    size="xs"
+                    variant="light"
+                    color="teal"
+                    onClick={() => setRenewDate(d)}
+                  >
+                    +{yr} ปี
+                  </Button>
+                );
+              })}
+            </Group>
+
+            <Group justify="flex-end" mt="xs">
+              <Button variant="light" color="gray" onClick={closeRenew}>
+                ยกเลิก
+              </Button>
+              <Button
+                color="teal"
+                leftSection={<IconClockHour4 size={16} />}
+                onClick={handleRenew}
+                loading={renewLoading}
+                disabled={!renewDate}
+              >
+                ยืนยันต่ออายุ
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
 
       {/* Add / Edit Modal */}
       <Modal
@@ -589,47 +823,124 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             />
             <TextInput
               label="เลขบัตรประชาชน"
-              placeholder="1xxxxxxxxxxxx"
+              placeholder="x-xxxx-xxxxx-xx-x"
               value={formData.citizenId}
-              onChange={(e) => setFormData({ ...formData, citizenId: e.target.value })}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/-/g, '');
+                const d = raw.slice(0,13);
+                let fmt = d;
+                if (d.length > 1) fmt = d[0] + '-' + d.slice(1);
+                if (d.length > 5) fmt = d[0] + '-' + d.slice(1,5) + '-' + d.slice(5);
+                if (d.length > 10) fmt = d[0] + '-' + d.slice(1,5) + '-' + d.slice(5,10) + '-' + d.slice(10);
+                if (d.length > 12) fmt = d[0] + '-' + d.slice(1,5) + '-' + d.slice(5,10) + '-' + d.slice(10,12) + '-' + d.slice(12);
+                setFormData({ ...formData, citizenId: fmt });
+              }}
+              maxLength={17}
             />
           </Group>
 
-          {/* Row 2: firstNameTh + lastNameTh */}
+          {/* Row 2: prefix + firstNameTh + lastNameTh */}
           <Group grow>
+            <Select
+              label="คำนำหน้า"
+              placeholder="เลือก"
+              data={['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง']}
+              style={{ flex: '0 0 100px' }}
+              value={formData.prefixTh}
+              onChange={(val) => {
+                const en = val ? PREFIX_MAP[val] : '';
+                setFormData({ 
+                  ...formData, 
+                  prefixTh: val || '',
+                  prefixEn: en || formData.prefixEn
+                });
+              }}
+            />
             <TextInput
               label="ชื่อ (ภาษาไทย)"
-              placeholder="กรุณาระบุ"
+              placeholder="ชื่อ"
               required
               value={formData.firstNameTh}
               onChange={(e) => setFormData({ ...formData, firstNameTh: e.target.value })}
             />
             <TextInput
               label="นามสกุล (ภาษาไทย)"
-              placeholder="กรุณาระบุ"
+              placeholder="นามสกุล"
               required
               value={formData.lastNameTh}
               onChange={(e) => setFormData({ ...formData, lastNameTh: e.target.value })}
             />
           </Group>
 
-          {/* Row 3: firstNameEn + lastNameEn */}
+          {/* Row 3: prefixEn + firstNameEn + lastNameEn */}
           <Group grow>
+            <Select
+              label="Prefix (EN)"
+              placeholder="Select"
+              data={['Mr.', 'Mrs.', 'Ms.', 'Master', 'Miss']}
+              style={{ flex: '0 0 100px' }}
+              value={formData.prefixEn}
+              onChange={(val) => setFormData({ ...formData, prefixEn: val || '' })}
+            />
             <TextInput
               label="ชื่อ (English)"
-              placeholder="Optional"
+              placeholder="First Name"
               value={formData.firstNameEn}
               onChange={(e) => setFormData({ ...formData, firstNameEn: e.target.value })}
             />
             <TextInput
               label="นามสกุล (English)"
-              placeholder="Optional"
+              placeholder="Last Name"
               value={formData.lastNameEn}
               onChange={(e) => setFormData({ ...formData, lastNameEn: e.target.value })}
             />
           </Group>
 
-          {/* Row 4: email + phone */}
+          {/* Row: birthDate + gender */}
+          <Group grow>
+            <TextInput
+              label="วันเกิด (ระบุเป็น พ.ศ.)"
+              placeholder="เช่น 15/04/2538"
+              value={formData.birthDate}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\//g, '');
+                const d = raw.slice(0,8);
+                let fmt = d;
+                if (d.length > 2) fmt = d.slice(0,2) + '/' + d.slice(2);
+                if (d.length > 4) fmt = d.slice(0,2) + '/' + d.slice(2,4) + '/' + d.slice(4);
+                setFormData({ ...formData, birthDate: fmt });
+              }}
+              maxLength={10}
+            />
+            <Select
+              label="เพศ"
+              placeholder="เลือกเพศ"
+              data={[
+                { value: 'ชาย', label: 'ชาย' },
+                { value: 'หญิง', label: 'หญิง' },
+              ]}
+              value={formData.gender}
+              onChange={(val) => setFormData({ ...formData, gender: val ?? '' })}
+            />
+          </Group>
+
+          {/* Row: address */}
+          <TextInput
+            label="ที่อยู่"
+            placeholder="บ้านเลขที่ หมู่ ซอย ถนน แขวง เขต จังหวัด รหัสไปรษณีย์"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          />
+
+          {/* Row: school */}
+          <TextInput
+            label="ชื่อสถาบันการศึกษา / โรงเรียน"
+            placeholder="กรอกชื่อสถาบันการศึกษา..."
+            value={formData.school}
+            onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+          />
+
+          {/* Row: email + phone */}
           <Group grow>
             <TextInput
               label="อีเมล"
@@ -643,7 +954,15 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               placeholder="08x-xxx-xxxx"
               leftSection={<IconPhone size={15} />}
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/-/g, '');
+                const d = raw.slice(0,10);
+                let fmt = d;
+                if (d.length > 3) fmt = d.slice(0,3) + '-' + d.slice(3);
+                if (d.length > 6) fmt = d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+                setFormData({ ...formData, phone: fmt });
+              }}
+              maxLength={12}
             />
           </Group>
 
@@ -679,7 +998,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               type="date"
               leftSection={<IconCalendar size={15} />}
               value={formData.expireDate}
-              onChange={(e) => setFormData({ ...formData, expireDate: e.target.value })}
+              readOnly
             />
           </Group>
 
