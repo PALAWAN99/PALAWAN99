@@ -27,7 +27,31 @@
     "actions": "操作",
     "view": "查看详情",
     "admins": "管理员管理",
-    "security": "安全"
+    "security": "安全",
+    "noData": "暂无数据",
+    "devices": "设备",
+    "qrPolicies": "二维码策略"
+  },
+  "Device": {
+    "title": "设备管理",
+    "subtitle": "注册和监控扫描仪与自助终端",
+    "addDevice": "注册新设备",
+    "deviceCode": "设备代码",
+    "deviceName": "设备名称",
+    "deviceType": "设备类型",
+    "lastSeen": "最后在线",
+    "secretKey": "密钥",
+    "status": "状态"
+  },
+  "QrPolicy": {
+    "title": "二维码策略",
+    "subtitle": "定义二维码的生存时间 (TTL) 和安全条件",
+    "addPolicy": "添加新策略",
+    "policyName": "策略名称",
+    "ttl": "生存时间 (秒)",
+    "oneTime": "单次使用",
+    "limitPerDay": "每日最高次数",
+    "isDefault": "默认策略"
   },
   "Dashboard": {
     "welcome": "欢迎回来",

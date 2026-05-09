@@ -12,7 +12,7 @@ import { ZodError } from 'zod';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { memberId, purpose } = issueQrSchema.parse(body);
+    const { memberId, purpose, duration } = body;
 
     // 1. ตรวจสอบสมาชิก
     const member = await prisma.member.findUnique({
@@ -30,9 +30,22 @@ export async function POST(req: NextRequest) {
     // 2. สร้าง Token
     const { token, hash } = generateToken();
 
-    // 3. กำหนดวันหมดอายุ (สิ้นสุดของวันนี้ - เที่ยงคืน)
-    const expiresAt = dayjs().endOf('day').toDate();
-    const issuedDate = dayjs().startOf('day').toDate();
+    // 3. คำนวณวันหมดอายุ
+    let expiresAt = dayjs().add(1, 'day').toDate(); // Default 1 day
+
+    if (duration === '1H') expiresAt = dayjs().add(1, 'hour').toDate();
+    else if (duration === '1D') expiresAt = dayjs().add(1, 'day').toDate();
+    else if (duration === '7D') expiresAt = dayjs().add(7, 'days').toDate();
+    else if (duration === '30D') expiresAt = dayjs().add(30, 'days').toDate();
+    else {
+      // ถ้านโยบายมี TTL ให้ใช้นโยบายเป็นหลัก
+      const policy = await prisma.qrPolicy.findFirst({ where: { isDefault: true } });
+      if (policy?.ttlSeconds) {
+        expiresAt = dayjs().add(policy.ttlSeconds, 'seconds').toDate();
+      }
+    }
+
+    const issuedDate = dayjs().toDate();
 
     // 4. บันทึกลงฐานข้อมูล
     const qrToken = await prisma.qrToken.create({

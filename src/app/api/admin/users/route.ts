@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { checkAccess } from '@/lib/rbac';
-import { hash } from 'argon2';
+import { hash } from 'bcryptjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logAction } from '@/lib/audit';
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Hash password
-    const passwordHash = await hash(password);
+    const passwordHash = await hash(password, 10);
 
     const user = await prisma.user.create({
       data: {

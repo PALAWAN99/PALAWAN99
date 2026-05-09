@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { MantineAppProvider } from '@/components/providers/MantineAppProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -21,16 +20,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="th" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-      </head>
-      <body>
-        <MantineAppProvider>
-          {children}
-        </MantineAppProvider>
-      </body>
-    </html>
-  );
+  // สำหรับ Next.js 16/Turbopack เมื่อใช้ localized routes 
+  // ตัว Root Layout จะทำหน้าที่เป็น Wrapper และส่งต่อให้ [locale]/layout จัดการโครงสร้าง HTML
+  return children;
 }

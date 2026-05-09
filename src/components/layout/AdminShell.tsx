@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
 import {
@@ -32,6 +32,7 @@ import {
   IconBell,
   IconLogout,
   IconUserShield,
+  IconDevices,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
 import NotificationBell from '../notifications/NotificationBell';
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { labelKey: 'Common.qr', icon: IconQrcode, href: '/admin/qr' },
   { labelKey: 'Common.branches', icon: IconBuilding, href: '/admin/branches' },
   { labelKey: 'Common.gates', icon: IconDoor, href: '/admin/gates' },
+  { labelKey: 'Common.devices', icon: IconDevices, href: '/admin/devices' },
   { labelKey: 'Common.members', icon: IconUsers, href: '/admin/members' },
   { labelKey: 'Common.idcard', icon: IconId, href: '/admin/idcard' },
   { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports' },
@@ -57,6 +59,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const locale = useLocale();
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLocaleChange = (value: string | null) => {
     if (!value) return;
@@ -122,7 +129,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
           <Tooltip label={colorScheme === 'dark' ? 'Light mode' : 'Dark mode'}>
             <ActionIcon variant="subtle" onClick={toggleColorScheme}>
-              {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+              {!mounted ? (
+                <Box w={18} h={18} />
+              ) : colorScheme === 'dark' ? (
+                <IconSun size={18} />
+              ) : (
+                <IconMoon size={18} />
+              )}
             </ActionIcon>
           </Tooltip>
 

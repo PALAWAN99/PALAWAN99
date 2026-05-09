@@ -1,11 +1,11 @@
 import { prisma } from '../src/lib/prisma';
-import { hash } from 'argon2';
+import { hash } from 'bcryptjs';
 
 async function main() {
   console.log('🌱 Starting seed...');
 
   // 1. Create Admin User
-  const adminPassword = await hash('admin1234');
+  const adminPassword = await hash('admin1234', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gate.local' },
     update: {},
@@ -53,6 +53,32 @@ async function main() {
     });
   }
   console.log('✅ QR Policies created');
+
+  // 4. Create Test Members
+  const members = [
+    {
+      memberNo: 'MEM-001',
+      citizenId: '1100100000001',
+      firstNameTh: 'สมชาย',
+      lastNameTh: 'ใจดี',
+      firstNameEn: 'Somchai',
+      lastNameEn: 'Jaidee',
+      email: 'somchai@example.com',
+      phone: '0812345678',
+      memberType: 'STUDENT',
+      status: 'ACTIVE',
+      expireDate: new Date('2026-12-31'),
+    }
+  ];
+
+  for (const m of members) {
+    await prisma.member.upsert({
+      where: { memberNo: m.memberNo },
+      update: {},
+      create: m,
+    });
+  }
+  console.log('✅ Test members created');
 
   console.log('🌳 Seed complete!');
 }

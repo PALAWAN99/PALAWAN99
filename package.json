@@ -9,7 +9,8 @@
     "lint": "eslint",
     "prisma-generate": "prisma generate",
     "test-logic": "tsx scratch/test-logic-final.ts",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "check-members": "tsx scratch/check-members.ts"
   },
   "dependencies": {
     "@mantine/core": "^9.1.1",
@@ -22,7 +23,7 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@tabler/icons-react": "^3.41.1",
-    "argon2": "^0.44.0",
+    "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.9.0",
     "dayjs": "^1.11.20",
     "lru-cache": "^11.3.5",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/qrcode.react": "^1.0.5",
