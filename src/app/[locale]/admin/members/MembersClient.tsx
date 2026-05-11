@@ -16,12 +16,30 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const t = useTranslations();
   const {
     filtered, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
+    page, setPage, total, totalPages,
     formData, setFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
     handleDelete, handleReadIdCard, clearFilters
   } = useMemberManagement(initialMembers);
 
   const hasFilter = !!(search || filterType || filterStatus);
+
+  const handleExport = async () => {
+    const { exportToExcel } = await import('@/lib/export-utils');
+    const exportData = filtered.map(m => ({
+      'รหัสสมาชิก': m.memberNo,
+      'เลขบัตรประชาชน': m.citizenId || '-',
+      'ชื่อ (ไทย)': `${m.firstNameTh} ${m.lastNameTh}`,
+      'ชื่อ (อังกฤษ)': m.firstNameEn ? `${m.firstNameEn} ${m.lastNameEn}` : '-',
+      'อีเมล': m.email || '-',
+      'เบอร์โทรศัพท์': m.phone || '-',
+      'ประเภทสมาชิก': m.memberType,
+      'สถานะ': m.status,
+      'วันหมดอายุ': m.expireDate ? new Date(m.expireDate).toLocaleDateString('th-TH') : '-',
+      'วันที่สมัคร': new Date(m.createdAt).toLocaleDateString('th-TH')
+    }));
+    exportToExcel(exportData, 'MemberList');
+  };
 
   return (
     <Stack gap="lg">
@@ -31,7 +49,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           <Text size="sm" c="dimmed" mt={4}>{t('Member.manageDesc')}</Text>
         </div>
         <Group gap="sm">
-          <Button variant="light" color="gray" leftSection={<IconId size={18} />} onClick={() => {}}>ส่งออก (Export)</Button>
+          <Button variant="light" color="gray" leftSection={<IconDownload size={18} />} onClick={handleExport}>ส่งออก (Export)</Button>
           <Button variant="light" color="gray" leftSection={<IconUserPlus size={18} />} onClick={() => {}}>นำเข้า (Import)</Button>
           <Button leftSection={<IconPlus size={18} />} color="skyBlue" onClick={handleOpenAdd}>{t('Member.add')}</Button>
         </Group>
@@ -47,11 +65,12 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             filterType={filterType} onFilterTypeChange={setFilterType}
             filterStatus={filterStatus} onFilterStatusChange={setFilterStatus}
             onClear={clearFilters} hasFilter={hasFilter}
-            filteredCount={filtered.length} totalCount={initialMembers.length}
+            filteredCount={filtered.length} totalCount={total}
           />
           <MemberTable 
             members={filtered} onEdit={handleOpenEdit} onRenew={handleOpenRenew} 
             onDelete={handleDelete} onClearFilters={clearFilters} hasFilter={hasFilter} t={t} 
+            page={page} totalPages={totalPages} onPageChange={setPage}
           />
         </Stack>
       </Card>

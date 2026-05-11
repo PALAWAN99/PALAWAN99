@@ -17,7 +17,6 @@ import {
   Badge,
 } from '@mantine/core';
 import { IconBell, IconAlertCircle, IconCheck, IconInfoCircle, IconVolume, IconVolume3 } from '@tabler/icons-react';
-import { getNotifications, markAsRead, markAllAsRead } from '@/lib/notifications/actions';
 
 interface Notification {
   id: string;
@@ -35,21 +34,22 @@ export default function NotificationBell() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [enableSound, setEnableSound] = useState(true);
 
-  // ในระบบจริงจะใช้ ID จาก Auth
-  const MOCK_USER_ID = 'system-admin';
-
   const fetchNotifications = async () => {
-    setLoading(true);
-    const res = await getNotifications(MOCK_USER_ID);
-    if (res.success && res.notifications) {
-      setNotifications(res.notifications as any);
+    try {
+      const res = await fetch('/api/notifications');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchNotifications();
-    // Refresh ทุก 30 วินาที
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -57,28 +57,33 @@ export default function NotificationBell() {
   const unreadCount = notifications.filter(n => !n.readAt).length;
 
   const displayedNotifs = notifications
-    .filter(n => showUnreadOnly ? !n.readAt : true)
-    .reduce((acc, current) => {
-      const existing = acc.find(n => n.title === current.title && !!n.readAt === !!current.readAt);
-      if (existing) {
-        existing.groupedCount = (existing.groupedCount || 1) + 1;
-      } else {
-        acc.push({ ...current, groupedCount: 1 });
-      }
-      return acc;
-    }, [] as (Notification & { groupedCount?: number })[]);
+    .filter(n => showUnreadOnly ? !n.readAt : true);
 
   const handleMarkAsRead = async (id: string) => {
-    const res = await markAsRead(id);
-    if (res.success) {
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date() } : n));
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'MARK_READ', id }),
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date() } : n));
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
   const handleMarkAllAsRead = async () => {
-    const res = await markAllAsRead(MOCK_USER_ID);
-    if (res.success) {
-      setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date() })));
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'MARK_ALL_READ' }),
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date() })));
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -104,7 +109,7 @@ export default function NotificationBell() {
       withArrow 
       shadow="md" 
       opened={opened} 
-      onChange={setOpened}
+      onClose={() => setOpened(false)}
     >
       <Popover.Target>
         <Indicator label={unreadCount} size={16} disabled={unreadCount === 0} offset={2} color="red">
@@ -157,21 +162,14 @@ export default function NotificationBell() {
                   onClick={() => !notif.readAt && handleMarkAsRead(notif.id)}
                   style={{ 
                     backgroundColor: notif.readAt ? 'transparent' : 'rgba(56, 189, 248, 0.05)',
-                    borderBottom: '1px solid #eee',
+                    borderBottom: '1px solid var(--mantine-color-default-border)',
                     cursor: 'pointer'
                   }}
                 >
                   <Group align="flex-start" wrap="nowrap" gap="sm">
                     <Box mt={4}>{getIcon(notif.level)}</Box>
                     <Stack gap={2} style={{ flex: 1 }}>
-                      <Group justify="space-between" wrap="nowrap">
-                        <Text size="sm" fw={notif.readAt ? 500 : 700} lineClamp={1}>{notif.title}</Text>
-                        {notif.groupedCount && notif.groupedCount > 1 && (
-                          <Badge size="xs" variant="filled" color="blue" circle>
-                            {notif.groupedCount}
-                          </Badge>
-                        )}
-                      </Group>
+                      <Text size="sm" fw={notif.readAt ? 500 : 700} lineClamp={1}>{notif.title}</Text>
                       <Text size="xs" c="dimmed" lineClamp={2}>{notif.message}</Text>
                       <Text size="xs" c="dimmed" mt={2}>{formatTime(notif.createdAt)}</Text>
                     </Stack>

@@ -8,8 +8,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ 
-  title = 'Something went wrong', 
-  message = 'We encountered an error while loading the data.',
+  title = 'เกิดข้อผิดพลาด', 
+  message = 'ไม่สามารถโหลดข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
   onRetry 
 }: ErrorStateProps) {
   return (

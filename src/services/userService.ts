@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { hash } from 'argon2';
+import { hash } from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 
 export interface UserInput {
@@ -43,7 +43,7 @@ export class UserService {
     }
 
     // Hash password
-    const passwordHash = await hash(data.password);
+    const passwordHash = await hash(data.password, 10);
 
     return prisma.user.create({
       data: {

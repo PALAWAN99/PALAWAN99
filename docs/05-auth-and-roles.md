@@ -53,7 +53,7 @@ sequenceDiagram
     U->>App: เข้าหน้า Login
     U->>Auth: POST /api/auth/signin (email + password)
     Auth->>DB: ค้นหา User by email
-    Auth->>Auth: verify password (Argon2)
+    Auth->>Auth: verify password (bcryptjs)
     alt สำเร็จ
         Auth->>Auth: สร้าง JWT session
         Auth-->>U: Set cookie + redirect
@@ -68,7 +68,7 @@ sequenceDiagram
 // auth.ts
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { verify } from 'argon2';
+import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -83,9 +83,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: credentials.email as string },
         });
         if (!user || !user.isActive) return null;
-        const valid = await verify(
-          user.passwordHash,
-          credentials.password as string
+        const valid = await compare(
+          credentials.password as string,
+          user.passwordHash
         );
         if (!valid) return null;
         return {
@@ -174,7 +174,7 @@ export const config = {
 | Token lifetime | 8 ชั่วโมง | ตาม shift การทำงาน |
 | Refresh | Sliding window | ต่ออายุเมื่อ active |
 | Cookie | `httpOnly`, `secure`, `sameSite=lax` | ป้องกัน XSS/CSRF |
-| Password hash | Argon2id | ปลอดภัยกว่า bcrypt |
+| Password hash | bcryptjs | เข้ากันได้กับ Turbopack/Next.js ดีกว่า |
 
 ---
 

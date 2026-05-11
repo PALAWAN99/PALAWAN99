@@ -17,6 +17,8 @@ export async function getMembers() {
   }
 }
 
+import { createAuditLog } from '@/services/loggingService';
+
 export async function addMember(data: any) {
   try {
     const member = await prisma.member.create({
@@ -40,6 +42,15 @@ export async function addMember(data: any) {
         },
       },
     });
+
+    // Log the activity
+    await createAuditLog({
+      action: 'CREATE',
+      resource: 'MEMBER',
+      resourceId: member.id,
+      after: member,
+    });
+
     return { success: true, member };
   } catch (error: any) {
     console.error('[MembersAction] Error adding member:', error);
@@ -49,6 +60,8 @@ export async function addMember(data: any) {
 
 export async function updateMember(id: string, data: any) {
   try {
+    const before = await prisma.member.findUnique({ where: { id } });
+    
     const member = await prisma.member.update({
       where: { id },
       data: {
@@ -71,6 +84,15 @@ export async function updateMember(id: string, data: any) {
         },
       },
     });
+
+    await createAuditLog({
+      action: 'UPDATE',
+      resource: 'MEMBER',
+      resourceId: id,
+      before,
+      after: member,
+    });
+
     return { success: true, member };
   } catch (error: any) {
     console.error('[MembersAction] Error updating member:', error);
@@ -80,9 +102,19 @@ export async function updateMember(id: string, data: any) {
 
 export async function deleteMember(id: string) {
   try {
+    const before = await prisma.member.findUnique({ where: { id } });
+
     await prisma.member.delete({
       where: { id },
     });
+
+    await createAuditLog({
+      action: 'DELETE',
+      resource: 'MEMBER',
+      resourceId: id,
+      before,
+    });
+
     return { success: true };
   } catch (error: any) {
     console.error('[MembersAction] Error deleting member:', error);

@@ -76,6 +76,25 @@ export default function ReportsPage() {
     );
   }
 
+  const handleExport = async () => {
+    if (!data) return;
+    const { exportToExcel } = await import('@/lib/export-utils');
+    
+    // เตรียมข้อมูลรายวัน
+    const dailyData = data.dailyStats.map((s: any) => ({
+      'วันที่': s.date,
+      'จำนวนการเข้า-ออก': s.count
+    }));
+
+    // เตรียมข้อมูลรายประตู
+    const gateData = data.gateStats.map((s: any) => ({
+      'ประตู': s.name,
+      'จำนวนครั้ง': s.value
+    }));
+
+    exportToExcel(dailyData, `Report_Daily_Last_${days}_Days`);
+  };
+
   return (
     <Stack gap="lg">
       <Group justify="space-between" align="flex-end">
@@ -106,6 +125,7 @@ export default function ReportsPage() {
             color="navy"
             size="sm"
             style={{ alignSelf: 'flex-end' }}
+            onClick={handleExport}
           >
             {t('export')}
           </Button>

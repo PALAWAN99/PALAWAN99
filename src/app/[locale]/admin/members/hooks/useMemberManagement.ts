@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { Member, MemberMetadata } from '../types';
@@ -36,12 +36,40 @@ const emptyForm = {
 
 export function useMemberManagement(initialMembers: Member[]) {
   const [members, setMembers] = useState<Member[]>(initialMembers);
+  const [total, setTotal] = useState(initialMembers.length);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [opened, { open, close }] = useDisclosure(false);
   const [loading, setLoading] = useState(false);
   const [readingId, setReadingId] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+
+  const fetchMembers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/members?search=${search}&page=${page}&limit=20`);
+      const data = await res.json();
+      if (data.members) {
+        setMembers(data.members);
+        setTotal(data.total);
+        setTotalPages(data.pages);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, page]);
+
+  // Fetch when search or page changes (debounced search would be better)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMembers();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchMembers]);
   const [formData, setFormData] = useState(emptyForm);
   const [isEdit, setIsEdit] = useState(false);
 
@@ -193,9 +221,10 @@ export function useMemberManagement(initialMembers: Member[]) {
   };
 
   return {
-    members, filtered, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
+    members, filtered: members, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
+    page, setPage, total, totalPages,
     formData, setFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
-    handleDelete, handleReadIdCard, clearFilters: () => { setSearch(''); setFilterType(null); setFilterStatus(null); }
+    handleDelete, handleReadIdCard, clearFilters: () => { setSearch(''); setFilterType(null); setFilterStatus(null); setPage(1); }
   };
 }

@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { verify } from 'argon2';
+import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from './auth.config';
 
@@ -21,9 +21,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user || !user.isActive) return null;
 
-        const valid = await verify(
-          user.passwordHash,
-          credentials.password as string
+        const valid = await compare(
+          credentials.password as string,
+          user.passwordHash
         );
 
         if (!valid) return null;

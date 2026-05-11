@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { startOfDay, endOfDay } from 'date-fns';
+import dayjs from 'dayjs';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -14,9 +14,8 @@ export async function GET(req: NextRequest) {
   // We can add a specific check if needed, but usually any logged-in admin can see stats
 
   try {
-    const today = new Date();
-    const start = startOfDay(today);
-    const end = endOfDay(today);
+    const start = dayjs().startOf('day').toDate();
+    const end = dayjs().endOf('day').toDate();
 
     // Run queries in parallel for performance
     const [

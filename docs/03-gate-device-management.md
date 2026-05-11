@@ -86,7 +86,7 @@ sequenceDiagram
 
 ```typescript
 // middleware/device-auth.ts
-import { verify } from 'argon2';
+import { compare } from 'bcryptjs';
 
 export async function authenticateDevice(
   deviceCode: string,
@@ -96,7 +96,7 @@ export async function authenticateDevice(
     where: { deviceCode },
   });
   if (!device || device.status === 'DECOMMISSIONED') return null;
-  const valid = await verify(device.secretHash, secret);
+  const valid = await compare(secret, device.secretHash);
   if (!valid) return null;
 
   await prisma.deviceRegistry.update({

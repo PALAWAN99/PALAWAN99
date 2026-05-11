@@ -72,6 +72,16 @@ export async function POST(req: NextRequest) {
       data: validatedData
     });
 
+    // Log the activity
+    const { createAuditLog } = await import('@/services/loggingService');
+    await createAuditLog({
+      action: 'CREATE',
+      resource: 'GATE',
+      resourceId: gate.id,
+      after: gate,
+      req
+    });
+
     return NextResponse.json(gate, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -81,10 +91,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[GATE_POST]', error);
-    return NextResponse.json(
-      { message: 'Internal Server Error' },
-      { status: 500 }
-    );
+    const { handleApiError } = await import('@/lib/api-error');
+    return handleApiError(error);
   }
 }

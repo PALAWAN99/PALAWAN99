@@ -63,8 +63,8 @@
 |--------|-----------|
 | **Zod** | Validate input API / ฟอร์ม admin |
 | **Auth.js (NextAuth v5)** หรือ **Clerk / Lucia** | ล็อกอินผู้ดูแล / พนักงานประตู (ไม่ควรพึ่ง QR อย่างเดียวสำหรับสิทธิ์สูง) |
-| **Argon2** หรือ **bcrypt** | Hash secret ของอุปกรณ์/API key |
-| **jose** หรือ **@node-rs/argon2** | ลงนาม / ตรวจสอบ QR แบบ signed token (ถ้าใช้ JWT ใน QR) |
+| **bcryptjs** | Hash secret ของอุปกรณ์/API key |
+| **jose** | ลงนาม / ตรวจสอบ QR แบบ signed token (ถ้าใช้ JWT ใน QR) |
 | **nuqs** หรือ searchParams ของ Next | จัดการ query บนหน้า scan |
 | **Pino** / **consola** | Structured logging ฝั่งเซิร์ฟเวอร์ |
 | **Upstash Redis** (ถ้าต้องการ scale) | Rate limit, blacklist token แบบเร็ว, one-time nonce |

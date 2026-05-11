@@ -1,158 +1,220 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { Title, Text, Stack, Card, Table, Badge, Group, TextInput, ActionIcon, Menu, Button, Pagination, Box } from '@mantine/core';
-import { IconSearch, IconFilter, IconDotsVertical, IconDownload, IconChevronRight, IconX } from '@tabler/icons-react';
+import { 
+  Title, Text, Stack, Card, Table, Badge, Group, 
+  TextInput, ActionIcon, Menu, Button, Pagination, 
+  Box, LoadingOverlay, Center
+} from '@mantine/core';
+import { 
+  IconSearch, IconFilter, IconDotsVertical, 
+  IconDownload, IconChevronRight, IconX, IconCalendar
+} from '@tabler/icons-react';
 import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
-
-const LOGS = [
-  { id: 1, time: '2024-04-30 10:28:45', member: 'สมชาย รักเรียน', type: 'Employee', gate: 'Main Entrance', dir: 'IN', status: 'ALLOWED' },
-  { id: 2, time: '2024-04-30 10:25:12', member: 'John Smith', type: 'Visitor', gate: 'Side Exit', dir: 'OUT', status: 'ALLOWED' },
-  { id: 3, time: '2024-04-30 10:22:05', member: '王小明', type: 'VIP', gate: 'Main Entrance', dir: 'IN', status: 'ALLOWED' },
-  { id: 4, time: '2024-04-30 10:18:30', member: 'สมหญิง ใจดี', type: 'Employee', gate: 'Back Yard', dir: 'IN', status: 'DENIED' },
-  { id: 5, time: '2024-04-30 10:15:22', member: 'อำนาจ จิตต์ดี', type: 'Employee', gate: 'Main Entrance', dir: 'OUT', status: 'ALLOWED' },
-  { id: 6, time: '2024-04-30 10:12:10', member: 'Sarah Wilson', type: 'Contractor', gate: 'Side Exit', dir: 'IN', status: 'ALLOWED' },
-  { id: 7, time: '2024-04-30 10:10:05', member: 'วิชัย กล้าหาญ', type: 'Employee', gate: 'Main Entrance', dir: 'IN', status: 'ALLOWED' },
-];
-
-import { EmptyState } from '@/components/ui/EmptyState';
-import { IconSearchOff } from '@tabler/icons-react';
 
 export default function EventsPage() {
   const t = useTranslations();
   const searchParams = useSearchParams();
-  const gateFilter = searchParams.get('gate');
+  const initialGateId = searchParams.get('gateId') || '';
+  
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  // กรองข้อมูลจำลองตาม Gate และคำค้นหา (Search)
-  const filteredLogs = LOGS.filter(log => {
-    const matchesGate = gateFilter ? log.gate.toLowerCase().includes(gateFilter.toLowerCase()) : true;
-    const matchesSearch = search 
-      ? log.member.toLowerCase().includes(search.toLowerCase()) || 
-        log.gate.toLowerCase().includes(search.toLowerCase())
-      : true;
-    return matchesGate && matchesSearch;
-  });
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        search,
+        page: page.toString(),
+        gateId: initialGateId,
+        startDate,
+        endDate
+      });
+      const res = await fetch(`/api/admin/events?${params.toString()}`);
+      const data = await res.json();
+      if (data.events) {
+        setEvents(data.events);
+        setTotalPages(data.pages);
+        setTotal(data.total);
+      }
+    } catch (error) {
+      console.error('Fetch events error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, page, initialGateId, startDate, endDate]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchEvents();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [fetchEvents]);
+
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams({
+        search,
+        gateId: initialGateId,
+        startDate,
+        endDate,
+        limit: '1000' // ดึงเยอะหน่อยเพื่อส่งออก
+      });
+      const res = await fetch(`/api/admin/events?${params.toString()}`);
+      const data = await res.json();
+      
+      if (data.events) {
+        const { exportToExcel } = await import('@/lib/export-utils');
+        const exportData = data.events.map((e: any) => ({
+          'เวลา': new Date(e.scannedAt).toLocaleString('th-TH'),
+          'ชื่อ-นามสกุล': e.member ? `${e.member.firstNameTh} ${e.member.lastNameTh}` : 'ไม่ทราบชื่อ',
+          'รหัสสมาชิก': e.member?.memberNo || '-',
+          'ประเภท': e.member?.memberType || '-',
+          'ประตู': e.gate.nameTh,
+          'รหัสประตู': e.gate.gateCode,
+          'ทิศทาง': e.direction === 'IN' ? 'เข้า' : 'ออก',
+          'ผลการตรวจสอบ': e.decision === 'ALLOWED' ? 'ผ่าน' : 'ปฏิเสธ',
+          'เหตุผล': e.reasonCode || '-'
+        }));
+        exportToExcel(exportData, 'AccessLogs');
+      }
+    } catch (e) {
+      console.error('Export error:', e);
+    }
+  };
 
   return (
     <Stack gap="xl">
-      <Group justify="space-between">
+      <Group justify="space-between" align="flex-start">
         <Stack gap={4}>
           <Title order={2} fw={800}>{t('Common.events')}</Title>
-          <Group gap="xs">
-            <Text c="dimmed" size="sm">Audit trail for all gate activities across the system.</Text>
-            {gateFilter && (
-              <Badge 
-                color="skyBlue" 
-                variant="light" 
-                size="sm" 
-                radius="sm"
-                rightSection={<Link href="/admin/events" style={{ display: 'flex', color: 'inherit' }}><IconX size={12} style={{ cursor: 'pointer' }} /></Link>}
-              >
-                Filtered: {gateFilter}
-              </Badge>
-            )}
-          </Group>
+          <Text c="dimmed" size="sm">ประวัติการเข้า-ออกประตูทั้งหมดในระบบ</Text>
         </Stack>
-        <Button variant="light" leftSection={<IconDownload size={16} />}>Export All Logs</Button>
+        <Button variant="light" leftSection={<IconDownload size={16} />} onClick={handleExport}>Export Excel</Button>
       </Group>
 
-      <Card withBorder p={0} radius="lg" style={{ overflow: 'hidden' }}>
-        <Box p="md" style={{ borderBottom: '1px solid var(--border-color)' }}>
-          <Group justify="space-between">
+      <Card withBorder p="md" radius="lg">
+        <Stack gap="md">
+          <Group grow wrap="wrap">
             <TextInput 
-              placeholder={t('Common.search')} 
+              placeholder="ค้นหาชื่อ, รหัสนักศึกษา, รหัสประตู..." 
               leftSection={<IconSearch size={16} />} 
-              w={300}
               variant="filled"
               value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
+              onChange={(e) => { setSearch(e.currentTarget.value); setPage(1); }}
+              style={{ minWidth: '300px' }}
             />
-            <Button variant="subtle" color="gray" leftSection={<IconFilter size={16} />}>Filters</Button>
+            <Group gap="xs">
+              <TextInput 
+                type="date"
+                placeholder="วันที่เริ่ม"
+                leftSection={<IconCalendar size={16} />}
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                w={160}
+              />
+              <TextInput 
+                type="date"
+                placeholder="วันที่สิ้นสุด"
+                leftSection={<IconCalendar size={16} />}
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                w={160}
+              />
+              {(search || startDate || endDate) && (
+                <ActionIcon variant="light" color="gray" size="lg" onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); }}>
+                  <IconX size={18} />
+                </ActionIcon>
+              )}
+            </Group>
           </Group>
-        </Box>
+        </Stack>
+      </Card>
 
-        {filteredLogs.length > 0 ? (
-          <>
-            <Table verticalSpacing="md" horizontalSpacing="md" highlightOnHover>
-              <Table.Thead bg="var(--bg-secondary)">
-                <Table.Tr>
-                  <Table.Th style={{ color: 'var(--text-muted)' }}>TIMESTAMP</Table.Th>
-                  <Table.Th style={{ color: 'var(--text-muted)' }}>MEMBER NAME</Table.Th>
-                  <Table.Th style={{ color: 'var(--text-muted)' }}>GATE</Table.Th>
-                  <Table.Th style={{ color: 'var(--text-muted)' }} ta="center">DIRECTION</Table.Th>
-                  <Table.Th style={{ color: 'var(--text-muted)' }} ta="center">STATUS</Table.Th>
-                  <Table.Th></Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filteredLogs.map((log) => (
-                  <Table.Tr key={log.id}>
+      <Card withBorder radius="lg" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
+        <LoadingOverlay visible={loading} />
+        <Table.ScrollContainer minWidth={900}>
+          <Table verticalSpacing="md" horizontalSpacing="md" highlightOnHover>
+            <Table.Thead bg="var(--bg-secondary)">
+              <Table.Tr>
+                <Table.Th>เวลา</Table.Th>
+                <Table.Th>สมาชิก</Table.Th>
+                <Table.Th>ประตู / จุดตรวจ</Table.Th>
+                <Table.Th ta="center">ทิศทาง</Table.Th>
+                <Table.Th ta="center">ผลการตรวจสอบ</Table.Th>
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <Table.Tr key={event.id}>
                     <Table.Td>
-                      <Text size="sm" fw={500}>{log.time.split(' ')[1]}</Text>
-                      <Text size="xs" c="dimmed">{log.time.split(' ')[0]}</Text>
+                      <Text size="sm" fw={600}>{new Date(event.scannedAt).toLocaleTimeString('th-TH')}</Text>
+                      <Text size="xs" c="dimmed">{new Date(event.scannedAt).toLocaleDateString('th-TH')}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" fw={700}>{log.member}</Text>
-                      <Badge size="xs" variant="light" color="gray">{log.type}</Badge>
+                      {event.member ? (
+                        <>
+                          <Text size="sm" fw={700}>{event.member.firstNameTh} {event.member.lastNameTh}</Text>
+                          <Text size="xs" c="dimmed">{event.member.memberNo}</Text>
+                        </>
+                      ) : <Text c="dimmed italic">ไม่ทราบตัวตน / QR ไม่สมบูรณ์</Text>}
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" fw={500}>{log.gate}</Text>
+                      <Text size="sm" fw={600}>{event.gate.nameTh}</Text>
+                      <Text size="xs" c="dimmed">{event.gate.gateCode}</Text>
                     </Table.Td>
                     <Table.Td ta="center">
-                      <Badge 
-                        color={log.dir === 'IN' ? 'teal' : 'blue'} 
-                        variant="light" 
-                        radius="sm"
-                      >
-                        {log.dir}
+                      <Badge color={event.direction === 'IN' ? 'teal' : 'blue'} variant="light">
+                        {event.direction === 'IN' ? 'เข้า' : 'ออก'}
                       </Badge>
                     </Table.Td>
                     <Table.Td ta="center">
-                      <Badge 
-                        color={log.status === 'ALLOWED' ? 'emerald' : 'red'} 
-                        variant="filled" 
-                        radius="xl"
-                      >
-                        {log.status}
+                      <Badge color={event.decision === 'ALLOWED' ? 'green' : 'red'} variant="filled">
+                        {event.decision === 'ALLOWED' ? 'ผ่าน' : 'ปฏิเสธ'}
                       </Badge>
+                      {event.reasonCode && <Text size="xs" c="red" mt={2}>{event.reasonCode}</Text>}
                     </Table.Td>
                     <Table.Td>
-                      <Group justify="flex-end">
-                        <ActionIcon variant="subtle" color="gray"><IconChevronRight size={18} /></ActionIcon>
+                       <Group justify="flex-end">
                         <Menu position="bottom-end">
                           <Menu.Target>
                             <ActionIcon variant="subtle" color="gray"><IconDotsVertical size={18} /></ActionIcon>
                           </Menu.Target>
                           <Menu.Dropdown>
-                            <Menu.Item>View Member Profile</Menu.Item>
-                            <Menu.Item>View Gate Details</Menu.Item>
-                            <Menu.Item color="red">Flag Event</Menu.Item>
+                            <Menu.Item leftSection={<IconChevronRight size={14} />}>รายละเอียด</Menu.Item>
                           </Menu.Dropdown>
                         </Menu>
-                      </Group>
+                       </Group>
                     </Table.Td>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+                ))
+              ) : (
+                <Table.Tr>
+                  <Table.Td colSpan={6} py={50}>
+                    <Center><Text c="dimmed">ไม่พบข้อมูลการเข้า-ออก</Text></Center>
+                  </Table.Td>
+                </Table.Tr>
+              )}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
 
-            <Box p="md" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">Showing {filteredLogs.length} of 1,543 results</Text>
-                <Pagination total={10} radius="md" />
-              </Group>
-            </Box>
-          </>
-        ) : (
-          <EmptyState 
-            icon={<IconSearchOff size={48} stroke={1} />}
-            title="No activity found"
-            description={`We couldn't find any gate activity for "${gateFilter}". Try clearing the filter to see all events.`}
-          />
-        )}
+        <Box p="md" style={{ borderTop: '1px solid var(--border-color)' }}>
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">ทั้งหมด {total} รายการ</Text>
+            <Pagination total={totalPages} value={page} onChange={setPage} color="skyBlue" radius="md" />
+          </Group>
+        </Box>
       </Card>
     </Stack>
   );

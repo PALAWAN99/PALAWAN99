@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from 'next-auth';
+import { UserRole } from '@prisma/client';
 
 export const authConfig = {
   pages: {
@@ -8,13 +9,19 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnAdmin = nextUrl.pathname.startsWith('/admin');
-      const isOnLogin = nextUrl.pathname.startsWith('/login');
+      const pathname = nextUrl.pathname;
+      
+      // ตรวจสอบว่าเป็นหน้า Admin หรือไม่ (รองรับภาษา /th/admin, /en/admin, /zh/admin)
+      const isAdminPath = pathname.startsWith('/admin') || 
+                         /^\/(th|en|zh)\/admin/.test(pathname);
+      
+      const isLoginPath = pathname.startsWith('/login') || 
+                         /^\/(th|en|zh)\/login/.test(pathname);
 
-      if (isOnAdmin) {
+      if (isAdminPath) {
         if (isLoggedIn) return true;
         return false; // Redirect to login
-      } else if (isOnLogin) {
+      } else if (isLoginPath) {
         if (isLoggedIn) {
           return Response.redirect(new URL('/admin', nextUrl));
         }
@@ -31,7 +38,7 @@ export const authConfig = {
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as any;
+        session.user.role = token.role as UserRole;
         session.user.id = token.userId as string;
       }
       return session;

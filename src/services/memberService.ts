@@ -6,21 +6,35 @@ export type MemberInput = z.infer<typeof memberSchema>;
 
 export class MemberService {
   /**
-   * ดึงรายการสมาชิกพร้อมค้นหา
+   * ดึงรายการสมาชิกพร้อมค้นหาและ Pagination
    */
-  static async getMembers(search: string = '', limit: number = 100) {
-    return prisma.member.findMany({
-      where: {
-        OR: [
-          { memberNo: { contains: search, mode: 'insensitive' } },
-          { citizenId: { contains: search, mode: 'insensitive' } },
-          { firstNameTh: { contains: search, mode: 'insensitive' } },
-          { lastNameTh: { contains: search, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+  static async getMembers(search: string = '', page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+    const where = {
+      OR: [
+        { memberNo: { contains: search, mode: 'insensitive' as const } },
+        { citizenId: { contains: search, mode: 'insensitive' as const } },
+        { firstNameTh: { contains: search, mode: 'insensitive' as const } },
+        { lastNameTh: { contains: search, mode: 'insensitive' as const } },
+        { email: { contains: search, mode: 'insensitive' as const } },
+      ],
+    };
+
+    const [members, total] = await Promise.all([
+      prisma.member.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.member.count({ where }),
+    ]);
+
+    return {
+      members,
+      total,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   /**
@@ -40,13 +54,23 @@ export class MemberService {
       }
     }
 
-    return prisma.member.create({
+    const member = await prisma.member.create({
       data: {
         ...data,
         citizenId: data.citizenId || null,
         email: data.email || null,
       },
     });
+
+    const { createAuditLog } = await import('./loggingService');
+    await createAuditLog({
+      action: 'CREATE',
+      resource: 'MEMBER',
+      resourceId: member.id,
+      after: member,
+    });
+
+    return member;
   }
 
   /**

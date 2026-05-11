@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. ตรวจสอบสิทธิ์ (ต้องเป็นเจ้าหน้าที่ประตูหรือแอดมิน)
     const session = await auth();
-    if (!session?.user?.role || !['SUPER_ADMIN', 'ADMIN', 'GATE_OFFICER'].includes(session.user.role as string)) {
+    if (!session?.user?.role || !['SUPER_ADMIN', 'ADMIN', 'LIBRARIAN', 'STAFF'].includes(session.user.role as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

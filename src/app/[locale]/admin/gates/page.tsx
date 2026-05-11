@@ -14,7 +14,6 @@ import {
   TextInput,
   Stack,
   Badge,
-  Loader,
   Center,
   Select,
   JsonInput,

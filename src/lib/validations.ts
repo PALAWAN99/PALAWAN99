@@ -1,10 +1,30 @@
 import { z } from 'zod';
 import { MemberType, MemberStatus, UserRole } from '@prisma/client';
 
+/**
+ * ฟังก์ชันตรวจสอบเลขบัตรประชาชนไทย (Checksum)
+ */
+export function validateThaiCitizenId(id: string): boolean {
+  if (!id || id.length !== 13 || !/^\d{13}$/.test(id)) return false;
+  
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(id.charAt(i)) * (13 - i);
+  }
+  
+  const check = (11 - (sum % 11)) % 10;
+  return check === parseInt(id.charAt(12));
+}
+
+// Zod custom validator สำหรับเลขบัตรประชาชน
+const citizenIdValidator = z.string()
+  .length(13, 'เลขบัตรประชาชนต้องมี 13 หลัก')
+  .refine(validateThaiCitizenId, { message: 'เลขบัตรประชาชนไม่ถูกต้องตามหลักการคำนวณ' });
+
 // Schema สำหรับจัดการสมาชิก (Member)
 export const memberSchema = z.object({
   memberNo: z.string().min(1, 'ต้องมีเลขที่สมาชิก').max(30),
-  citizenId: z.string().length(13, 'เลขบัตรประชาชนต้องมี 13 หลัก').optional().or(z.literal('')),
+  citizenId: citizenIdValidator.optional().or(z.literal('')),
   firstNameTh: z.string().min(1, 'ต้องมีชื่อจริง (ไทย)'),
   lastNameTh: z.string().min(1, 'ต้องมีนามสกุล (ไทย)'),
   firstNameEn: z.string().optional(),
@@ -28,7 +48,7 @@ export const userSchema = z.object({
 
 // Schema สำหรับลงทะเบียนด้วยบัตรประชาชน
 export const idCardRegisterSchema = z.object({
-  citizenId: z.string().length(13, 'เลขบัตรประชาชนต้องมี 13 หลัก'),
+  citizenId: citizenIdValidator,
   fullNameTh: z.string().min(1, 'ต้องมีชื่อเต็มภาษาไทย'),
   fullNameEn: z.string().optional(),
   birthDate: z.string().length(8, 'รูปแบบวันเกิดไม่ถูกต้อง (YYYYMMDD)').optional(),

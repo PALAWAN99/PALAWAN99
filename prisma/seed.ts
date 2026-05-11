@@ -1,11 +1,11 @@
 import { prisma } from '../src/lib/prisma';
-import { hash } from 'argon2';
+import { hash } from 'bcryptjs';
 
 async function main() {
   console.log('🌱 Starting seed...');
 
   // 1. Create Admin User
-  const adminPassword = await hash('admin1234');
+  const adminPassword = await hash('admin1234', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gate.local' },
     update: {},

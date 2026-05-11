@@ -27,12 +27,12 @@ export function MemberFilters({
   totalCount,
 }: MemberFiltersProps) {
   return (
-    <>
-      <Group>
+    <Stack gap="xs">
+      <Group grow wrap="wrap">
         <TextInput
           placeholder="ค้นหาชื่อ, รหัสสมาชิก, เลขบัตร, อีเมล..."
           leftSection={<IconSearch size={16} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: '300px' }}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           rightSection={
@@ -43,45 +43,50 @@ export function MemberFilters({
             ) : null
           }
         />
-        <Select
-          placeholder="ประเภทสมาชิก"
-          clearable
-          data={[
-            { value: 'STUDENT', label: 'นักเรียน' },
-            { value: 'STAFF', label: 'เจ้าหน้าที่' },
-            { value: 'FACULTY', label: 'อาจารย์' },
-            { value: 'EXTERNAL', label: 'บุคคลภายนอก' },
-            { value: 'GUEST', label: 'ผู้เยี่ยมชม' },
-          ]}
-          value={filterType}
-          onChange={onFilterTypeChange}
-          w={160}
-        />
-        <Select
-          placeholder="สถานะ"
-          clearable
-          data={[
-            { value: 'ACTIVE', label: 'ใช้งาน' },
-            { value: 'EXPIRED', label: 'หมดอายุ' },
-            { value: 'SUSPENDED', label: 'ระงับ' },
-            { value: 'REVOKED', label: 'ยกเลิก' },
-          ]}
-          value={filterStatus}
-          onChange={onFilterStatusChange}
-          w={130}
-        />
+        <Group gap="xs" style={{ flex: '0 0 auto' }}>
+          <Select
+            placeholder="ประเภทสมาชิก"
+            clearable
+            data={[
+              { value: 'STUDENT', label: 'นักเรียน' },
+              { value: 'STAFF', label: 'เจ้าหน้าที่' },
+              { value: 'FACULTY', label: 'อาจารย์' },
+              { value: 'EXTERNAL', label: 'บุคคลภายนอก' },
+              { value: 'GUEST', label: 'ผู้เยี่ยมชม' },
+            ]}
+            value={filterType}
+            onChange={onFilterTypeChange}
+            w={{ base: '100%', sm: 160 }}
+          />
+          <Select
+            placeholder="สถานะ"
+            clearable
+            data={[
+              { value: 'ACTIVE', label: 'ใช้งาน' },
+              { value: 'EXPIRED', label: 'หมดอายุ' },
+              { value: 'SUSPENDED', label: 'ระงับ' },
+              { value: 'REVOKED', label: 'ยกเลิก' },
+            ]}
+            value={filterStatus}
+            onChange={onFilterStatusChange}
+            w={{ base: '100%', sm: 130 }}
+          />
+        </Group>
+      </Group>
+
+      <Group justify="space-between">
+        {hasFilter ? (
+          <Text size="sm" c="dimmed">
+            แสดง {filteredCount} จาก {totalCount} รายการ
+          </Text>
+        ) : <Box />}
+        
         {hasFilter && (
           <Button variant="subtle" color="gray" size="sm" onClick={onClear} leftSection={<IconX size={14} />}>
             ล้างตัวกรอง
           </Button>
         )}
       </Group>
-
-      {hasFilter && (
-        <Text size="sm" c="dimmed">
-          แสดง {filteredCount} จาก {totalCount} รายการ
-        </Text>
-      )}
-    </>
+    </Stack>
   );
 }

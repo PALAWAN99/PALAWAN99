@@ -1,6 +1,8 @@
 import { UserRole } from '@prisma/client';
 
-// กำหนดสิทธิ์ตาม Permission Matrix ในเอกสาร 05-auth-and-roles.md
+/**
+ * นิยามของ Resource ที่มีการควบคุมสิทธิ์
+ */
 export type Resource = 
   | 'USER' 
   | 'GATE' 
@@ -10,10 +12,17 @@ export type Resource =
   | 'QR_TOKEN' 
   | 'ACCESS_EVENT' 
   | 'AUDIT_LOG' 
-  | 'DEVICE';
+  | 'DEVICE'
+  | 'SETTING';
 
+/**
+ * Action ที่สามารถทำได้
+ */
 export type Action = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'MANAGE' | 'REVOKE' | 'ISSUE' | 'EXPORT';
 
+/**
+ * Permission Matrix: กำหนดว่าใครทำอะไรได้บ้าง
+ */
 const PERMISSIONS: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
   SUPER_ADMIN: {
     USER: ['CREATE', 'READ', 'UPDATE', 'DELETE', 'MANAGE'],
@@ -25,29 +34,39 @@ const PERMISSIONS: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
     ACCESS_EVENT: ['READ', 'EXPORT'],
     AUDIT_LOG: ['READ'],
     DEVICE: ['CREATE', 'READ', 'UPDATE', 'DELETE', 'MANAGE'],
+    SETTING: ['MANAGE'],
   },
   ADMIN: {
     USER: ['READ'],
     GATE: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
     BRANCH: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    MEMBER: ['CREATE', 'READ', 'UPDATE'],
-    QR_POLICY: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    MEMBER: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    QR_POLICY: ['CREATE', 'READ', 'UPDATE'],
     QR_TOKEN: ['ISSUE', 'REVOKE', 'READ'],
     ACCESS_EVENT: ['READ', 'EXPORT'],
-    AUDIT_LOG: [],
-    DEVICE: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    DEVICE: ['CREATE', 'READ', 'UPDATE'],
   },
-  GATE_OFFICER: {
-    GATE: ['READ'],
-    MEMBER: ['READ'],
+  LIBRARIAN: {
+    MEMBER: ['CREATE', 'READ', 'UPDATE'], // บรรณารักษ์จัดการสมาชิกได้
     QR_TOKEN: ['ISSUE', 'READ'],
     ACCESS_EVENT: ['READ'],
+    GATE: ['READ'],
+  },
+  STAFF: {
+    MEMBER: ['READ'], // เจ้าหน้าที่ทั่วไปดูข้อมูลได้ แต่แก้ไม่ได้
+    QR_TOKEN: ['ISSUE', 'READ'],
+    ACCESS_EVENT: ['READ'],
+    GATE: ['READ'],
+  },
+  SECURITY: {
+    ACCESS_EVENT: ['READ'], // รปภ. ดูประวัติการเข้าออกได้อย่างเดียว
+    GATE: ['READ'],
   },
   VIEWER: {
     GATE: ['READ'],
     BRANCH: ['READ'],
     MEMBER: ['READ'],
-    ACCESS_EVENT: ['READ', 'EXPORT'],
+    ACCESS_EVENT: ['READ'],
   },
 };
 
@@ -61,6 +80,7 @@ export function hasPermission(role: UserRole, resource: Resource, action: Action
   const resourceActions = rolePermissions[resource];
   if (!resourceActions) return false;
 
+  // ถ้ามี MANAGE คือทำได้ทุกอย่างใน Resource นั้น
   return resourceActions.includes(action) || resourceActions.includes('MANAGE' as Action);
 }
 
