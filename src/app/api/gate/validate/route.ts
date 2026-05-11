@@ -30,13 +30,13 @@ export async function POST(req: NextRequest) {
     // 3. บันทึกประวัติการเข้า-ออก (AccessEvent) ไม่ว่าจะผ่านหรือไม่ผ่าน
     await prisma.accessEvent.create({
       data: {
-        gateId: gateId,
-        memberId: result.member?.id || undefined, // กรณีไม่พบสมาชิก ให้เป็น undefined (แก้ปัญหา FK violation)
-        qrTokenId: result.qrToken?.id || undefined,
+        gate: { connect: { id: gateId } },
+        member: result.member?.id ? { connect: { id: result.member.id } } : undefined,
+        qrToken: result.qrToken?.id ? { connect: { id: result.qrToken.id } } : undefined,
         direction: direction as any,
         source: 'QR_CODE',
         decision: result.decision as any,
-        reasonCode: result.reason || null,
+        reasonCode: result.reason || undefined,
         scannedAt: new Date(),
       }
     });

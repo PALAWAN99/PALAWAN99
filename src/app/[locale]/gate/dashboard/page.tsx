@@ -15,7 +15,6 @@ import {
   Badge,
   Avatar,
   Box,
-  Box,
   SimpleGrid,
   Center,
   Loader,
