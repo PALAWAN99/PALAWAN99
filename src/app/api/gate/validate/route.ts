@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
     await prisma.accessEvent.create({
       data: {
         gate: { connect: { id: gateId } },
-        member: result.member?.id ? { connect: { id: result.member.id } } : undefined,
-        qrToken: result.qrToken?.id ? { connect: { id: result.qrToken.id } } : undefined,
+        ...(result.member?.id ? { member: { connect: { id: result.member.id } } } : {}),
+        ...(result.qrToken?.id ? { qrToken: { connect: { id: result.qrToken.id } } } : {}),
         direction: direction as any,
         source: 'QR_CODE',
         decision: result.decision as any,
