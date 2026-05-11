@@ -25,3 +25,12 @@ export const userSchema = z.object({
   password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
   role: z.nativeEnum(UserRole).default(UserRole.VIEWER),
 });
+
+// Schema สำหรับลงทะเบียนด้วยบัตรประชาชน
+export const idCardRegisterSchema = z.object({
+  citizenId: z.string().length(13, 'เลขบัตรประชาชนต้องมี 13 หลัก'),
+  fullNameTh: z.string().min(1, 'ต้องมีชื่อเต็มภาษาไทย'),
+  fullNameEn: z.string().optional(),
+  birthDate: z.string().length(8, 'รูปแบบวันเกิดไม่ถูกต้อง (YYYYMMDD)').optional(),
+  deviceId: z.string().uuid().optional(),
+});

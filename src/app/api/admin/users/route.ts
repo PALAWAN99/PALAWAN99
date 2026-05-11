@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { UserService } from '@/services/userService';
 import { checkAccess } from '@/lib/rbac';
-import { hash } from 'argon2';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logAction } from '@/lib/audit';
 
@@ -22,18 +21,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
+    const users = await UserService.getUsers();
     return NextResponse.json(users);
   } catch (error) {
     console.error('API Error:', error);
@@ -62,29 +50,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // เช็คว่ามี email ซ้ำไหม
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
-    }
-
-    // Hash password
-    const passwordHash = await hash(password);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        fullName,
-        passwordHash,
-        role,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-      }
+    // Use Service
+    const user = await UserService.createUser({
+      email,
+      fullName,
+      password,
+      role,
     });
 
     // บันทึก Audit Log
@@ -97,8 +68,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(user, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
+    
+    if (error.message.includes('already exists') || error.message.includes('required')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

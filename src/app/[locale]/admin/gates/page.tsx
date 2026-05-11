@@ -31,6 +31,11 @@ import {
   IconFilter,
 } from '@tabler/icons-react';
 
+import { z } from 'zod';
+import { zodResolver } from 'mantine-form-zod-resolver';
+import { createGateSchema } from '@/lib/schemas/gate';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
+
 interface Gate {
   id: string;
   gateCode: string;
@@ -68,15 +73,16 @@ export default function GateManagement() {
       nameEn: '',
       nameZh: '',
       branchId: '',
-      direction: 'BIDIRECTIONAL',
-      status: 'ACTIVE',
+      direction: 'BIDIRECTIONAL' as const,
+      status: 'ACTIVE' as const,
       metadata: '{}',
     },
-    validate: {
-      gateCode: (value: string) => (value.length < 2 ? 'Code required' : null),
-      nameTh: (value: string) => (value.length < 1 ? 'Required' : null),
-      branchId: (value: string) => (!value ? 'Please select a branch' : null),
-    },
+    validate: zodResolver(createGateSchema.extend({
+      // Override metadata validation for the form string
+      metadata: z.string().refine((val) => {
+        try { JSON.parse(val || '{}'); return true; } catch { return false; }
+      }, 'Invalid JSON'),
+    })),
   });
 
   const fetchData = useCallback(async (showLoading = true) => {
@@ -248,7 +254,11 @@ export default function GateManagement() {
           </Table.Thead>
           <Table.Tbody>
             {loading ? (
-              <Table.Tr><Table.Td colSpan={6}><Center py="xl"><Loader size="sm" /></Center></Table.Td></Table.Tr>
+              <Table.Tr>
+                <Table.Td colSpan={6}>
+                  <LoadingScreen message={t('Common.loading')} minHeight="30vh" />
+                </Table.Td>
+              </Table.Tr>
             ) : gates.length === 0 ? (
               <Table.Tr><Table.Td colSpan={6}><Center py="xl"><Text c="dimmed">{t('Common.noData')}</Text></Center></Table.Td></Table.Tr>
             ) : rows}

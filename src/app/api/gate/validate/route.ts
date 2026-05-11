@@ -3,7 +3,14 @@ import { prisma } from '@/lib/prisma';
 import { validateQrToken } from '@/lib/qr-engine';
 import { auth } from '@/auth';
 
-import { checkRateLimit } from '@/lib/rate-limit';
+import { z } from 'zod';
+import { gateDirectionSchema } from '@/lib/schemas/gate';
+
+const validateRequestSchema = z.object({
+  token: z.string().min(1),
+  gateId: z.string().uuid(),
+  direction: gateDirectionSchema.default('IN'),
+});
 
 export async function POST(req: NextRequest) {
   // 1. Check Rate Limit (60 requests per minute per IP)
@@ -18,11 +25,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { token, gateId, direction = 'IN' } = body;
-
-    if (!token || !gateId) {
-      return NextResponse.json({ error: 'Missing token or gateId' }, { status: 400 });
+    
+    // Validate with Zod
+    const validation = validateRequestSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ 
+        error: 'Validation failed', 
+        details: validation.error.flatten().fieldErrors 
+      }, { status: 400 });
     }
+
+    const { token, gateId, direction } = validation.data;
 
     // 2. เรียกใช้ QR Engine ตรวจสอบ
     const result = await validateQrToken(token, gateId);

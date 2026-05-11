@@ -1,18 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { issueQrToken } from '@/lib/qr-utils';
+import { auth } from '@/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { idCardRegisterSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 /**
  * API สำหรับลงทะเบียนด้วยบัตรประชาชน
  */
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { citizenId, fullNameTh, fullNameEn, birthDate, deviceId } = body;
+export async function POST(req: NextRequest) {
+  // 1. Check Rate Limit (10 registrations per minute per IP - more strict for registration)
+  const rateLimitError = checkRateLimit(req, 10);
+  if (rateLimitError) return rateLimitError;
 
-    if (!citizenId || !fullNameTh) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  try {
+    // 2. ตรวจสอบสิทธิ์ (ต้องเป็นเจ้าหน้าที่ที่มีสิทธิ์เท่านั้น)
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const body = await req.json();
+    
+    // 3. Validate with Zod
+    const validated = idCardRegisterSchema.parse(body);
+    const { citizenId, fullNameTh, fullNameEn, birthDate, deviceId } = validated;
 
     // 1. ค้นหาสมาชิกเดิม หรือสร้างใหม่
     let member = await prisma.member.findUnique({
@@ -66,6 +79,12 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ 
+        error: 'Validation failed', 
+        details: error.flatten().fieldErrors 
+      }, { status: 400 });
+    }
     console.error('Registration API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

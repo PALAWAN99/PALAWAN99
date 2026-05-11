@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { MemberService } from '@/services/memberService';
 import { checkAccess } from '@/lib/rbac';
 import { memberSchema } from '@/lib/validations';
 import { logAction } from '@/lib/audit';
@@ -25,19 +25,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search') || '';
 
   try {
-    const members = await prisma.member.findMany({
-      where: {
-        OR: [
-          { memberNo: { contains: search, mode: 'insensitive' } },
-          { citizenId: { contains: search, mode: 'insensitive' } },
-          { firstNameTh: { contains: search, mode: 'insensitive' } },
-          { lastNameTh: { contains: search, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
-
+    const members = await MemberService.getMembers(search);
     return NextResponse.json(members);
   } catch (error) {
     console.error('API Error:', error);
@@ -71,26 +59,8 @@ export async function POST(req: NextRequest) {
 
     const data = validation.data;
 
-    // Check duplicates
-    const existingNo = await prisma.member.findUnique({ where: { memberNo: data.memberNo } });
-    if (existingNo) {
-      return NextResponse.json({ error: 'Member Number already exists' }, { status: 400 });
-    }
-
-    if (data.citizenId) {
-      const existingId = await prisma.member.findUnique({ where: { citizenId: data.citizenId } });
-      if (existingId) {
-        return NextResponse.json({ error: 'Citizen ID already exists' }, { status: 400 });
-      }
-    }
-
-    const member = await prisma.member.create({
-      data: {
-        ...data,
-        citizenId: data.citizenId || null,
-        email: data.email || null,
-      },
-    });
+    // Use Service for business logic (duplicate check + creation)
+    const member = await MemberService.createMember(data);
 
     // บันทึก Audit Log
     await logAction({
@@ -102,8 +72,14 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(member, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
+    
+    // Handle business logic errors
+    if (error.message.includes('already exists')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -3,12 +3,17 @@ import { prisma } from '@/lib/prisma';
 import { validateQrToken } from '@/lib/qr-engine';
 import { validateQrSchema } from '@/lib/schemas/gate';
 import { ZodError } from 'zod';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/qr/validate
  * ตรวจสอบ QR Code จากเครื่องสแกนหน้าประตู
  */
 export async function POST(req: NextRequest) {
+  // 1. Check Rate Limit (60 requests per minute per IP)
+  const rateLimitError = checkRateLimit(req, 60);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const body = await req.json();
     const { token, gateId, deviceCode } = validateQrSchema.parse(body);

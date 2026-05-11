@@ -35,6 +35,7 @@ yarn-error.log*
 
 # prisma
 /prisma/migrations
+/prisma/generated/
 
 # database
 *.db
@@ -56,4 +57,3 @@ logs
 test-*.ts
 check-*.js
 seed-direct.js
-docs_backup/
