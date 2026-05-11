@@ -53,11 +53,17 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // 3. อัปเดตสถานะ QR ว่าถูกใช้งานแล้ว (Mark as used)
-    await prisma.qrToken.update({
-      where: { id: qrToken.id },
-      data: { usedAt: new Date() }
-    });
+    // 3. อัปเดตสถานะ QR ว่าถูกใช้งานแล้ว และสั่งเปิดประตู
+    await Promise.all([
+      prisma.qrToken.update({
+        where: { id: qrToken.id },
+        data: { usedAt: new Date() }
+      }),
+      prisma.gate.update({
+        where: { id: gate.id },
+        data: { isOpen: true }
+      })
+    ]);
 
     return NextResponse.json({
       decision: 'ALLOWED',

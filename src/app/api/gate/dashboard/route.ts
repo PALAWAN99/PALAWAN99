@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
         name: gate.nameTh,
         branch: gate.branch.nameTh,
         isOnline,
+        isOpen: gate.isOpen,
       },
       stats: {
         todayIn,

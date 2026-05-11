@@ -101,7 +101,7 @@ export default function HomePage() {
           <Group gap="md">
             <Button
               size="lg"
-              color="skyBlue"
+              color="blue"
               rightSection={<IconArrowRight size={18} />}
               onClick={() => router.push('/admin')}
               style={{ fontWeight: 600 }}
@@ -111,8 +111,18 @@ export default function HomePage() {
             <Button
               size="lg"
               variant="outline"
-              color="gray"
+              color="teal"
+              leftSection={<IconDoor size={18} />}
               style={{ borderColor: '#475569', color: '#94A3B8' }}
+              onClick={() => router.push('/gate/dashboard')}
+            >
+              Gate Dashboard (Officer)
+            </Button>
+            <Button
+              size="lg"
+              variant="subtle"
+              color="gray"
+              style={{ color: '#94A3B8' }}
               onClick={() => router.push('/admin')}
             >
               {t('Dashboard.recentActivity')}

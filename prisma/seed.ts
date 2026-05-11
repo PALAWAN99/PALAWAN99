@@ -80,6 +80,39 @@ async function main() {
   }
   console.log('✅ Test members created');
 
+  // 5. Create Gate and Device for Dashboard
+  const mainBranch = await prisma.branch.findUnique({ where: { code: 'MAIN' } });
+  if (mainBranch) {
+    const gate = await prisma.gate.upsert({
+      where: { gateCode: 'G-MAIN-01' },
+      update: {},
+      create: {
+        gateCode: 'G-MAIN-01',
+        nameTh: 'ประตูทางเข้าหลัก',
+        nameEn: 'Main Entrance Gate',
+        nameZh: '正门',
+        branchId: mainBranch.id,
+        direction: 'BIDIRECTIONAL',
+        status: 'ACTIVE',
+      },
+    });
+    console.log('✅ Gate created: G-MAIN-01');
+
+    await prisma.deviceRegistry.upsert({
+      where: { deviceCode: 'DEV-SCAN-01' },
+      update: {},
+      create: {
+        deviceCode: 'DEV-SCAN-01',
+        name: 'Main Scanner 01',
+        gateId: gate.id,
+        deviceType: 'QR_SCANNER',
+        secretHash: 'test-secret-hash',
+        status: 'ONLINE',
+      },
+    });
+    console.log('✅ Device created: DEV-SCAN-01');
+  }
+
   console.log('🌳 Seed complete!');
 }
 

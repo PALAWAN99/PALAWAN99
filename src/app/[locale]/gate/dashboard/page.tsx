@@ -29,7 +29,12 @@ import {
   IconX,
   IconRefresh,
   IconActivity,
+  IconLock,
+  IconLockOpen,
+  IconWalk,
 } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { useRouter } from '@/i18n/routing';
 
 interface AccessEvent {
   id: string;
@@ -51,7 +56,13 @@ export default function GateDashboard() {
     todayOut: 0,
     denied: 0,
   });
-  const [gateInfo, setGateInfo] = useState({ name: 'Loading...', branch: '...' });
+  const [gateInfo, setGateInfo] = useState<{
+    id?: string;
+    name: string;
+    branch: string;
+    isOpen?: boolean;
+    isOnline?: boolean;
+  }>({ name: 'Loading...', branch: '...' });
 
   // ดึงข้อมูลจาก API จริง
   const fetchEvents = async () => {
@@ -66,15 +77,57 @@ export default function GateDashboard() {
       setLoading(false);
     } catch (error) {
       console.error('Fetch Error:', error);
-      // ถ้า Error ให้คงค่าเดิมไว้ หรือแสดงสถานะ Error
     }
   };
 
   useEffect(() => {
     fetchEvents();
-    const interval = setInterval(fetchEvents, 30000); // Refresh ทุก 30 วินาที
+    const interval = setInterval(fetchEvents, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleControl = async (action: 'OPEN' | 'CLOSE') => {
+    if (!gateInfo.id) return;
+    try {
+      const response = await fetch('/api/gate/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gateId: gateInfo.id, action }),
+      });
+      if (response.ok) {
+        notifications.show({
+          title: 'Success',
+          message: `Gate ${action === 'OPEN' ? 'opened' : 'closed'} manually`,
+          color: action === 'OPEN' ? 'blue' : 'red',
+        });
+        fetchEvents();
+      }
+    } catch (error) {
+      console.error('Control Error:', error);
+    }
+  };
+
+  const handleSimulatePass = async () => {
+    if (!gateInfo.id) return;
+    try {
+      const response = await fetch('/api/gate/sensor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gateId: gateInfo.id }),
+      });
+      if (response.ok) {
+        notifications.show({
+          title: 'Sensor Triggered',
+          message: 'Person passed through, gate closing...',
+          color: 'gray',
+          icon: <IconWalk size={16} />,
+        });
+        fetchEvents();
+      }
+    } catch (error) {
+      console.error('Sensor Error:', error);
+    }
+  };
 
   return (
     <Box style={{ background: '#f8f9fa', minHeight: '100vh', padding: '24px' }}>
@@ -195,23 +248,51 @@ export default function GateDashboard() {
                       size={180}
                       thickness={16}
                       roundCaps
-                      sections={[{ value: 100, color: 'green' }]}
+                      sections={[{ value: 100, color: gateInfo.isOpen ? 'blue' : 'green' }]}
                       label={
                         <Center>
-                          <IconCheck size={40} color="green" />
+                          {gateInfo.isOpen ? (
+                            <IconLockOpen size={40} color="var(--mantine-color-blue-filled)" />
+                          ) : (
+                            <IconCheck size={40} color="var(--mantine-color-green-filled)" />
+                          )}
                         </Center>
                       }
                     />
                   </Center>
-                  <Text ta="center" fw={700} size="xl" mt="md" c="green">GATE SECURE</Text>
-                  <Text ta="center" size="sm" c="dimmed">All scanners working normally</Text>
+                  <Text ta="center" fw={700} size="xl" mt="md" c={gateInfo.isOpen ? 'blue' : 'green'}>
+                    {gateInfo.isOpen ? 'GATE OPEN' : 'GATE SECURE'}
+                  </Text>
+                  <Text ta="center" size="sm" c="dimmed">
+                    {gateInfo.isOpen ? 'Gate is currently open for passage' : 'All scanners working normally'}
+                  </Text>
                 </Card>
 
                 <Paper withBorder p="md" radius="md">
                   <Title order={5} mb="sm">Manual Control</Title>
                   <Stack gap="xs">
-                    <Button fullWidth variant="light" color="blue">Open Gate (Manual)</Button>
-                    <Button fullWidth variant="light" color="red">Emergency Lockdown</Button>
+                    {gateInfo.isOpen ? (
+                      <Button fullWidth variant="filled" color="red" leftSection={<IconLock size={16} />} onClick={() => handleControl('CLOSE')}>
+                        Close Gate
+                      </Button>
+                    ) : (
+                      <Button fullWidth variant="filled" color="blue" leftSection={<IconLockOpen size={16} />} onClick={() => handleControl('OPEN')}>
+                        Open Gate (Manual)
+                      </Button>
+                    )}
+                    
+                    <Button 
+                      fullWidth 
+                      variant="light" 
+                      color="gray" 
+                      leftSection={<IconWalk size={16} />} 
+                      disabled={!gateInfo.isOpen}
+                      onClick={handleSimulatePass}
+                    >
+                      Simulate Person Passing
+                    </Button>
+                    
+                    <Button fullWidth variant="subtle" color="red" size="xs" mt="sm">Emergency Lockdown</Button>
                   </Stack>
                 </Paper>
               </Stack>
