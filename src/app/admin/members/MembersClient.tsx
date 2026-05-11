@@ -23,6 +23,9 @@ import {
   Tooltip,
   Avatar,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import {
   IconSearch,
   IconUserPlus,
@@ -39,10 +42,11 @@ import {
   IconCalendar,
   IconRefresh,
   IconClockHour4,
+  IconSelector,
 } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { addMember, updateMember, deleteMember } from './memberActions';
+import { addMember, updateMember, deleteMember, getMemberAccessHistory } from './memberActions';
 import { ThaiIdCardReader } from '@/lib/idcard/reader';
 import { useRouter } from 'next/navigation';
 
@@ -126,6 +130,7 @@ const emptyForm = {
 };
 
 export default function MembersClient({ initialMembers }: { initialMembers: Member[] }) {
+  dayjs.locale('th');
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [opened, { open, close }] = useDisclosure(false);
@@ -137,11 +142,11 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const [formData, setFormData] = useState(emptyForm);
   const [isEdit, setIsEdit] = useState(false);
 
-  // ─── Renew State ─────────────────────────────────────────────────────────────
-  const [renewOpened, { open: openRenew, close: closeRenew }] = useDisclosure(false);
-  const [renewMember, setRenewMember] = useState<Member | null>(null);
-  const [renewDate, setRenewDate] = useState<Date | null>(null);
-  const [renewLoading, setRenewLoading] = useState(false);
+  // ─── History State ──────────────────────────────────────────────────────────
+  const [historyOpened, { open: openHistory, close: closeHistory }] = useDisclosure(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [accessHistory, setAccessHistory] = useState<any[]>([]);
 
   // ─── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
@@ -277,38 +282,6 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
     }
   };
 
-  const handleRenew = async () => {
-    if (!renewMember || !renewDate) return;
-    setRenewLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === renewMember.id
-          ? { ...m, expireDate: renewDate, status: 'ACTIVE' }
-          : m
-      )
-    );
-    setRenewLoading(false);
-    notifications.show({
-      title: 'ต่ออายุสำเร็จ ✓',
-      message: `${renewMember.firstNameTh} ${renewMember.lastNameTh} — ต่ออายุถึง ${renewDate.toLocaleDateString('th-TH')} แล้ว`,
-      color: 'teal',
-    });
-    closeRenew();
-  };
-
-  const handleOpenRenew = (member: Member) => {
-    setRenewMember(member);
-    const base =
-      member.expireDate && new Date(member.expireDate) > new Date()
-        ? new Date(member.expireDate)
-        : new Date();
-    const next = new Date(base);
-    next.setFullYear(next.getFullYear() + 1);
-    setRenewDate(next);
-    openRenew();
-  };
-
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`ยืนยันลบสมาชิก "${name}" ออกจากระบบ?`)) return;
     setLoading(true);
@@ -355,6 +328,25 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
     } finally {
       await reader.disconnect();
       setReadingId(false);
+    }
+  };
+
+  const handleOpenHistory = async (member: Member) => {
+    setSelectedMember(member);
+    setHistoryLoading(true);
+    openHistory();
+    
+    const result = await getMemberAccessHistory(member.id);
+    setHistoryLoading(false);
+    
+    if (result.success) {
+      setAccessHistory(result.history || []);
+    } else {
+      notifications.show({
+        title: 'ไม่สามารถดึงข้อมูลประวัติได้',
+        message: result.error,
+        color: 'red',
+      });
     }
   };
 
@@ -644,10 +636,9 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                             </Menu.Item>
                             <Menu.Item
                               leftSection={<IconClockHour4 size={14} />}
-                              color="teal"
-                              onClick={() => handleOpenRenew(member)}
+                              onClick={() => handleOpenHistory(member)}
                             >
-                              ต่ออายุสมาชิก
+                              ประวัติการเข้า-ออก
                             </Menu.Item>
                             <Menu.Item
                               leftSection={<IconRefresh size={14} />}
@@ -693,95 +684,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         </Stack>
       </Card>
 
-      {/* Renew Member Modal */}
-      <Modal
-        opened={renewOpened}
-        onClose={closeRenew}
-        title={
-          <Group gap="xs">
-            <IconClockHour4 size={20} color="teal" />
-            <Text fw={600} size="lg">ต่ออายุสมาชิก</Text>
-          </Group>
-        }
-        size="sm"
-      >
-        {renewMember && (
-          <Stack gap="md">
-            <Card withBorder radius="md" p="sm" bg="var(--mantine-color-teal-0)">
-              <Group gap="sm">
-                <Avatar color={getAvatarColor(renewMember.id)} radius="xl">
-                  {getInitials(renewMember.firstNameTh, renewMember.lastNameTh)}
-                </Avatar>
-                <div>
-                  <Text fw={600}>{renewMember.firstNameTh} {renewMember.lastNameTh}</Text>
-                  <Text size="xs" c="dimmed">รหัสสมาชิก: {renewMember.memberNo}</Text>
-                </div>
-              </Group>
-              <Divider my="xs" />
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">สถานะปัจจุบัน</Text>
-                <Badge
-                  color={STATUS_COLORS[renewMember.status] ?? 'gray'}
-                  variant="filled"
-                  size="sm"
-                >
-                  {STATUS_LABELS[renewMember.status] ?? renewMember.status}
-                </Badge>
-              </Group>
-              <Group justify="space-between" mt={4}>
-                <Text size="sm" c="dimmed">วันหมดอายุเดิม</Text>
-                <Text size="sm" fw={500} c={renewMember.expireDate && new Date(renewMember.expireDate) < new Date() ? 'red' : undefined}>
-                  {renewMember.expireDate
-                    ? new Date(renewMember.expireDate).toLocaleDateString('th-TH')
-                    : 'ไม่มีข้อมูล'}
-                </Text>
-              </Group>
-            </Card>
 
-            <TextInput
-              label="วันหมดอายุใหม่"
-              type="date"
-              value={renewDate ? renewDate.toISOString().split('T')[0] : ''}
-              onChange={(e) => setRenewDate(e.target.value ? new Date(e.target.value) : null)}
-              min={new Date().toISOString().split('T')[0]}
-              leftSection={<IconCalendar size={16} />}
-            />
-
-            <Group gap="xs">
-              {[1, 2, 3].map((yr) => {
-                const d = new Date();
-                d.setFullYear(d.getFullYear() + yr);
-                return (
-                  <Button
-                    key={yr}
-                    size="xs"
-                    variant="light"
-                    color="teal"
-                    onClick={() => setRenewDate(d)}
-                  >
-                    +{yr} ปี
-                  </Button>
-                );
-              })}
-            </Group>
-
-            <Group justify="flex-end" mt="xs">
-              <Button variant="light" color="gray" onClick={closeRenew}>
-                ยกเลิก
-              </Button>
-              <Button
-                color="teal"
-                leftSection={<IconClockHour4 size={16} />}
-                onClick={handleRenew}
-                loading={renewLoading}
-                disabled={!renewDate}
-              >
-                ยืนยันต่ออายุ
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
 
       {/* Add / Edit Modal */}
       <Modal
@@ -914,7 +817,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             />
             <Select
               label="เพศ"
-              placeholder="เลือกเพศ"
+              placeholder="เลือก"
               data={[
                 { value: 'ชาย', label: 'ชาย' },
                 { value: 'หญิง', label: 'หญิง' },
@@ -932,26 +835,11 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           />
 
-          {/* Row: school */}
-          <TextInput
-            label="ชื่อสถาบันการศึกษา / โรงเรียน"
-            placeholder="กรอกชื่อสถาบันการศึกษา..."
-            value={formData.school}
-            onChange={(e) => setFormData({ ...formData, school: e.target.value })}
-          />
-
-          {/* Row: email + phone */}
+          {/* Row: phone + email */}
           <Group grow>
             <TextInput
-              label="อีเมล"
-              placeholder="example@email.com"
-              leftSection={<IconMail size={15} />}
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-            <TextInput
               label="เบอร์โทรศัพท์"
-              placeholder="08x-xxx-xxxx"
+              placeholder="08X-XXX-XXXX"
               leftSection={<IconPhone size={15} />}
               value={formData.phone}
               onChange={(e) => {
@@ -964,7 +852,22 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               }}
               maxLength={12}
             />
+            <TextInput
+              label="อีเมล"
+              placeholder="example@email.com"
+              leftSection={<IconMail size={15} />}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
           </Group>
+
+          {/* Row: school */}
+          <TextInput
+            label="ชื่อสถาบันการศึกษา / โรงเรียน"
+            placeholder="กรอกชื่อสถาบันการศึกษา..."
+            value={formData.school}
+            onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+          />
 
           {/* Row 5: memberType + status + expireDate */}
           <Group grow>
@@ -993,12 +896,18 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                 onChange={(val) => setFormData({ ...formData, status: val ?? 'ACTIVE' })}
               />
             )}
-            <TextInput
+            <DatePickerInput
               label="วันหมดอายุสมาชิก"
-              type="date"
+              placeholder="เลือกวันที่"
+              locale="th"
+              valueFormat="D MMM YYYY"
               leftSection={<IconCalendar size={15} />}
-              value={formData.expireDate}
-              readOnly
+              rightSection={<IconSelector size={15} color="gray" />}
+              value={formData.expireDate ? new Date(formData.expireDate) : null}
+              onChange={(date) => setFormData({ 
+                ...formData, 
+                expireDate: date ? dayjs(date).format('YYYY-MM-DD') : '' 
+              })}
             />
           </Group>
 
@@ -1009,6 +918,88 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             </Button>
             <Button color="blue" onClick={handleSubmit} loading={loading}>
               {isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มสมาชิก'}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* History Modal */}
+      <Modal
+        opened={historyOpened}
+        onClose={closeHistory}
+        title={
+          <Group gap="xs">
+            <IconClockHour4 size={20} />
+            <Text fw={600} size="lg">
+              ประวัติการเข้า-ออก: {selectedMember?.firstNameTh} {selectedMember?.lastNameTh}
+            </Text>
+          </Group>
+        }
+        size="xl"
+      >
+        <Stack gap="md" style={{ minHeight: 400, position: 'relative' }}>
+          <LoadingOverlay visible={historyLoading} overlayProps={{ blur: 2 }} />
+          
+          {accessHistory.length > 0 ? (
+            <Table.ScrollContainer minWidth={600}>
+              <Table verticalSpacing="sm">
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>วัน/เวลา</Table.Th>
+                    <Table.Th>ประตู/จุดควบคุม</Table.Th>
+                    <Table.Th>ทิศทาง</Table.Th>
+                    <Table.Th>สถานะ</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {accessHistory.map((event) => (
+                    <Table.Tr key={event.id}>
+                      <Table.Td>
+                        <Stack gap={0}>
+                          <Text size="sm" fw={500}>
+                            {dayjs(event.scannedAt).format('D MMM YYYY')}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {dayjs(event.scannedAt).format('HH:mm:ss')} น.
+                          </Text>
+                        </Stack>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{event.gate?.nameTh || 'ไม่ระบุ'}</Text>
+                        <Text size="xs" c="dimmed">{event.gate?.gateCode}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge 
+                          variant="light" 
+                          color={event.direction === 'IN' ? 'blue' : 'orange'}
+                        >
+                          {event.direction === 'IN' ? 'เข้า' : 'ออก'}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge 
+                          variant="filled" 
+                          color={event.decision === 'ALLOWED' ? 'green' : 'red'}
+                          size="sm"
+                        >
+                          {event.decision === 'ALLOWED' ? 'ผ่าน' : 'ปฏิเสธ'}
+                        </Badge>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+          ) : !historyLoading && (
+            <Stack align="center" py={60} gap="xs">
+              <IconClockHour4 size={40} color="var(--mantine-color-dimmed)" />
+              <Text c="dimmed">ไม่พบประวัติการเข้า-ออก</Text>
+            </Stack>
+          )}
+          
+          <Group justify="flex-end">
+            <Button variant="light" color="gray" onClick={closeHistory}>
+              ปิดหน้าต่าง
             </Button>
           </Group>
         </Stack>

@@ -30,6 +30,7 @@ import {
   IconMenu2,
   IconBell,
   IconLogout,
+  IconHistory,
 } from '@tabler/icons-react';
 import NotificationBell from '../notifications/NotificationBell';
 
@@ -41,6 +42,7 @@ const NAV_ITEMS = [
   { label: 'บัตรประชาชน', labelEn: 'ID Card', icon: IconId, href: '/admin/idcard' },
   { label: 'รายงาน', labelEn: 'Reports', icon: IconChartBar, href: '/admin/reports' },
   { label: 'ความปลอดภัย', labelEn: 'Security', icon: IconShield, href: '/admin/security' },
+  { label: 'ประวัติเข้า-ออก', labelEn: 'Access History', icon: IconHistory, href: '/admin/history' },
   { label: 'ตั้งค่า', labelEn: 'Settings', icon: IconSettings, href: '/admin/settings' },
 ];
 

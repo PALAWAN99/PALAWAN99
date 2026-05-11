@@ -73,7 +73,7 @@ export default function IdCardClient() {
     firstNameEn: '',
     lastNameEn: '',
     birthDate: '',
-    gender: 'ชาย',
+    gender: '',
     address: '',
   });
 
@@ -585,7 +585,7 @@ export default function IdCardClient() {
                 />
                 <Select
                   label="เพศ"
-                  placeholder="เลือกเพศ"
+                  placeholder="เลือก"
                   data={['ชาย', 'หญิง']}
                   value={manualData.gender}
                   onChange={(val) => setManualData({...manualData, gender: val || ''})}
@@ -602,20 +602,7 @@ export default function IdCardClient() {
               <Divider my="sm" />
               <Text fw={600} size="sm">ข้อมูลเพิ่มเติมสำหรับการติดต่อ</Text>
               
-              <TextInput 
-                label="ชื่อสถาบันการศึกษา / โรงเรียน" 
-                placeholder="กรอกชื่อสถาบันการศึกษา..." 
-                value={additionalData.school}
-                onChange={(e) => setAdditionalData({...additionalData, school: e.target.value})}
-              />
-
               <Group grow>
-                <TextInput 
-                  label="อีเมล" 
-                  placeholder="example@mail.com" 
-                  value={additionalData.email}
-                  onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
-                />
                 <TextInput 
                   label="เบอร์โทรศัพท์" 
                   placeholder="08X-XXX-XXXX" 
@@ -630,7 +617,20 @@ export default function IdCardClient() {
                   }}
                   maxLength={12}
                 />
+                <TextInput 
+                  label="อีเมล" 
+                  placeholder="example@mail.com" 
+                  value={additionalData.email}
+                  onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
+                />
               </Group>
+
+              <TextInput 
+                label="ชื่อสถาบันการศึกษา / โรงเรียน" 
+                placeholder="กรอกชื่อสถาบันการศึกษา..." 
+                value={additionalData.school}
+                onChange={(e) => setAdditionalData({...additionalData, school: e.target.value})}
+              />
             </Stack>
           </Card>
         </Tabs.Panel>
