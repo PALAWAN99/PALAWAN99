@@ -27,7 +27,8 @@
     "actions": "Actions",
     "view": "View Details",
     "admins": "Admin Management",
-    "security": "Security"
+    "security": "Security",
+    "noData": "No data available"
   },
   "Dashboard": {
     "welcome": "Welcome back",
@@ -38,7 +39,9 @@
     "recentActivity": "Recent Activity",
     "systemStatus": "System Status",
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "trafficOverview": "Traffic Overview",
+    "topGates": "Top Gates"
   },
   "Auth": {
     "login": "Login",

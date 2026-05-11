@@ -45,6 +45,8 @@ export function useMemberManagement(initialMembers: Member[]) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [initialFormData, setInitialFormData] = useState<any>(null);
+  const [isEdit, setIsEdit] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -70,8 +72,6 @@ export function useMemberManagement(initialMembers: Member[]) {
     }, 300);
     return () => clearTimeout(timer);
   }, [fetchMembers]);
-  const [formData, setFormData] = useState(emptyForm);
-  const [isEdit, setIsEdit] = useState(false);
 
   const [renewOpened, { open: openRenew, close: closeRenew }] = useDisclosure(false);
   const [renewMember, setRenewMember] = useState<Member | null>(null);
@@ -102,7 +102,7 @@ export function useMemberManagement(initialMembers: Member[]) {
 
   const handleOpenAdd = useCallback(() => {
     setIsEdit(false);
-    setFormData(emptyForm);
+    setInitialFormData(null);
     open();
   }, [open]);
 
@@ -114,7 +114,7 @@ export function useMemberManagement(initialMembers: Member[]) {
         meta = typeof member.metadata === 'string' ? JSON.parse(member.metadata) : member.metadata;
       } catch (e) {}
     }
-    setFormData({
+    setInitialFormData({
       id: member.id,
       memberNo: member.memberNo,
       citizenId: member.citizenId ?? '',
@@ -137,17 +137,14 @@ export function useMemberManagement(initialMembers: Member[]) {
     open();
   }, [open]);
 
-  const handleSubmit = async () => {
-    if (!formData.memberNo || !formData.firstNameTh || !formData.lastNameTh) {
-      notifications.show({ title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกข้อมูลที่จำเป็น', color: 'orange' });
-      return;
-    }
+  const handleSubmit = async (values: any) => {
     setLoading(true);
-    const result = isEdit ? await updateMember(formData.id, formData) : await addMember(formData);
+    const result = isEdit ? await updateMember(values.id, values) : await addMember(values);
     setLoading(false);
+    
     if (result.success) {
       if (isEdit) {
-        setMembers(prev => prev.map(m => m.id === formData.id ? { ...m, ...formData, expireDate: formData.expireDate ? new Date(formData.expireDate) : null } : m));
+        setMembers(prev => prev.map(m => m.id === values.id ? { ...m, ...values, expireDate: values.expireDate ? new Date(values.expireDate) : null } : m));
       } else if (result.member) {
         setMembers(prev => [result.member as Member, ...prev]);
       }
@@ -190,6 +187,7 @@ export function useMemberManagement(initialMembers: Member[]) {
     }
   };
 
+
   const handleReadIdCard = async () => {
     setReadingId(true);
     const reader = new ThaiIdCardReader();
@@ -221,9 +219,9 @@ export function useMemberManagement(initialMembers: Member[]) {
   };
 
   return {
-    members, filtered: members, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
+    members, filtered, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
     page, setPage, total, totalPages,
-    formData, setFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
+    initialFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
     handleDelete, handleReadIdCard, clearFilters: () => { setSearch(''); setFilterType(null); setFilterStatus(null); setPage(1); }
   };

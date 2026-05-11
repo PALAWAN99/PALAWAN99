@@ -9,8 +9,10 @@ import {
   Badge,
   Box,
   LoadingOverlay,
+  Skeleton,
+  Alert,
 } from '@mantine/core';
-import { IconLayoutDashboard } from '@tabler/icons-react';
+import { IconLayoutDashboard, IconAlertCircle } from '@tabler/icons-react';
 
 import { useDashboard } from './dashboard/hooks/useDashboard';
 import { DashboardStats } from './dashboard/_components/DashboardStats';
@@ -30,7 +32,8 @@ export default function AdminDashboard() {
     chartData,
     gateTraffic,
     gateStatus,
-    loading
+    loading,
+    error
   } = useDashboard();
 
   const formattedDate = new Date().toLocaleDateString(
@@ -40,7 +43,12 @@ export default function AdminDashboard() {
 
   return (
     <Stack gap="xl" pos="relative">
-      <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
+      {/* Error Alert */}
+      {error && (
+        <Alert icon={<IconAlertCircle size={16} />} title="เกิดข้อผิดพลาด" color="red" radius="md">
+          {error}
+        </Alert>
+      )}
 
       {/* Page Header */}
       <Group justify="space-between" align="flex-end">
@@ -67,13 +75,13 @@ export default function AdminDashboard() {
       </Group>
 
       {/* Summary Statistics */}
-      <DashboardStats stats={stats} t={t} />
+      <DashboardStats stats={stats} loading={loading} t={t} />
 
       {/* Data Visualization */}
-      <DashboardCharts chartData={chartData} gateTraffic={gateTraffic} t={t} />
+      <DashboardCharts chartData={chartData} gateTraffic={gateTraffic} loading={loading} t={t} />
 
       {/* Activity & Device Status */}
-      <DashboardActivity recentEvents={recentEvents} gateStatus={gateStatus} t={t} />
+      <DashboardActivity recentEvents={recentEvents} gateStatus={gateStatus} loading={loading} t={t} />
     </Stack>
   );
 }

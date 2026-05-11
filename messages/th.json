@@ -27,7 +27,8 @@
     "actions": "จัดการ",
     "view": "ดูรายละเอียด",
     "admins": "จัดการแอดมิน",
-    "security": "ความปลอดภัย"
+    "security": "ความปลอดภัย",
+    "noData": "ไม่มีข้อมูล"
   },
   "Dashboard": {
     "welcome": "ยินดีต้อนรับกลับมา",
@@ -38,7 +39,9 @@
     "recentActivity": "กิจกรรมล่าสุด",
     "systemStatus": "สถานะระบบ",
     "online": "ออนไลน์",
-    "offline": "ออฟไลน์"
+    "offline": "ออฟไลน์",
+    "trafficOverview": "ภาพรวมการเข้าใช้งาน",
+    "topGates": "ประตูที่ใช้งานสูงสุด"
   },
   "Auth": {
     "login": "เข้าสู่ระบบ",

@@ -12,6 +12,7 @@ interface GateFormModalProps {
   t: (key: string) => string;
 }
 
+export function GateFormModal({ opened, onClose, submitting, form, onSubmit, branches, t }: GateFormModalProps) {
   const isMobile = useMediaQuery('(max-width: 48em)');
 
   return (

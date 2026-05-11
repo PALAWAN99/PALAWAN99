@@ -55,7 +55,7 @@ function TicketContent() {
   const accessCode = `GATE-ACCESS-${ticketData.citizenId}-${new Date().toISOString().split('T')[0]}`;
 
   return (
-    <Box minHeight="100vh" bg="var(--bg-primary)" py="xl" className="ticket-container">
+    <Box mih="100vh" bg="var(--bg-primary)" py="xl" className="ticket-container">
       <Container size="xs">
         <Stack gap="xl" align="center">
           

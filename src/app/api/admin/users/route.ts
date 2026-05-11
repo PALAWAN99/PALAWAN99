@@ -34,12 +34,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { email, fullName, password, role } = body;
-
-    // ตรวจสอบข้อมูลเบื้องต้น
-    if (!email || !password || !fullName || !role) {
-      return ApiBadRequest('ข้อมูลไม่ครบถ้วน (Email, Password, Full Name, Role)');
+    
+    // Validate with Zod
+    const { userSchema } = await import('@/validators/userValidator');
+    const validation = userSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return ApiBadRequest('ข้อมูลผู้ใช้ไม่ถูกต้อง', validation.error.flatten().fieldErrors);
     }
+
+    const { email, fullName, password, role } = validation.data;
 
     // Use Service
     const user = await UserService.createUser({

@@ -41,11 +41,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, deviceCode, gateId, deviceType } = body;
-
-    if (!name || !deviceCode || !gateId || !deviceType) {
-      return ApiBadRequest('ข้อมูลไม่ครบถ้วน (Name, Device Code, Gate ID, Device Type)');
+    
+    // Validate with Zod
+    const { deviceSchema } = await import('@/validators/deviceValidator');
+    const validation = deviceSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return ApiBadRequest('ข้อมูลอุปกรณ์ไม่ถูกต้อง', validation.error.flatten().fieldErrors);
     }
+
+    const { name, deviceCode, gateId, deviceType } = validation.data;
 
     // สร้าง Secret สำหรับอุปกรณ์
     const rawSecret = crypto.randomBytes(32).toString('hex');

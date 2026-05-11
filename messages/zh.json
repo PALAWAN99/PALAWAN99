@@ -27,7 +27,8 @@
     "actions": "操作",
     "view": "查看详情",
     "admins": "管理员管理",
-    "security": "安全"
+    "security": "安全",
+    "noData": "暂无数据"
   },
   "Dashboard": {
     "welcome": "欢迎回来",
@@ -38,7 +39,9 @@
     "recentActivity": "近期活动",
     "systemStatus": "系统状态",
     "online": "在线",
-    "offline": "离线"
+    "offline": "离线",
+    "trafficOverview": "流量概览",
+    "topGates": "热门门禁"
   },
   "Auth": {
     "login": "登录",

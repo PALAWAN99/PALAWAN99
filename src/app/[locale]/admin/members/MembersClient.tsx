@@ -18,9 +18,9 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const {
     filtered, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
     page, setPage, total, totalPages,
-    formData, setFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
+    initialFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
-    handleDelete, handleReadIdCard, clearFilters
+    handleDelete, clearFilters
   } = useMemberManagement(initialMembers);
 
   const hasFilter = !!(search || filterType || filterStatus);
@@ -101,12 +101,9 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         opened={opened}
         onClose={close}
         isEdit={isEdit}
-        formData={formData}
-        setFormData={setFormData}
+        initialData={initialFormData}
         loading={loading}
-        readingId={readingId}
-        handleReadIdCard={handleReadIdCard}
-        handleSubmit={handleSubmit}
+        onSubmit={handleSubmit}
       />
 
       <MemberRenewModal
