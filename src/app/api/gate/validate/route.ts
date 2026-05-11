@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. ตรวจสอบสิทธิ์ (ต้องเป็นเจ้าหน้าที่ประตูหรือแอดมิน)
     const session = await auth();
-    if (!session || !['SUPER_ADMIN', 'ADMIN', 'GATE_OFFICER'].includes(session.user.role)) {
+    if (!session?.user?.role || !['SUPER_ADMIN', 'ADMIN', 'GATE_OFFICER'].includes(session.user.role as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
       data: {
         gateId: gateId,
         memberId: result.member?.id || null, // กรณีไม่พบสมาชิก ให้เป็น null (แก้ปัญหา FK violation)
-        qrTokenId: result.qrToken?.id,
-        direction: direction,
+        qrTokenId: result.qrToken?.id || null,
+        direction: direction as any,
         source: 'QR_CODE',
         decision: result.decision as any,
-        reasonCode: result.reason,
+        reasonCode: result.reason || null,
         scannedAt: new Date(),
       }
     });

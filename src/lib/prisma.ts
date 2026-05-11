@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  if (typeof window !== 'undefined') return null as any;
+  if (typeof window !== 'undefined') return null as unknown as PrismaClient;
 
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],

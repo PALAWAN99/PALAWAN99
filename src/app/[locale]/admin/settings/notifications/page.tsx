@@ -81,7 +81,7 @@ export default function NotificationSettings() {
           icon: <IconCheck size={18} />,
         });
       }
-    } catch (_) {
+    } catch {
       notifications.show({
         title: t('Common.error'),
         message: t('Common.errorDesc'),

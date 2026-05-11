@@ -63,7 +63,7 @@ export default function DevicesPage() {
   const [newDeviceSecret, setNewDeviceSecret] = useState<string | null>(null);
 
   const fetchDevices = async () => {
-    setLoading(true);
+    setLoading(l => l ? l : true);
     try {
       const res = await fetch('/api/admin/devices');
       const data = await res.json();

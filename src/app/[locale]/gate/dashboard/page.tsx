@@ -30,12 +30,28 @@ import {
   IconDoorExit,
 } from '@tabler/icons-react';
 
+interface GateInfo {
+  id: string;
+  nameTh: string;
+  gateCode: string;
+}
+
+interface ScanResult {
+  isValid: boolean;
+  message: string;
+  member?: {
+    firstNameTh: string;
+    lastNameTh: string;
+    memberType: string;
+  };
+}
+
 export default function GateDashboard() {
   const t = useTranslations();
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [gateInfo, setGateInfo] = useState<any>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [gateInfo, setGateInfo] = useState<GateInfo | null>(null);
   const [direction, setDirection] = useState<'IN' | 'OUT'>('IN');
 
   // จำลองว่าเราเลือกประตูไว้แล้ว (ในระบบจริงอาจจะดึงจาก Config หรือ Session)
