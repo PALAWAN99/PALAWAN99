@@ -1,122 +1,145 @@
-# QR Gate Access Control System 🚪🛡️
+# 🛡️ QR Gate Access Control Platform (Production Ready)
 
-ระบบควบคุมการเข้า-ออกประตูด้วย QR Code และบัตรประชาชน พัฒนาด้วยเทคโนโลยีสมัยใหม่ เน้นความปลอดภัย ความเร็ว และการตรวจสอบย้อนกลับได้ 100%
-
----
-
-## 🏗️ Architecture & Tech Stack
-
-ระบบถูกออกแบบด้วยสถาปัตยกรรม **Modern Full-stack** บน Next.js:
-
-- **Framework:** [Next.js 16](https://nextjs.org) (App Router) - รองรับ Server Components และ Streaming
-- **UI System:** [Mantine UI v9](https://mantine.dev) - ระบบ Design System ที่ยืดหยุ่นและเป็น Responsive
-- **Database ORM:** [Prisma 7](https://www.prisma.io) - ใช้ Type-safe database client
-- **Database:** PostgreSQL (Production) / SQLite (Development)
-- **Authentication:** [NextAuth.js v5](https://authjs.dev) (Beta) - รองรับ RBAC
-- **Validations:** [Zod](https://zod.dev) - ตรวจสอบความถูกต้องของข้อมูลทั้ง Client และ Server
+ระบบบริหารจัดการทางเข้า-ออกอัจฉริยะด้วย QR Code สำหรับห้องสมุดและองค์กร ออกแบบมาเพื่อความปลอดภัย ประสิทธิภาพ และความง่ายในการบำรุงรักษา
 
 ---
 
-## 🚀 วิธีการติดตั้ง (Installation)
+## 🏗️ Architecture (โครงสร้างระบบ)
 
-### 1. โคลนโปรเจกต์และติดตั้ง Dependencies
+ระบบนี้พัฒนาด้วยแนวคิด **Layered Architecture** เพื่อแยกส่วนการทำงานอย่างชัดเจน:
+
+- **UI Layer (Next.js 15+):** ใช้ Mantine UI 7 สำหรับการแสดงผลที่สวยงามและ Responsive
+- **Service Layer:** บรรจุ Business Logic ทั้งหมดของระบบ
+- **Repository Layer:** แยกส่วนการติดต่อฐานข้อมูล (Prisma 6+) ออกจาก Logic
+- **Validator Layer:** ตรวจสอบความถูกต้องของข้อมูลด้วย Zod ก่อนเข้าสู่ระบบ
+- **Security Layer:** ระบบป้องกันระดับสูง (Signed QR, Rate Limiting, RBAC, Audit Logs)
+
+```mermaid
+graph TD
+    User((User/Admin)) --> NextJS[Next.js AppShell]
+    NextJS --> API[API Routes / Server Actions]
+    API --> Validator{Validator Layer}
+    Validator --> Service[Service Layer]
+    Service --> Repo[Repository Layer]
+    Repo --> DB[(PostgreSQL)]
+    Service --> Storage[Storage / Member Photos]
+    Service --> Logs[(Audit Logs)]
+```
+
+---
+
+## 📊 ER Diagram (ผังฐานข้อมูล)
+
+```mermaid
+erDiagram
+    MEMBER ||--o{ ACCESS_EVENT : scans
+    GATE ||--o{ ACCESS_EVENT : records
+    BRANCH ||--o{ GATE : owns
+    USER ||--o{ AUDIT_LOG : performs
+    
+    MEMBER {
+        string id PK
+        string memberNo UK
+        string citizenId
+        string firstNameTh
+        string lastNameTh
+        buffer photo
+        enum status
+        datetime expireDate
+    }
+    
+    GATE {
+        string id PK
+        string gateCode UK
+        string nameTh
+        enum direction
+        enum status
+    }
+    
+    ACCESS_EVENT {
+        string id PK
+        datetime scannedAt
+        enum direction
+        enum decision
+    }
+```
+
+---
+
+## 🚀 Getting Started (วิธีการติดตั้ง)
+
+### 1. ติดตั้งผ่าน Docker (แนะนำสำหรับ Production)
 ```bash
+# 1. Clone Repository
+git clone <repository-url>
+cd qrcode-accesscontrol
+
+# 2. สร้างไฟล์ .env จากตัวอย่าง
+cp .env.example .env
+
+# 3. รันระบบทั้งหมดด้วย Docker Compose
+docker-compose up -d
+```
+
+### 2. ติดตั้งแบบ Local (สำหรับการพัฒนา)
+```bash
+# 1. ติดตั้ง Dependencies
 npm install
-```
 
-### 2. การตั้งค่า Environment Variables (.env)
-คัดลอกไฟล์ `.env.example` เป็น `.env` และตั้งค่าดังนี้:
-```env
-# Database Connection
-DATABASE_URL="postgresql://user:password@localhost:5432/qrgatedb"
-
-# Auth Secret (สร้างด้วย openssl rand -base64 32)
-AUTH_SECRET="your-secret-key"
-
-# Next.js Settings
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
-
-### 3. การจัดการฐานข้อมูล (Database Setup)
-เนื่องจากใช้ Prisma 7 โปรดทำตามขั้นตอนดังนี้:
-```bash
-# สร้าง Prisma Client
+# 2. เตรียมฐานข้อมูล
 npx prisma generate
-
-# ผลักดัน Schema เข้าฐานข้อมูล (สำหรับ Dev)
 npx prisma db push
 
-# หรือใช้ Migration (สำหรับ Prod)
-npx prisma migrate dev --name init
-
-# ใส่ข้อมูลเริ่มต้น (Admin, Policies)
-npx prisma db seed
+# 3. รันระบบ Development
+npm run dev
 ```
 
 ---
 
-## 🛠️ โครงสร้างโปรเจกต์ (Project Structure)
+## ⚙️ Environment Variables (การตั้งค่า)
 
-```text
-src/
-├── app/                  # Next.js App Router (Pages & API)
-│   ├── [locale]/admin/   # ระบบหลังบ้าน (Dashboard, Members, Events)
-│   └── api/              # API Endpoints (Gate Validation, Registration)
-├── components/           # UI Components แยกตามโมดูล
-├── lib/                  # Shared Utilities (Auth, RBAC, Validations, Prisma)
-├── services/             # Business Logic Layer (Logging, MemberService)
-├── i18n/                 # การตั้งค่าภาษา (TH, EN, ZH)
-└── types/                # TypeScript Interfaces
-```
+ระบบใช้ **Zod Validation** ตรวจสอบไฟล์ `.env` ตอนเริ่มทำงาน:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL Connection String | `postgresql://user:pass@localhost:5432/db` |
+| `NEXTAUTH_SECRET` | คีย์สำหรับเข้ารหัส Session | `your-secret-key` |
+| `QR_SIGN_SECRET` | คีย์สำหรับลงนาม QR Code | `shh-its-a-secret` |
+| `RATE_LIMIT_MAX` | จำนวนคำขอสูงสุดต่อนาที | `100` |
 
 ---
 
-## 🔐 ระบบสิทธิ์การใช้งาน (RBAC)
+## 📑 API Documentation (สรุป API ที่สำคัญ)
 
-ระบบใช้สิทธิ์แบบ **Granular Permission Matrix** กำหนดไว้ใน `src/lib/rbac.ts`:
-- **SUPER_ADMIN:** ควบคุมระบบทั้งหมด ดู Audit Logs ได้
-- **ADMIN:** จัดการประตู สาขา และอุปกรณ์ได้
-- **LIBRARIAN:** จัดการข้อมูลสมาชิกและออก QR Code ได้
-- **STAFF:** ดูข้อมูลและออก QR Code ได้อย่างเดียว
-- **SECURITY:** ดูประวัติการเข้า-ออก (Access Events) ได้อย่างเดียว
+### Admin API
+- `GET /api/admin/dashboard/stats` - ข้อมูลสรุปหน้าแรก
+- `GET /api/admin/members` - จัดการข้อมูลสมาชิก
+- `POST /api/admin/gates` - เพิ่ม/แก้ไขข้อมูลประตู
 
----
-
-## 📡 API Usage (ตัวอย่าง)
-
-### 1. การตรวจสอบรหัส QR (Gate Validation)
-**Endpoint:** `POST /api/gate/validate`
-**Payload:**
-```json
-{
-  "token": "qr-token-hash",
-  "gateCode": "GATE-001",
-  "direction": "IN"
-}
-```
-
-### 2. การลงทะเบียนด้วยบัตรประชาชน
-**Endpoint:** `POST /api/idcard/register`
-**Payload:**
-```json
-{
-  "citizenId": "1234567890123",
-  "fullNameTh": "สมชาย รักเรียน",
-  "deviceId": "uuid-of-reader"
-}
-```
+### Hardware API (Gate Interface)
+- `POST /api/qr/validate` - ตรวจสอบ QR Code (รองรับ Signed Token)
+- `POST /api/device/heartbeat` - ตรวจสอบสถานะอุปกรณ์
 
 ---
 
-## 💾 ระบบ Backup & Recovery
-ดูรายละเอียดได้ใน [docs/13-backup-and-restore.md](file:///c:/Users/ACER/Downloads/Library%20Project/docs/13-backup-and-restore.md)
+## 📸 Screenshots
+
+*(ตัวอย่างหน้าจอหลักของระบบ)*
+
+| Dashboard | Member Management |
+|-----------|-------------------|
+| ![Dashboard](https://via.placeholder.com/400x250?text=Admin+Dashboard) | ![Members](https://via.placeholder.com/400x250?text=Member+Management) |
 
 ---
 
-## 📝 บันทึกสำหรับนักพัฒนาคนถัดไป
-1. **Prisma 7:** ระวังเรื่องการตั้งค่า `url` ใน `schema.prisma` จะถูกย้ายไปอยู่ที่ `prisma.config.ts` แทน
-2. **Localization:** ทุกข้อความใน UI ควรใช้ `t('Key')` จาก `next-intl`
-3. **Audit Logs:** ทุกการแก้ไขข้อมูลสำคัญ (CUD) ต้องเรียก `logAction` จาก `loggingService` เสมอ
+## 🔒 Security Features
+- **HMAC-SHA256 Signed QR:** ป้องกันการปลอมแปลง QR Code
+- **Audit Logging:** บันทึกทุกการกระทำของ Admin
+- **Rate Limiting:** ป้องกันการโจมตีแบบ Brute Force/DDoS
+- **Stateless Auth:** ใช้ JWT Strategy เพื่อความรวดเร็วและ Scalability
 
 ---
-**QR Gate Access System** | พัฒนาโดย ทีมงานโครงการระบบควบคุมการเข้า-ออก
+
+## 🛠️ Maintenance (การดูแลรักษา)
+- **Backup:** รัน `.\scripts\db-backup.ps1` เพื่อสำรองฐานข้อมูล
+- **Logs:** ตรวจสอบ Log การเข้า-ออกได้ที่เมนู **"ประวัติกิจกรรม"** ในหน้า Admin

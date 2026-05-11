@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createBranchSchema } from '@/lib/schemas/gate';
-import { ZodError } from 'zod';
+import { logAction } from '@/lib/audit';
+import { ApiSuccess, ApiCreated, ApiConflict, handleError } from '@/lib/api-response';
 
 /**
  * GET /api/admin/branches
@@ -18,13 +19,9 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(branches);
+    return ApiSuccess(branches);
   } catch (error) {
-    console.error('[BRANCH_GET]', error);
-    return NextResponse.json(
-      { message: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
@@ -43,29 +40,24 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingBranch) {
-      return NextResponse.json(
-        { message: 'Branch code already exists' },
-        { status: 400 }
-      );
+      return ApiConflict('รหัสสาขานี้มีอยู่ในระบบแล้ว');
     }
 
     const branch = await prisma.branch.create({
       data: validatedData
     });
 
-    return NextResponse.json(branch, { status: 201 });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { message: 'Validation Error', errors: error.errors },
-        { status: 422 }
-      );
-    }
+    // บันทึก Audit Log
+    await logAction({
+      action: 'CREATE',
+      resource: 'BRANCH',
+      resourceId: branch.id,
+      after: branch,
+      req,
+    });
 
-    console.error('[BRANCH_POST]', error);
-    return NextResponse.json(
-      { message: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return ApiCreated(branch, 'สร้างสาขาใหม่เรียบร้อยแล้ว');
+  } catch (error) {
+    return handleError(error);
   }
 }

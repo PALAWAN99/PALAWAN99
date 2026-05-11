@@ -1,19 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { checkAccess } from '@/lib/rbac';
+import { ApiSuccess, ApiUnauthorized, ApiForbidden, handleError } from '@/lib/api-response';
 
 // GET: ดึงรายการประวัติการใช้งาน (Audit Logs)
 export async function GET(req: NextRequest) {
   const session = await auth();
 
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return ApiUnauthorized();
   }
 
   // เฉพาะ SUPER_ADMIN เท่านั้นที่ดู Audit Log ได้ตาม Matrix
   if (!checkAccess(session, 'AUDIT_LOG', 'READ')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return ApiForbidden();
   }
 
   try {
@@ -37,9 +38,8 @@ export async function GET(req: NextRequest) {
       take: limit,
     });
 
-    return NextResponse.json(logs);
+    return ApiSuccess(logs);
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }

@@ -1,25 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { MemberService } from '@/services/memberService';
 import { checkAccess } from '@/lib/rbac';
 import { memberSchema } from '@/lib/validations';
 import { logAction } from '@/lib/audit';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkStandardRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, ApiCreated, ApiUnauthorized, ApiForbidden, ApiBadRequest, handleError } from '@/lib/api-response';
 
 // GET: ดึงรายการสมาชิก
 export async function GET(req: NextRequest) {
-  const session = await auth();
-
-  const rateLimitError = checkRateLimit(req, 100);
+  const rateLimitError = checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkAccess(session, 'MEMBER', 'READ')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const session = await auth();
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'MEMBER', 'READ')) return ApiForbidden();
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') || '';
@@ -28,40 +23,31 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await MemberService.getMembers(search, page, limit);
-    return NextResponse.json(result);
+    return ApiSuccess(result);
   } catch (error) {
-    const { handleApiError } = await import('@/lib/api-error');
-    return handleApiError(error);
+    return handleError(error);
   }
 }
 
 // POST: เพิ่มสมาชิกใหม่
 export async function POST(req: NextRequest) {
+  const rateLimitError = checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
   const session = await auth();
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkAccess(session, 'MEMBER', 'CREATE')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'MEMBER', 'CREATE')) return ApiForbidden();
 
   try {
     const body = await req.json();
-    
+
     // Validate with Zod
     const validation = memberSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: validation.error.flatten().fieldErrors 
-      }, { status: 400 });
+      return ApiBadRequest('ข้อมูลสมาชิกไม่ถูกต้อง', validation.error.flatten().fieldErrors);
     }
 
     const data = validation.data;
-
-    // Use Service for business logic (duplicate check + creation)
     const member = await MemberService.createMember(data);
 
     // บันทึก Audit Log
@@ -73,16 +59,8 @@ export async function POST(req: NextRequest) {
       req,
     });
 
-    return NextResponse.json(member, { status: 201 });
-  } catch (error: any) {
-    console.error('API Error:', error);
-    
-    // Handle business logic errors
-    if (error.message.includes('already exists')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return ApiCreated(member);
+  } catch (error) {
+    return handleError(error);
   }
 }
-

@@ -1,24 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { issueQrToken } from '@/lib/qr-utils';
 import { auth } from '@/auth';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkStrictRateLimit } from '@/lib/rate-limit';
 import { idCardRegisterSchema } from '@/lib/validations';
-import { ZodError } from 'zod';
+import { ApiSuccess, ApiUnauthorized, handleError } from '@/lib/api-response';
 
 /**
  * API สำหรับลงทะเบียนด้วยบัตรประชาชน
  */
 export async function POST(req: NextRequest) {
-  // 1. Check Rate Limit (10 registrations per minute per IP - more strict for registration)
-  const rateLimitError = checkRateLimit(req, 10);
+  // 1. Check Rate Limit (30 req/min — strict for registration)
+  const rateLimitError = checkStrictRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {
     // 2. ตรวจสอบสิทธิ์ (ต้องเป็นเจ้าหน้าที่ที่มีสิทธิ์เท่านั้น)
     const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return ApiUnauthorized();
     }
 
     const body = await req.json();
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
           lastNameTh: last,
           firstNameEn: enNames[0] || '',
           lastNameEn: enNames.slice(1).join(' ') || '',
-          memberType: 'GUEST', // กำหนดเป็น Guest สำหรับการลงทะเบียนรายวัน
+          memberType: 'GUEST',
           status: 'ACTIVE',
         },
       });
@@ -67,26 +67,18 @@ export async function POST(req: NextRequest) {
     // 3. ออก QR Token (รายวัน)
     const qrToken = await issueQrToken(member.id, 'ENTRY');
 
-    return NextResponse.json({
-      success: true,
+    return ApiSuccess({
       member: {
         id: member.id,
         fullNameTh: `${member.firstNameTh} ${member.lastNameTh}`,
         memberNo: member.memberNo,
       },
-      qrToken: qrToken.tokenHash,
+      qrToken: qrToken.rawToken,
       expiresAt: qrToken.expiresAt,
-    });
+    }, 'ลงทะเบียนและออก QR Code เรียบร้อยแล้ว');
 
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: error.flatten().fieldErrors 
-      }, { status: 400 });
-    }
-    console.error('Registration API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }
 

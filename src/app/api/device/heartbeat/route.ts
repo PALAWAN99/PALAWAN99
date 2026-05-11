@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRelaxedRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, handleError } from '@/lib/api-response';
 
 // Schema สำหรับตรวจสอบข้อมูลที่ส่งมาจากเครื่องสแกน
 const heartbeatSchema = z.object({
@@ -15,23 +16,16 @@ const heartbeatSchema = z.object({
  * ใช้สำหรับให้อุปกรณ์ (Scanner/Kiosk) ส่งสัญญาณแจ้งสถานะ
  */
 export async function POST(req: NextRequest) {
-  // Check Rate Limit
-  const rateLimitError = checkRateLimit(req, 120); // ให้ถี่กว่าปกติได้สำหรับ Heartbeat
+  // Check Rate Limit (200 req/min — relaxed for device heartbeat)
+  const rateLimitError = checkRelaxedRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {
     const body = await req.json();
     
     // 1. Validate ข้อมูล
-    const result = heartbeatSchema.safeParse(body);
-    if (!result.success) {
-      return NextResponse.json(
-        { error: 'ข้อมูลไม่ถูกต้อง', details: result.error.format() },
-        { status: 400 }
-      );
-    }
-
-    const { deviceCode, status } = result.data;
+    const validated = heartbeatSchema.parse(body);
+    const { deviceCode, status } = validated;
 
     // 2. ตรวจสอบว่าเครื่องนี้มีในระบบไหม
     const device = await prisma.deviceRegistry.findUnique({
@@ -39,10 +33,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!device) {
-      return NextResponse.json(
-        { error: 'ไม่พบรหัสอุปกรณ์นี้ในระบบ' },
-        { status: 404 }
-      );
+      throw new Error(`Device not found: ${deviceCode}`);
     }
 
     // 3. อัปเดตสถานะและเวลาที่เห็นล่าสุด
@@ -62,7 +53,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // 4. Trigger แจ้งเตือนถ้าสถานะไม่ใช่ ONLINE (งาน Dev 4)
+    // 4. Trigger แจ้งเตือนถ้าสถานะไม่ใช่ ONLINE
     if (status !== 'ONLINE') {
       const { NotificationService } = await import('@/lib/notifications/service');
       await NotificationService.notify({
@@ -74,22 +65,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'อัปเดตสถานะอุปกรณ์เรียบร้อย',
-      device: {
-        code: updatedDevice.deviceCode,
-        status: updatedDevice.status,
-        lastSeen: updatedDevice.lastSeenAt,
-        gate: updatedDevice.gate.nameTh,
-      }
-    });
+    return ApiSuccess({
+      code: updatedDevice.deviceCode,
+      status: updatedDevice.status,
+      lastSeen: updatedDevice.lastSeenAt,
+      gate: updatedDevice.gate.nameTh,
+    }, 'อัปเดตสถานะอุปกรณ์เรียบร้อย');
 
   } catch (error) {
-    console.error('Heartbeat Error:', error);
-    return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }

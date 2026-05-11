@@ -1,45 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { UserService } from '@/services/userService';
 import { checkAccess } from '@/lib/rbac';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkStandardRateLimit } from '@/lib/rate-limit';
 import { logAction } from '@/lib/audit';
+import { ApiSuccess, ApiCreated, ApiUnauthorized, ApiForbidden, ApiBadRequest, handleError } from '@/lib/api-response';
 
 // GET: ดึงข้อมูลรายชื่อผู้ใช้
 export async function GET(req: NextRequest) {
-  const session = await auth();
-
-  const rateLimitError = checkRateLimit(req, 60);
+  const rateLimitError = checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkAccess(session, 'USER', 'READ')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const session = await auth();
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'USER', 'READ')) return ApiForbidden();
 
   try {
     const users = await UserService.getUsers();
-    return NextResponse.json(users);
+    return ApiSuccess(users);
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }
 
 // POST: สร้างผู้ใช้ใหม่ (Super Admin เท่านั้น)
 export async function POST(req: NextRequest) {
+  const rateLimitError = checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
   const session = await auth();
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkAccess(session, 'USER', 'CREATE')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'USER', 'CREATE')) return ApiForbidden();
 
   try {
     const body = await req.json();
@@ -47,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     // ตรวจสอบข้อมูลเบื้องต้น
     if (!email || !password || !fullName || !role) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return ApiBadRequest('ข้อมูลไม่ครบถ้วน (Email, Password, Full Name, Role)');
     }
 
     // Use Service
@@ -67,15 +58,8 @@ export async function POST(req: NextRequest) {
       req,
     });
 
-    return NextResponse.json(user, { status: 201 });
-  } catch (error: any) {
-    console.error('API Error:', error);
-    
-    if (error.message.includes('already exists') || error.message.includes('required')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return ApiCreated(user, 'สร้างผู้ใช้ใหม่เรียบร้อยแล้ว');
+  } catch (error) {
+    return handleError(error);
   }
 }
-

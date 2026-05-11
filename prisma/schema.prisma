@@ -233,9 +233,12 @@ model AccessEvent {
   member  Member?  @relation(fields: [memberId], references: [id])
   qrToken QrToken? @relation(fields: [qrTokenId], references: [id])
 
+  @@index([gateId])
+  @@index([memberId])
+  @@index([scannedAt])
   @@index([gateId, scannedAt])
   @@index([memberId, scannedAt])
-  @@index([scannedAt])
+  @@index([createdAt])
   @@map("access_events")
 }
 
@@ -256,6 +259,7 @@ model DeviceRegistry {
   idCardSessions IdCardSession[]
 
   @@index([gateId])
+  @@index([deviceCode])
   @@map("device_registry")
 }
 
@@ -277,6 +281,9 @@ model IdCardSession {
   member Member?         @relation(fields: [memberId], references: [id])
   device DeviceRegistry? @relation(fields: [deviceId], references: [id])
 
+  @@index([citizenId])
+  @@index([memberId])
+  @@index([readAt])
   @@index([citizenId, readAt])
   @@map("id_card_sessions")
 }
@@ -296,6 +303,9 @@ model AuditLog {
 
   user User? @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
   @@index([userId, createdAt])
   @@index([resource, createdAt])
   @@map("audit_logs")
@@ -315,8 +325,10 @@ model Notification {
 
   user User? @relation(fields: [userId], references: [id])
 
-  @@index([userId, createdAt])
+  @@index([userId])
+  @@index([type])
   @@index([createdAt])
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 

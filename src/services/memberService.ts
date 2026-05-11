@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma';
-import { memberSchema } from '@/lib/validations';
+import { MemberRepository } from '@/repositories/memberRepository';
+import { memberSchema } from '@/validators/memberValidator';
 import { z } from 'zod';
 
 export type MemberInput = z.infer<typeof memberSchema>;
@@ -21,13 +21,13 @@ export class MemberService {
     };
 
     const [members, total] = await Promise.all([
-      prisma.member.findMany({
+      MemberRepository.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      prisma.member.count({ where }),
+      MemberRepository.count({ where }),
     ]);
 
     return {
@@ -41,29 +41,31 @@ export class MemberService {
    * สร้างสมาชิกใหม่ พร้อมตรวจสอบความซ้ำซ้อน
    */
   static async createMember(data: MemberInput) {
-    // Check duplicates
-    const existingNo = await prisma.member.findUnique({ where: { memberNo: data.memberNo } });
-    if (existingNo) {
-      throw new Error('Member Number already exists');
-    }
+    // 1. Check duplicates (Business Logic)
+    const existingNo = await MemberRepository.findUnique({ where: { memberNo: data.memberNo } });
+    if (existingNo) throw new Error('Member Number already exists');
 
     if (data.citizenId) {
-      const existingId = await prisma.member.findUnique({ where: { citizenId: data.citizenId } });
-      if (existingId) {
-        throw new Error('Citizen ID already exists');
-      }
+      const existingId = await MemberRepository.findUnique({ where: { citizenId: data.citizenId } });
+      if (existingId) throw new Error('Citizen ID already exists');
     }
 
-    const member = await prisma.member.create({
-      data: {
-        ...data,
-        citizenId: data.citizenId || null,
-        email: data.email || null,
-      },
+    // 2. Process Data (Business Logic)
+    const processedData = {
+      ...data,
+      citizenId: data.citizenId || null,
+      email: data.email || null,
+      photo: data.photo ? Buffer.from(data.photo.split(',')[1] || data.photo, 'base64') : null,
+    };
+
+    // 3. Save to DB (Repository Call)
+    const member = await MemberRepository.create({
+      data: processedData as any,
     });
 
-    const { createAuditLog } = await import('./loggingService');
-    await createAuditLog({
+    // 4. Post-process (Audit Log)
+    const { logAction } = await import('@/lib/audit');
+    await logAction({
       action: 'CREATE',
       resource: 'MEMBER',
       resourceId: member.id,
@@ -77,7 +79,7 @@ export class MemberService {
    * ค้นหาสมาชิกด้วย ID
    */
   static async getMemberById(id: string) {
-    return prisma.member.findUnique({
+    return MemberRepository.findUnique({
       where: { id },
     });
   }

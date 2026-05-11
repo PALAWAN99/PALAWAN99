@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Stack, Group, Title, Text, Button, Card, LoadingOverlay } from '@mantine/core';
-import { IconPlus, IconId, IconUserPlus } from '@tabler/icons-react';
+import { Stack, Group, Title, Text, Button, Card, LoadingOverlay, Menu } from '@mantine/core';
+import { IconPlus, IconId, IconUserPlus, IconDownload, IconFileText, IconFileTypePdf } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 
 import { Member } from './types';
@@ -10,7 +10,8 @@ import { useMemberManagement } from './hooks/useMemberManagement';
 import { MemberStats } from './_components/MemberStats';
 import { MemberFilters } from './_components/MemberFilters';
 import { MemberTable } from './_components/MemberTable';
-import { MemberModals } from './_components/MemberModals';
+import { MemberFormModal } from './_components/MemberFormModal';
+import { MemberRenewModal } from './_components/MemberRenewModal';
 
 export default function MembersClient({ initialMembers }: { initialMembers: Member[] }) {
   const t = useTranslations();
@@ -24,8 +25,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
 
   const hasFilter = !!(search || filterType || filterStatus);
 
-  const handleExport = async () => {
-    const { exportToExcel } = await import('@/lib/export-utils');
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    const { exportToExcel, exportToPDF } = await import('@/lib/export-utils');
     const exportData = filtered.map(m => ({
       'รหัสสมาชิก': m.memberNo,
       'เลขบัตรประชาชน': m.citizenId || '-',
@@ -38,7 +39,20 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
       'วันหมดอายุ': m.expireDate ? new Date(m.expireDate).toLocaleDateString('th-TH') : '-',
       'วันที่สมัคร': new Date(m.createdAt).toLocaleDateString('th-TH')
     }));
-    exportToExcel(exportData, 'MemberList');
+
+    if (format === 'excel') {
+      exportToExcel(exportData, 'MemberList');
+    } else {
+      const headers = ['รหัส', 'ชื่อ-นามสกุล', 'ประเภท', 'สถานะ', 'หมดอายุ'];
+      const body = filtered.map(m => [
+        m.memberNo,
+        `${m.firstNameTh} ${m.lastNameTh}`,
+        m.memberType,
+        m.status,
+        m.expireDate ? new Date(m.expireDate).toLocaleDateString('th-TH') : '-'
+      ]);
+      exportToPDF(headers, body, 'MemberList', 'รายงานรายชื่อสมาชิกทั้งหมด');
+    }
   };
 
   return (
@@ -49,8 +63,16 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           <Text size="sm" c="dimmed" mt={4}>{t('Member.manageDesc')}</Text>
         </div>
         <Group gap="sm">
-          <Button variant="light" color="gray" leftSection={<IconDownload size={18} />} onClick={handleExport}>ส่งออก (Export)</Button>
-          <Button variant="light" color="gray" leftSection={<IconUserPlus size={18} />} onClick={() => {}}>นำเข้า (Import)</Button>
+          <Menu shadow="md" width={180} position="bottom-end">
+            <Menu.Target>
+              <Button variant="light" color="gray" leftSection={<IconDownload size={18} />}>ส่งออก</Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<IconFileText size={16} />} onClick={() => handleExport('excel')}>Excel (.xlsx)</Menu.Item>
+              <Menu.Item leftSection={<IconFileTypePdf size={16} />} onClick={() => handleExport('pdf')}>PDF (.pdf)</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+          <Button variant="light" color="gray" leftSection={<IconUserPlus size={18} />} onClick={() => {}}>นำเข้า</Button>
           <Button leftSection={<IconPlus size={18} />} color="skyBlue" onClick={handleOpenAdd}>{t('Member.add')}</Button>
         </Group>
       </Group>
@@ -75,11 +97,26 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         </Stack>
       </Card>
 
-      <MemberModals 
-        opened={opened} onClose={close} isEdit={isEdit} formData={formData} setFormData={setFormData}
-        loading={loading} readingId={readingId} handleReadIdCard={handleReadIdCard} handleSubmit={handleSubmit}
-        renewOpened={renewOpened} onCloseRenew={closeRenew} renewMember={renewMember}
-        renewDate={renewDate} setRenewDate={setRenewDate} renewLoading={renewLoading} handleRenew={handleRenew} t={t}
+      <MemberFormModal
+        opened={opened}
+        onClose={close}
+        isEdit={isEdit}
+        formData={formData}
+        setFormData={setFormData}
+        loading={loading}
+        readingId={readingId}
+        handleReadIdCard={handleReadIdCard}
+        handleSubmit={handleSubmit}
+      />
+
+      <MemberRenewModal
+        opened={renewOpened}
+        onClose={closeRenew}
+        member={renewMember}
+        renewDate={renewDate}
+        onDateChange={setRenewDate}
+        loading={renewLoading}
+        onConfirm={handleRenew}
       />
     </Stack>
   );

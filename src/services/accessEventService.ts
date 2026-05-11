@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { AccessEventRepository } from '@/repositories/accessEventRepository';
 
 export class AccessEventService {
   /**
@@ -52,7 +52,7 @@ export class AccessEventService {
     }
 
     const [events, total] = await Promise.all([
-      prisma.accessEvent.findMany({
+      AccessEventRepository.findMany({
         where: where.AND.length > 0 ? where : {},
         include: {
           member: {
@@ -74,7 +74,7 @@ export class AccessEventService {
         skip,
         take: limit,
       }),
-      prisma.accessEvent.count({ where: where.AND.length > 0 ? where : {} }),
+      AccessEventRepository.count({ where: where.AND.length > 0 ? where : {} }),
     ]);
 
     return {

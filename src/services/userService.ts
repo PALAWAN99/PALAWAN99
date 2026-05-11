@@ -1,21 +1,13 @@
-import { prisma } from '@/lib/prisma';
+import { UserRepository } from '@/repositories/userRepository';
+import { userSchema, UserInput } from '@/validators/userValidator';
 import { hash } from 'bcryptjs';
-import { UserRole } from '@prisma/client';
-
-export interface UserInput {
-  email: string;
-  fullName: string;
-  password?: string;
-  role: UserRole;
-  isActive?: boolean;
-}
 
 export class UserService {
   /**
    * ดึงข้อมูลรายชื่อผู้ใช้
    */
   static async getUsers() {
-    return prisma.user.findMany({
+    return UserRepository.findMany({
       select: {
         id: true,
         email: true,
@@ -36,22 +28,23 @@ export class UserService {
       throw new Error('Password is required for new users');
     }
 
-    // เช็คว่ามี email ซ้ำไหม
-    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    // 1. Business Logic: Check email uniqueness
+    const existing = await UserRepository.findUnique({ where: { email: data.email } });
     if (existing) {
       throw new Error('Email already exists');
     }
 
-    // Hash password
+    // 2. Business Logic: Secure password
     const passwordHash = await hash(data.password, 10);
 
-    return prisma.user.create({
+    // 3. Repository Call
+    return UserRepository.create({
       data: {
         email: data.email,
         fullName: data.fullName,
         passwordHash,
         role: data.role,
-        isActive: data.isActive !== undefined ? data.isActive : true,
+        isActive: data.isActive,
       },
       select: {
         id: true,
@@ -67,7 +60,7 @@ export class UserService {
    * ค้นหาผู้ใช้ด้วย ID
    */
   static async getUserById(id: string) {
-    return prisma.user.findUnique({
+    return UserRepository.findUnique({
       where: { id },
       select: {
         id: true,

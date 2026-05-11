@@ -1,4 +1,5 @@
 import 'server-only';
+import './env'; // Trigger ENV validation
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {

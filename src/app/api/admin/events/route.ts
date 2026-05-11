@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { AccessEventService } from '@/services/accessEventService';
-import { handleApiError } from '@/lib/api-error';
+import { checkStandardRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, ApiUnauthorized, handleError } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
+  const rateLimitError = checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
   const session = await auth();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session) return ApiUnauthorized();
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') || '';
@@ -24,8 +28,8 @@ export async function GET(req: NextRequest) {
       startDate,
       endDate
     });
-    return NextResponse.json(result);
+    return ApiSuccess(result);
   } catch (error) {
-    return handleApiError(error);
+    return handleError(error);
   }
 }

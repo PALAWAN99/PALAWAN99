@@ -36,6 +36,9 @@ export const memberSchema = z.object({
   memberType: z.nativeEnum(MemberType).default(MemberType.GUEST),
   status: z.nativeEnum(MemberStatus).default(MemberStatus.ACTIVE),
   expireDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  photo: z.string().optional().refine((val) => !val || val.length < 3 * 1024 * 1024, {
+    message: 'ขนาดรูปภาพต้องไม่เกิน 2MB (Base64)',
+  }),
 });
 
 // Schema สำหรับจัดการผู้ใช้ระบบ (User/Admin)

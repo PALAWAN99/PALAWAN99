@@ -8,12 +8,18 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/e_ticket_qrcode?schema=public
-      - AUTH_SECRET=yoursupersecretauthsecret
-      - NEXTAUTH_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/qrgat_db?schema=public
+      - AUTH_SECRET=${AUTH_SECRET:-yoursupersecretauthsecret}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - QR_SECRET=${QR_SECRET:-qr-gate-secret-key-2024}
+      - NODE_ENV=production
+    volumes:
+      - ./storage:/app/storage
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - qrgat-network
 
   db:
     image: postgres:16-alpine
@@ -22,7 +28,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=e_ticket_qrcode
+      - POSTGRES_DB=qrgat_db
     ports:
       - "5432:5432"
     volumes:
@@ -32,6 +38,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - qrgat-network
+
+networks:
+  qrgat-network:
+    driver: bridge
 
 volumes:
   postgres_data:

@@ -1,17 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import dayjs from 'dayjs';
+import { checkStandardRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, ApiUnauthorized, handleError } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
+  const rateLimitError = checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
   const session = await auth();
 
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return ApiUnauthorized();
   }
-
-  // Dashboard stats should be accessible by all admin staff
-  // We can add a specific check if needed, but usually any logged-in admin can see stats
 
   try {
     const start = dayjs().startOf('day').toDate();
@@ -39,7 +41,7 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({
+    return ApiSuccess({
       members: {
         total: totalMembers,
         active: activeMembers,
@@ -51,7 +53,6 @@ export async function GET(req: NextRequest) {
       todayEvents: todayAccessEvents,
     });
   } catch (error) {
-    console.error('Stats API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }

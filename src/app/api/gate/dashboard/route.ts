@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import dayjs from 'dayjs';
+import { ApiSuccess, ApiBadRequest, ApiNotFound, handleError } from '@/lib/api-response';
 
 /**
  * GET /api/gate/dashboard
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const gateCode = searchParams.get('gateCode');
 
     if (!gateCode) {
-      return NextResponse.json({ error: 'ต้องระบุ gateCode' }, { status: 400 });
+      return ApiBadRequest('ต้องระบุ gateCode');
     }
 
     // 1. หาข้อมูลประตู
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!gate) {
-      return NextResponse.json({ error: 'ไม่พบประตูนี้' }, { status: 404 });
+      return ApiNotFound('ไม่พบรหัสประตูนี้ในระบบ');
     }
 
     // 2. ดึงเหตุการณ์ล่าสุด (10 รายการ)
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
     // 4. ตรวจสอบสถานะอุปกรณ์ (ถ้ามีอุปกรณ์ไหนออนไลน์ ประตูถือว่าออนไลน์)
     const isOnline = gate.devices.some(d => d.status === 'ONLINE');
 
-    return NextResponse.json({
+    return ApiSuccess({
       gate: {
         id: gate.id,
         name: gate.nameTh,
@@ -98,7 +99,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Dashboard API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }

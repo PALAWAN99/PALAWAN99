@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import crypto from 'crypto';
+import { ApiSuccess, ApiCreated, ApiUnauthorized, ApiBadRequest, handleError } from '@/lib/api-response';
 
 // GET: ดึงรายการอุปกรณ์ทั้งหมด
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
     const session = await auth();
     const user = session?.user as { role: string } | undefined;
     if (!user || !['SUPER_ADMIN', 'ADMIN'].includes(user.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return ApiUnauthorized();
     }
 
     const devices = await prisma.deviceRegistry.findMany({
@@ -24,10 +25,9 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json(devices);
-  } catch (error: unknown) {
-    console.error('Fetch devices error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return ApiSuccess(devices);
+  } catch (error) {
+    return handleError(error);
   }
 }
 
@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const user = session?.user as { role: string } | undefined;
     if (!user || !['SUPER_ADMIN', 'ADMIN'].includes(user.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return ApiUnauthorized();
     }
 
     const body = await req.json();
     const { name, deviceCode, gateId, deviceType } = body;
 
     if (!name || !deviceCode || !gateId || !deviceType) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return ApiBadRequest('ข้อมูลไม่ครบถ้วน (Name, Device Code, Gate ID, Device Type)');
     }
 
     // สร้าง Secret สำหรับอุปกรณ์
@@ -63,16 +63,12 @@ export async function POST(req: NextRequest) {
     });
 
     // ส่งคืนข้อมูลอุปกรณ์พร้อม Secret (ส่งให้แค่ครั้งเดียวตอนสร้าง)
-    return NextResponse.json({ 
+    return ApiCreated({ 
       ...device, 
       plainSecret: rawSecret 
-    }, { status: 201 });
+    }, 'ลงทะเบียนอุปกรณ์ใหม่เรียบร้อยแล้ว');
 
-  } catch (error: unknown) {
-    console.error('Create device error:', error);
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Device Code already exists' }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleError(error);
   }
 }

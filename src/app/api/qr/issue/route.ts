@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateToken } from '@/lib/qr-engine';
 import { issueQrSchema } from '@/lib/schemas/gate';
 import dayjs from 'dayjs';
-import { ZodError } from 'zod';
+import { ApiSuccess, ApiNotFound, ApiForbidden, handleError } from '@/lib/api-response';
 
 /**
  * POST /api/qr/issue
@@ -20,15 +20,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (!member) {
-      return NextResponse.json({ message: 'Member not found' }, { status: 404 });
+      return ApiNotFound('ไม่พบสมาชิกที่ระบุ');
     }
 
     if (member.status !== 'ACTIVE') {
-      return NextResponse.json({ message: 'Member is not active' }, { status: 403 });
+      return ApiForbidden('สมาชิกถูกระงับการใช้งานหรือหมดอายุ');
     }
 
-    // 2. สร้าง Token
-    const { token, hash } = generateToken();
+    // 2. สร้าง Token (Signed with memberId)
+    const { token, hash } = generateToken(memberId);
 
     // 3. กำหนดวันหมดอายุ (สิ้นสุดของวันนี้ - เที่ยงคืน)
     const expiresAt = dayjs().endOf('day').toDate();
@@ -47,22 +47,15 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  // 5. ส่งค่า Token กลับ (ตัวนี้จะเอาไปเจนเป็น QR Code ที่ฝั่ง Client)
-    return NextResponse.json({
-      success: true,
-      data: {
-        tokenId: qrToken.id,
-        qrContent: token, // คืนค่า raw token
-        purpose: qrToken.purpose,
-        expiresAt: qrToken.expiresAt,
-      }
-    });
+    // 5. ส่งค่า Token กลับ (ตัวนี้จะเอาไปเจนเป็น QR Code ที่ฝั่ง Client)
+    return ApiSuccess({
+      tokenId: qrToken.id,
+      qrContent: token, // คืนค่า raw token
+      purpose: qrToken.purpose,
+      expiresAt: qrToken.expiresAt,
+    }, 'ออกรหัส QR Code เรียบร้อยแล้ว');
 
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.errors }, { status: 422 });
-    }
-    console.error('[QR_ISSUE_POST]', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }

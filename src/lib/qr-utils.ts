@@ -1,50 +1,32 @@
 import { prisma } from '@/lib/prisma';
 import { QrPurpose } from '@prisma/client';
+import { generateToken } from './qr-engine';
+import dayjs from 'dayjs';
+
 /**
  * ออก QR Token ใหม่สำหรับสมาชิก
  * โดยปกติจะหมดอายุตอนเที่ยงคืนของวันที่ออก (รายวัน)
  */
 export async function issueQrToken(memberId: string, purpose: QrPurpose = 'ENTRY') {
-  const now = new Date();
+  // ใช้ Logic การสร้าง Token ที่มีระบบ Security (Signed)
+  const { token, hash } = generateToken(memberId);
   
   // คำนวณวันหมดอายุ (เที่ยงคืนวันนี้)
-  const expiresAt = new Date(now);
-  expiresAt.setHours(23, 59, 59, 999);
-
-  // สร้าง Token Hash
-  const tokenHash = crypto.randomUUID();
+  const expiresAt = dayjs().endOf('day').toDate();
+  const issuedDate = dayjs().startOf('day').toDate();
 
   const qrToken = await prisma.qrToken.create({
     data: {
-      tokenHash,
+      tokenHash: hash,
       memberId,
       purpose,
-      issuedDate: now,
-      expiresAt: expiresAt,
+      issuedDate,
+      expiresAt,
     },
   });
 
-  return qrToken;
-}
-
-/**
- * ตรวจสอบความถูกต้องของ Token
- */
-export async function validateQrToken(tokenHash: string) {
-  const token = await prisma.qrToken.findUnique({
-    where: { tokenHash },
-    include: { member: true },
-  });
-
-  if (!token) return { valid: false, reason: 'TOKEN_NOT_FOUND' };
-  
-  const now = new Date();
-  if (token.expiresAt < now) return { valid: false, reason: 'TOKEN_EXPIRED' };
-  if (token.revokedAt) return { valid: false, reason: 'TOKEN_REVOKED' };
-  if (token.usedAt && token.purpose === 'ENTRY') {
-     // ถ้าตั้งค่าเป็น Use Once (Optional)
-     // return { valid: false, reason: 'TOKEN_ALREADY_USED' };
-  }
-
-  return { valid: true, token };
+  return {
+    ...qrToken,
+    rawToken: token // ส่งตัวที่ยังไม่ Hash กลับไปด้วยเพื่อใช้แสดงผล QR
+  };
 }

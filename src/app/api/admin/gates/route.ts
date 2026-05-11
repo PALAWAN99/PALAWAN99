@@ -1,13 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createGateSchema } from '@/lib/schemas/gate';
-import { ZodError } from 'zod';
+import { checkStandardRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, ApiCreated, ApiNotFound, ApiConflict, handleError } from '@/lib/api-response';
 
 /**
  * GET /api/admin/gates
  * รายการประตูทั้งหมด พร้อมข้อมูลสาขา
  */
 export async function GET(req: NextRequest) {
+  const rateLimitError = checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const { searchParams } = new URL(req.url);
     const branchId = searchParams.get('branchId');
@@ -25,13 +29,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    return NextResponse.json(gates);
+    return ApiSuccess(gates);
   } catch (error) {
-    console.error('[GATE_GET]', error);
-    return NextResponse.json(
-      { message: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
@@ -50,10 +50,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingGate) {
-      return NextResponse.json(
-        { message: 'Gate code already exists' },
-        { status: 400 }
-      );
+      return ApiConflict('รหัสประตูนี้มีอยู่ในระบบแล้ว');
     }
 
     // ตรวจสอบว่า Branch มีอยู่จริง
@@ -62,36 +59,25 @@ export async function POST(req: NextRequest) {
     });
 
     if (!branch) {
-      return NextResponse.json(
-        { message: 'Branch not found' },
-        { status: 404 }
-      );
+      return ApiNotFound('ไม่พบสาขาที่ระบุ');
     }
 
     const gate = await prisma.gate.create({
       data: validatedData
     });
 
-    // Log the activity
-    const { createAuditLog } = await import('@/services/loggingService');
-    await createAuditLog({
+    // บันทึก Audit Log
+    const { logAction } = await import('@/lib/audit');
+    await logAction({
       action: 'CREATE',
       resource: 'GATE',
       resourceId: gate.id,
       after: gate,
-      req
+      req,
     });
 
-    return NextResponse.json(gate, { status: 201 });
+    return ApiCreated(gate, 'สร้างข้อมูลประตูใหม่เรียบร้อยแล้ว');
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { message: 'Validation Error', errors: error.errors },
-        { status: 422 }
-      );
-    }
-
-    const { handleApiError } = await import('@/lib/api-error');
-    return handleApiError(error);
+    return handleError(error);
   }
 }

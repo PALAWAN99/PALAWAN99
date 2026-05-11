@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateQrToken } from '@/lib/qr-engine';
 import { auth } from '@/auth';
+import { checkStrictRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, ApiUnauthorized, ApiValidationError, handleError } from '@/lib/api-response';
 
 import { z } from 'zod';
 import { gateDirectionSchema } from '@/lib/schemas/gate';
@@ -13,15 +15,15 @@ const validateRequestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  // 1. Check Rate Limit (60 requests per minute per IP)
-  const rateLimitError = checkRateLimit(req, 60);
+  // 1. Check Rate Limit (30 req/min — strict for QR scan)
+  const rateLimitError = checkStrictRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {
     // 1. ตรวจสอบสิทธิ์ (ต้องเป็นเจ้าหน้าที่ประตูหรือแอดมิน)
     const session = await auth();
     if (!session?.user?.role || !['SUPER_ADMIN', 'ADMIN', 'LIBRARIAN', 'STAFF'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return ApiUnauthorized('คุณไม่มีสิทธิ์เข้าถึงฟังก์ชันนี้');
     }
 
     const body = await req.json();
@@ -29,10 +31,7 @@ export async function POST(req: NextRequest) {
     // Validate with Zod
     const validation = validateRequestSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: validation.error.flatten().fieldErrors 
-      }, { status: 400 });
+      return ApiValidationError(validation.error);
     }
 
     const { token, gateId, direction } = validation.data;
@@ -62,10 +61,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(result);
+    return ApiSuccess(result);
 
   } catch (error) {
-    console.error('Validate API error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }

@@ -24,7 +24,10 @@ import {
   IconDoorEnter,
   IconAlertCircle,
   IconCalendar,
+  IconFileText,
+  IconFileTypePdf,
 } from '@tabler/icons-react';
+import { Menu } from '@mantine/core';
 import {
   BarChart,
   Bar,
@@ -76,9 +79,9 @@ export default function ReportsPage() {
     );
   }
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'excel' | 'pdf') => {
     if (!data) return;
-    const { exportToExcel } = await import('@/lib/export-utils');
+    const { exportToExcel, exportToPDF } = await import('@/lib/export-utils');
     
     // เตรียมข้อมูลรายวัน
     const dailyData = data.dailyStats.map((s: any) => ({
@@ -92,7 +95,13 @@ export default function ReportsPage() {
       'จำนวนครั้ง': s.value
     }));
 
-    exportToExcel(dailyData, `Report_Daily_Last_${days}_Days`);
+    if (format === 'excel') {
+      exportToExcel(dailyData, `Daily_Traffic_Report_Last_${days}_Days`);
+    } else {
+      const headers = ['วันที่', 'จำนวนการเข้า-ออก'];
+      const body = dailyData.map((d: any) => [d['วันที่'], d['จำนวนการเข้า-ออก']]);
+      exportToPDF(headers, body, `Traffic_Report`, `รายงานสรุปการเข้า-ออกรายวัน (ย้อนหลัง ${days} วัน)`);
+    }
   };
 
   return (
@@ -119,16 +128,34 @@ export default function ReportsPage() {
             size="sm"
             w={150}
           />
-          <Button 
-            leftSection={<IconFileExport size={18} />} 
-            variant="light" 
-            color="navy"
-            size="sm"
-            style={{ alignSelf: 'flex-end' }}
-            onClick={handleExport}
-          >
-            {t('export')}
-          </Button>
+          <Menu shadow="md" width={200} position="bottom-end">
+            <Menu.Target>
+              <Button 
+                leftSection={<IconFileExport size={18} />} 
+                variant="filled" 
+                color="navy"
+                size="sm"
+                style={{ alignSelf: 'flex-end' }}
+              >
+                {t('export')}
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>เลือกรูปแบบไฟล์</Menu.Label>
+              <Menu.Item 
+                leftSection={<IconFileText size={16} />} 
+                onClick={() => handleExport('excel')}
+              >
+                Excel (.xlsx)
+              </Menu.Item>
+              <Menu.Item 
+                leftSection={<IconFileTypePdf size={16} />} 
+                onClick={() => handleExport('pdf')}
+              >
+                PDF Report (.pdf)
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
 

@@ -1,23 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { checkAccess } from '@/lib/rbac';
 import { memberSchema } from '@/lib/validations';
 import { logAction } from '@/lib/audit';
+import { ApiSuccess, ApiUnauthorized, ApiForbidden, ApiNotFound, ApiValidationError, handleError } from '@/lib/api-response';
 
-type Params = {
-  params: Promise<{ id: string }>;
-};
-
-// GET: ดูรายละเอียดสมาชิกรายบุคคล
-export const GET = auth(async (req, { params }) => {
-  if (!req.auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkAccess(req.auth, 'MEMBER', 'READ')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+/**
+ * GET /api/admin/members/[id]
+ * ดูรายละเอียดสมาชิกรายบุคคล
+ */
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'MEMBER', 'READ')) return ApiForbidden();
 
   try {
     const { id } = await params;
@@ -25,26 +21,22 @@ export const GET = auth(async (req, { params }) => {
       where: { id },
     });
 
-    if (!member) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
-    }
+    if (!member) return ApiNotFound('ไม่พบข้อมูลสมาชิก');
 
-    return NextResponse.json(member);
+    return ApiSuccess(member);
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
-});
+}
 
-// PATCH: แก้ไขข้อมูลสมาชิก
-export const PATCH = auth(async (req, { params }) => {
-  if (!req.auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkAccess(req.auth, 'MEMBER', 'UPDATE')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+/**
+ * PATCH /api/admin/members/[id]
+ * แก้ไขข้อมูลสมาชิก
+ */
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'MEMBER', 'UPDATE')) return ApiForbidden();
 
   try {
     const { id } = await params;
@@ -53,23 +45,18 @@ export const PATCH = auth(async (req, { params }) => {
     // Partial validation for PATCH
     const validation = memberSchema.partial().safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: validation.error.flatten().fieldErrors 
-      }, { status: 400 });
+      return ApiValidationError(validation.error);
     }
 
     const before = await prisma.member.findUnique({ where: { id } });
-    if (!before) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
-    }
+    if (!before) return ApiNotFound('ไม่พบข้อมูลสมาชิกที่ต้องการแก้ไข');
 
     const updated = await prisma.member.update({
       where: { id },
       data: validation.data,
     });
 
-    // บันทึก Audit Log
+    // บันทึก Audit Log (ละเอียด: ใคร แก้ใคร จากอะไรเป็นอะไร)
     await logAction({
       action: 'UPDATE',
       resource: 'MEMBER',
@@ -79,36 +66,31 @@ export const PATCH = auth(async (req, { params }) => {
       req,
     });
 
-    return NextResponse.json(updated);
+    return ApiSuccess(updated, 'แก้ไขข้อมูลสมาชิกเรียบร้อยแล้ว');
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
-});
+}
 
-// DELETE: ลบสมาชิก (หรือ Deactivate)
-export const DELETE = auth(async (req, { params }) => {
-  if (!req.auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // ใช้สิทธิ์ DELETE ในเมทริกซ์
-  if (!checkAccess(req.auth, 'MEMBER', 'DELETE')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+/**
+ * DELETE /api/admin/members/[id]
+ * ลบสมาชิก
+ */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'MEMBER', 'DELETE')) return ApiForbidden();
 
   try {
     const { id } = await params;
     
     const before = await prisma.member.findUnique({ where: { id } });
-    if (!before) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
-    }
+    if (!before) return ApiNotFound('ไม่พบข้อมูลสมาชิกที่ต้องการลบ');
 
-    // ลบข้อมูลจริง (หรือจะเปลี่ยนเป็นเปลี่ยน status ก็ได้ตามความเหมาะสม)
+    // ลบข้อมูลจริง
     await prisma.member.delete({ where: { id } });
 
-    // บันทึก Audit Log
+    // บันทึก Audit Log (สำคัญ: ใคร ลบใคร)
     await logAction({
       action: 'DELETE',
       resource: 'MEMBER',
@@ -117,9 +99,8 @@ export const DELETE = auth(async (req, { params }) => {
       req,
     });
 
-    return NextResponse.json({ success: true });
+    return ApiSuccess({ id }, 'ลบข้อมูลสมาชิกเรียบร้อยแล้ว');
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
-});
+}

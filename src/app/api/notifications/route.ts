@@ -1,35 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { NotificationService } from '@/services/notificationService';
+import { checkStandardRateLimit } from '@/lib/rate-limit';
+import { ApiSuccess, ApiUnauthorized, ApiBadRequest, handleError } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
+  const rateLimitError = checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
   const session = await auth();
-  const userId = session?.user?.id;
+  if (!session) return ApiUnauthorized();
+  
+  const userId = session.user.id;
 
   try {
     const notifications = await NotificationService.getNotifications(userId as string);
-    return NextResponse.json(notifications);
+    return ApiSuccess(notifications);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    return handleError(error);
   }
 }
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session) return ApiUnauthorized();
 
   try {
     const { action, id } = await req.json();
     if (action === 'MARK_READ' && id) {
       await NotificationService.markAsRead(id);
-      return NextResponse.json({ success: true });
+      return ApiSuccess({ success: true }, 'อ่านการแจ้งเตือนแล้ว');
     }
     if (action === 'MARK_ALL_READ') {
       await NotificationService.markAllAsRead(session.user.id as string);
-      return NextResponse.json({ success: true });
+      return ApiSuccess({ success: true }, 'อ่านการแจ้งเตือนทั้งหมดแล้ว');
     }
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return ApiBadRequest('คำสั่งไม่ถูกต้อง (Invalid action)');
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleError(error);
   }
 }
