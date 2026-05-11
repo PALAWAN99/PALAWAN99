@@ -7,7 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -216,7 +217,7 @@ model QrPolicy {
 model AccessEvent {
   id         String         @id @default(uuid()) 
   gateId     String         @map("gate_id") 
-  memberId   String         @map("member_id") 
+  memberId   String?        @map("member_id") 
   qrTokenId  String?        @unique @map("qr_token_id") 
   direction  GateDirection
   source     AccessSource   @default(QR_CODE)
@@ -229,7 +230,7 @@ model AccessEvent {
   createdAt  DateTime       @default(now()) @map("created_at")
 
   gate    Gate     @relation(fields: [gateId], references: [id])
-  member  Member   @relation(fields: [memberId], references: [id])
+  member  Member?  @relation(fields: [memberId], references: [id])
   qrToken QrToken? @relation(fields: [qrTokenId], references: [id])
 
   @@index([gateId, scannedAt])

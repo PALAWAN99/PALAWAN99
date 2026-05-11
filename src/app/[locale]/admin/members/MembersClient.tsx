@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Title,
   Text,
@@ -15,17 +16,16 @@ import {
   Modal,
   Select,
   Menu,
-  Box,
   LoadingOverlay,
   SimpleGrid,
   ThemeIcon,
   Divider,
-  Tooltip,
   Avatar,
 } from '@mantine/core';
 import {
   IconSearch,
   IconUserPlus,
+  IconPlus,
   IconDotsVertical,
   IconEdit,
   IconTrash,
@@ -44,7 +44,15 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { addMember, updateMember, deleteMember } from './memberActions';
 import { ThaiIdCardReader } from '@/lib/idcard/reader';
-import { useRouter } from 'next/navigation';
+
+interface MemberMetadata {
+  prefixTh?: string;
+  prefixEn?: string;
+  birthDate?: string;
+  gender?: string;
+  address?: string;
+  school?: string;
+}
 
 interface Member {
   id: string;
@@ -60,15 +68,15 @@ interface Member {
   status: string;
   expireDate: Date | null;
   createdAt: Date;
-  metadata?: any;
+  metadata?: MemberMetadata;
 }
 
 const MEMBER_TYPE_LABELS: Record<string, string> = {
-  STUDENT: 'นักเรียน',
-  STAFF: 'เจ้าหน้าที่',
-  FACULTY: 'อาจารย์',
-  EXTERNAL: 'บุคคลภายนอก',
-  GUEST: 'ผู้เยี่ยมชม',
+  STUDENT: 'Member.typeStudent',
+  STAFF: 'Member.typeStaff',
+  FACULTY: 'Member.typeFaculty',
+  EXTERNAL: 'Member.typeExternal',
+  GUEST: 'Member.typeGuest',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -79,10 +87,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'ใช้งาน',
-  EXPIRED: 'หมดอายุ',
-  SUSPENDED: 'ระงับ',
-  REVOKED: 'ยกเลิก',
+  ACTIVE: 'Member.statusActive',
+  EXPIRED: 'Member.statusExpired',
+  SUSPENDED: 'Member.statusSuspended',
+  REVOKED: 'Member.statusRevoked',
 };
 
 function getInitials(firstTh: string, lastTh: string) {
@@ -126,7 +134,8 @@ const emptyForm = {
 };
 
 export default function MembersClient({ initialMembers }: { initialMembers: Member[] }) {
-  const router = useRouter();
+  const t = useTranslations();
+  const locale = useLocale();
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [opened, { open, close }] = useDisclosure(false);
   const [loading, setLoading] = useState(false);
@@ -195,11 +204,13 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         ? new Date(member.expireDate).toISOString().split('T')[0]
         : '',
       ...(() => {
-        let meta: any = {};
+        let meta: MemberMetadata = {};
         if (member.metadata) {
           try {
             meta = typeof member.metadata === 'string' ? JSON.parse(member.metadata) : member.metadata;
-          } catch (e) {}
+          } catch (error) {
+            console.error('Metadata parse error', error);
+          }
         }
         return {
           prefixTh: meta.prefixTh || '',
@@ -271,7 +282,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
     } else {
       notifications.show({
         title: 'เกิดข้อผิดพลาด',
-        message: (result as any).error ?? 'ไม่ทราบสาเหตุ',
+        message: (result as { error?: string }).error ?? 'ไม่ทราบสาเหตุ',
         color: 'red',
       });
     }
@@ -280,21 +291,35 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const handleRenew = async () => {
     if (!renewMember || !renewDate) return;
     setRenewLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === renewMember.id
-          ? { ...m, expireDate: renewDate, status: 'ACTIVE' }
-          : m
-      )
-    );
-    setRenewLoading(false);
-    notifications.show({
-      title: 'ต่ออายุสำเร็จ ✓',
-      message: `${renewMember.firstNameTh} ${renewMember.lastNameTh} — ต่ออายุถึง ${renewDate.toLocaleDateString('th-TH')} แล้ว`,
-      color: 'teal',
+    
+    const result = await updateMember(renewMember.id, {
+      ...renewMember,
+      expireDate: renewDate.toISOString().split('T')[0],
+      status: 'ACTIVE',
     });
-    closeRenew();
+
+    setRenewLoading(false);
+    if (result.success) {
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === renewMember.id
+            ? { ...m, expireDate: renewDate, status: 'ACTIVE' }
+            : m
+        )
+      );
+      notifications.show({
+        title: t('Member.renewSuccess'),
+        message: `${renewMember.firstNameTh} ${renewMember.lastNameTh} — ${t('Member.renewUntil')} ${renewDate.toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US')}`,
+        color: 'teal',
+      });
+      closeRenew();
+    } else {
+      notifications.show({
+        title: t('Common.error'),
+        message: result.error,
+        color: 'red',
+      });
+    }
   };
 
   const handleOpenRenew = (member: Member) => {
@@ -350,8 +375,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         message: `พบข้อมูลคุณ ${data.fullNameTh}`,
         color: 'blue',
       });
-    } catch (error: any) {
-      notifications.show({ title: 'อ่านบัตรไม่ได้', message: error.message, color: 'red' });
+    } catch (error: unknown) {
+      notifications.show({ title: 'อ่านบัตรไม่ได้', message: error instanceof Error ? error.message : 'Unknown error', color: 'red' });
     } finally {
       await reader.disconnect();
       setReadingId(false);
@@ -372,11 +397,36 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
       {/* Header */}
       <Group justify="space-between" align="flex-start">
         <div>
-          <Title order={2}>จัดการสมาชิก</Title>
+          <Title order={2}>{t('Common.members')}</Title>
           <Text size="sm" c="dimmed" mt={4}>
-            ตรวจสอบและจัดการข้อมูลสมาชิกผู้เข้าใช้หอสมุดทั้งหมด
+            {t('Member.manageDesc')}
           </Text>
         </div>
+        <Group gap="sm">
+          <Button 
+            variant="light" 
+            color="gray" 
+            leftSection={<IconId size={18} />}
+            onClick={() => notifications.show({ title: 'Export', message: 'กำลังส่งออกข้อมูลสมาชิกเป็น CSV...', color: 'blue' })}
+          >
+            ส่งออก (Export)
+          </Button>
+          <Button 
+            variant="light" 
+            color="gray" 
+            leftSection={<IconUserPlus size={18} />}
+            onClick={() => notifications.show({ title: 'Import', message: 'ระบบนำเข้าข้อมูลแบบกลุ่มกำลังเปิดใช้งาน...', color: 'blue' })}
+          >
+            นำเข้า (Import)
+          </Button>
+          <Button 
+            leftSection={<IconPlus size={18} />} 
+            color="skyBlue"
+            onClick={handleOpenAdd}
+          >
+            {t('Member.add')}
+          </Button>
+        </Group>
       </Group>
 
       {/* Stats Cards */}
@@ -449,13 +499,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         </Card>
       </SimpleGrid>
 
-      <style jsx global>{`
-        .hover-card:hover {
-          transform: translateY(-5px);
-          box-shadow: var(--mantine-shadow-md);
-          background-color: var(--mantine-color-gray-0);
-        }
-      `}</style>
+      {/* Styles are now handled via Mantine's sx or className in global.css if needed */}
 
       {/* Table Card */}
       <Card withBorder p="md" radius="md" style={{ position: 'relative' }}>
@@ -523,13 +567,13 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>สมาชิก</Table.Th>
-                  <Table.Th>รหัสสมาชิก</Table.Th>
-                  <Table.Th>ติดต่อ</Table.Th>
-                  <Table.Th>ประเภท</Table.Th>
-                  <Table.Th>สถานะ</Table.Th>
-                  <Table.Th>วันหมดอายุ</Table.Th>
-                  <Table.Th>วันที่สมัคร</Table.Th>
+                  <Table.Th>{t('Member.name')}</Table.Th>
+                  <Table.Th>{t('Member.no')}</Table.Th>
+                  <Table.Th>{t('Member.contact')}</Table.Th>
+                  <Table.Th>{t('Member.type')}</Table.Th>
+                  <Table.Th>{t('Common.status')}</Table.Th>
+                  <Table.Th>{t('Member.expireDate')}</Table.Th>
+                  <Table.Th>{t('Member.createdAt')}</Table.Th>
                   <Table.Th />
                 </Table.Tr>
               </Table.Thead>
@@ -591,7 +635,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                       {/* Type */}
                       <Table.Td>
                         <Badge variant="light" color="blue" size="sm">
-                          {MEMBER_TYPE_LABELS[member.memberType] ?? member.memberType}
+                          {t(MEMBER_TYPE_LABELS[member.memberType] ?? member.memberType)}
                         </Badge>
                       </Table.Td>
 
@@ -602,7 +646,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                           color={STATUS_COLORS[member.status] ?? 'gray'}
                           size="sm"
                         >
-                          {STATUS_LABELS[member.status] ?? member.status}
+                          {t(STATUS_LABELS[member.status] ?? member.status)}
                         </Badge>
                       </Table.Td>
 
@@ -759,7 +803,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                     color="teal"
                     onClick={() => setRenewDate(d)}
                   >
-                    +{yr} ปี
+                    +{yr} {t('Common.year')}
                   </Button>
                 );
               })}
@@ -767,7 +811,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
 
             <Group justify="flex-end" mt="xs">
               <Button variant="light" color="gray" onClick={closeRenew}>
-                ยกเลิก
+                {t('Common.cancel')}
               </Button>
               <Button
                 color="teal"
@@ -776,7 +820,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                 loading={renewLoading}
                 disabled={!renewDate}
               >
-                ยืนยันต่ออายุ
+                {t('Member.renewConfirm')}
               </Button>
             </Group>
           </Stack>
@@ -789,7 +833,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         onClose={close}
         title={
           <Text fw={600} size="lg">
-            {isEdit ? 'แก้ไขข้อมูลสมาชิก' : 'เพิ่มสมาชิกใหม่'}
+            {isEdit ? t('Member.editInfo') : t('Member.addNew')}
           </Text>
         }
         size="lg"
@@ -806,23 +850,23 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                 onClick={handleReadIdCard}
                 fullWidth
               >
-                อ่านข้อมูลจากบัตรประชาชน (Web USB)
+                {t('Member.readIdCard')}
               </Button>
-              <Divider label="หรือกรอกข้อมูลด้วยตนเอง" labelPosition="center" />
+              <Divider label={t('Member.manualInput')} labelPosition="center" />
             </>
           )}
 
           {/* Row 1: memberNo + citizenId */}
           <Group grow>
             <TextInput
-              label="รหัสสมาชิก"
+              label={t('Member.no')}
               placeholder="M-202505-0001"
               required
               value={formData.memberNo}
               onChange={(e) => setFormData({ ...formData, memberNo: e.target.value })}
             />
             <TextInput
-              label="เลขบัตรประชาชน"
+              label={t('Member.citizenId')}
               placeholder="x-xxxx-xxxxx-xx-x"
               value={formData.citizenId}
               onChange={(e) => {
@@ -842,8 +886,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row 2: prefix + firstNameTh + lastNameTh */}
           <Group grow>
             <Select
-              label="คำนำหน้า"
-              placeholder="เลือก"
+              label={t('Member.prefix')}
+              placeholder={t('Common.select')}
               data={['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง']}
               style={{ flex: '0 0 100px' }}
               value={formData.prefixTh}
@@ -857,15 +901,15 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               }}
             />
             <TextInput
-              label="ชื่อ (ภาษาไทย)"
-              placeholder="ชื่อ"
+              label={t('Member.firstNameTh')}
+              placeholder={t('Member.firstNameTh')}
               required
               value={formData.firstNameTh}
               onChange={(e) => setFormData({ ...formData, firstNameTh: e.target.value })}
             />
             <TextInput
-              label="นามสกุล (ภาษาไทย)"
-              placeholder="นามสกุล"
+              label={t('Member.lastNameTh')}
+              placeholder={t('Member.lastNameTh')}
               required
               value={formData.lastNameTh}
               onChange={(e) => setFormData({ ...formData, lastNameTh: e.target.value })}
@@ -883,13 +927,13 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               onChange={(val) => setFormData({ ...formData, prefixEn: val || '' })}
             />
             <TextInput
-              label="ชื่อ (English)"
+              label={t('Member.firstNameEn')}
               placeholder="First Name"
               value={formData.firstNameEn}
               onChange={(e) => setFormData({ ...formData, firstNameEn: e.target.value })}
             />
             <TextInput
-              label="นามสกุล (English)"
+              label={t('Member.lastNameEn')}
               placeholder="Last Name"
               value={formData.lastNameEn}
               onChange={(e) => setFormData({ ...formData, lastNameEn: e.target.value })}
@@ -899,7 +943,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row: birthDate + gender */}
           <Group grow>
             <TextInput
-              label="วันเกิด (ระบุเป็น พ.ศ.)"
+              label={t('Member.birthDate')}
               placeholder="เช่น 15/04/2538"
               value={formData.birthDate}
               onChange={(e) => {
@@ -913,11 +957,11 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               maxLength={10}
             />
             <Select
-              label="เพศ"
-              placeholder="เลือกเพศ"
+              label={t('Member.gender')}
+              placeholder={t('Member.selectGender')}
               data={[
-                { value: 'ชาย', label: 'ชาย' },
-                { value: 'หญิง', label: 'หญิง' },
+                { value: 'ชาย', label: t('Member.male') },
+                { value: 'หญิง', label: t('Member.female') },
               ]}
               value={formData.gender}
               onChange={(val) => setFormData({ ...formData, gender: val ?? '' })}
@@ -926,16 +970,16 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
 
           {/* Row: address */}
           <TextInput
-            label="ที่อยู่"
-            placeholder="บ้านเลขที่ หมู่ ซอย ถนน แขวง เขต จังหวัด รหัสไปรษณีย์"
+            label={t('Member.address')}
+            placeholder={t('Member.addressPlaceholder')}
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           />
 
           {/* Row: school */}
           <TextInput
-            label="ชื่อสถาบันการศึกษา / โรงเรียน"
-            placeholder="กรอกชื่อสถาบันการศึกษา..."
+            label={t('Member.school')}
+            placeholder={t('Member.schoolPlaceholder')}
             value={formData.school}
             onChange={(e) => setFormData({ ...formData, school: e.target.value })}
           />
@@ -943,14 +987,14 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row: email + phone */}
           <Group grow>
             <TextInput
-              label="อีเมล"
+              label={t('Member.email')}
               placeholder="example@email.com"
               leftSection={<IconMail size={15} />}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
             <TextInput
-              label="เบอร์โทรศัพท์"
+              label={t('Member.phone')}
               placeholder="08x-xxx-xxxx"
               leftSection={<IconPhone size={15} />}
               value={formData.phone}
@@ -969,32 +1013,32 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row 5: memberType + status + expireDate */}
           <Group grow>
             <Select
-              label="ประเภทสมาชิก"
+              label={t('Member.type')}
               data={[
-                { value: 'STUDENT', label: 'นักเรียน' },
-                { value: 'STAFF', label: 'เจ้าหน้าที่' },
-                { value: 'FACULTY', label: 'อาจารย์' },
-                { value: 'EXTERNAL', label: 'บุคคลภายนอก' },
-                { value: 'GUEST', label: 'ผู้เยี่ยมชม' },
+                { value: 'STUDENT', label: t('Member.typeStudent') },
+                { value: 'STAFF', label: t('Member.typeStaff') },
+                { value: 'FACULTY', label: t('Member.typeFaculty') },
+                { value: 'EXTERNAL', label: t('Member.typeExternal') },
+                { value: 'GUEST', label: t('Member.typeGuest') },
               ]}
               value={formData.memberType}
               onChange={(val) => setFormData({ ...formData, memberType: val ?? 'STUDENT' })}
             />
             {isEdit && (
               <Select
-                label="สถานะ"
+                label={t('Common.status')}
                 data={[
-                  { value: 'ACTIVE', label: 'ใช้งาน' },
-                  { value: 'EXPIRED', label: 'หมดอายุ' },
-                  { value: 'SUSPENDED', label: 'ระงับ' },
-                  { value: 'REVOKED', label: 'ยกเลิก' },
+                  { value: 'ACTIVE', label: t('Member.statusActive') },
+                  { value: 'EXPIRED', label: t('Member.statusExpired') },
+                  { value: 'SUSPENDED', label: t('Member.statusSuspended') },
+                  { value: 'REVOKED', label: t('Member.statusRevoked') },
                 ]}
                 value={formData.status}
                 onChange={(val) => setFormData({ ...formData, status: val ?? 'ACTIVE' })}
               />
             )}
             <TextInput
-              label="วันหมดอายุสมาชิก"
+              label={t('Member.expireDate')}
               type="date"
               leftSection={<IconCalendar size={15} />}
               value={formData.expireDate}
@@ -1005,10 +1049,10 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Actions */}
           <Group justify="flex-end" mt="xs">
             <Button variant="light" color="gray" onClick={close}>
-              ยกเลิก
+              {t('Common.cancel')}
             </Button>
             <Button color="blue" onClick={handleSubmit} loading={loading}>
-              {isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มสมาชิก'}
+              {isEdit ? t('Common.saveChanges') : t('Member.add')}
             </Button>
           </Group>
         </Stack>

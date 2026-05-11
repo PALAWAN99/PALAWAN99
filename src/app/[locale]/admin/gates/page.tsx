@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Title,
   Text,
@@ -52,6 +53,7 @@ interface Branch {
 }
 
 export default function GateManagement() {
+  const t = useTranslations();
   const [gates, setGates] = useState<Gate[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,8 +79,8 @@ export default function GateManagement() {
     },
   });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       // Fetch Branches for dropdown
       const branchRes = await fetch('/api/admin/branches');
@@ -116,7 +118,7 @@ export default function GateManagement() {
   }, [filterBranch]);
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(() => fetchData(false));
   }, [fetchData]);
 
   const handleSubmit = async (values: typeof form.values) => {
@@ -210,15 +212,15 @@ export default function GateManagement() {
         <div>
           <Group gap="xs" mb={4}>
             <IconDoor size={24} color="var(--color-navy)" />
-            <Title order={2} c="var(--text-primary)">จัดการประตู (Gates)</Title>
+            <Title order={2} c="var(--text-primary)">{t('Gate.management')}</Title>
           </Group>
           <Text size="sm" c="var(--text-secondary)">
-            กำหนดจุดควบคุมการเข้า-ออก และเชื่อมต่อกับอุปกรณ์สแกน
+            {t('Gate.desc')}
           </Text>
         </div>
         <Group>
           <Select
-            placeholder="กรองตามสาขา"
+            placeholder={t('Gate.filterBranch')}
             leftSection={<IconFilter size={16} />}
             data={branches.map(b => ({ value: b.id, label: b.nameTh }))}
             value={filterBranch}
@@ -227,7 +229,7 @@ export default function GateManagement() {
             w={200}
           />
           <Button leftSection={<IconPlus size={16} />} onClick={() => setModalOpened(true)} color="navy">
-            เพิ่มประตูใหม่
+            {t('Gate.addNew')}
           </Button>
         </Group>
       </Group>
@@ -236,19 +238,19 @@ export default function GateManagement() {
         <Table verticalSpacing="sm" highlightOnHover>
           <Table.Thead bg="var(--bg-tertiary)">
             <Table.Tr>
-              <Table.Th w={120}>รหัสประตู</Table.Th>
-              <Table.Th>ชื่อประตู</Table.Th>
-              <Table.Th>สาขาที่สังกัด</Table.Th>
-              <Table.Th w={120}>ทิศทาง</Table.Th>
-              <Table.Th w={120}>สถานะ</Table.Th>
-              <Table.Th w={100} ta="right">จัดการ</Table.Th>
+              <Table.Th w={120}>{t('Gate.code')}</Table.Th>
+              <Table.Th>{t('Gate.name')}</Table.Th>
+              <Table.Th>{t('Gate.branch')}</Table.Th>
+              <Table.Th w={120}>{t('Gate.direction')}</Table.Th>
+              <Table.Th w={120}>{t('Common.status')}</Table.Th>
+              <Table.Th w={100} ta="right">{t('Common.manage')}</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {loading ? (
               <Table.Tr><Table.Td colSpan={6}><Center py="xl"><Loader size="sm" /></Center></Table.Td></Table.Tr>
             ) : gates.length === 0 ? (
-              <Table.Tr><Table.Td colSpan={6}><Center py="xl"><Text c="dimmed">ไม่พบข้อมูลประตู</Text></Center></Table.Td></Table.Tr>
+              <Table.Tr><Table.Td colSpan={6}><Center py="xl"><Text c="dimmed">{t('Common.noData')}</Text></Center></Table.Td></Table.Tr>
             ) : rows}
           </Table.Tbody>
         </Table>
@@ -257,44 +259,44 @@ export default function GateManagement() {
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        title={<Text fw={700}>เพิ่มประตูใหม่</Text>}
+        title={<Text fw={700}>{t('Gate.addNew')}</Text>}
         centered
         size="lg"
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
             <SimpleGrid cols={2}>
-              <TextInput label="รหัสประตู" placeholder="เช่น GATE-01" required {...form.getInputProps('gateCode')} />
+              <TextInput label={t('Gate.code')} placeholder="เช่น GATE-01" required {...form.getInputProps('gateCode')} />
               <Select
-                label="เลือกสาขา"
-                placeholder="เลือกสาขาที่ประตูสังกัด"
+                label={t('Gate.selectBranch')}
+                placeholder={t('Gate.selectBranchPlaceholder')}
                 data={branches.map(b => ({ value: b.id, label: b.nameTh }))}
                 required
                 {...form.getInputProps('branchId')}
               />
             </SimpleGrid>
             <SimpleGrid cols={2}>
-              <TextInput label="ชื่อภาษาไทย" required {...form.getInputProps('nameTh')} />
-              <TextInput label="ชื่อภาษาอังกฤษ" required {...form.getInputProps('nameEn')} />
+              <TextInput label={t('Common.nameTh')} required {...form.getInputProps('nameTh')} />
+              <TextInput label={t('Common.nameEn')} required {...form.getInputProps('nameEn')} />
             </SimpleGrid>
-            <TextInput label="ชื่อภาษาจีน" required {...form.getInputProps('nameZh')} />
+            <TextInput label={t('Common.nameZh')} required {...form.getInputProps('nameZh')} />
             
             <SimpleGrid cols={2}>
               <Select
-                label="ทิศทาง"
+                label={t('Gate.direction')}
                 data={[
-                  { value: 'IN', label: 'ขาเข้า (IN)' },
-                  { value: 'OUT', label: 'ขาออก (OUT)' },
-                  { value: 'BIDIRECTIONAL', label: 'สองทิศทาง' },
+                  { value: 'IN', label: 'IN' },
+                  { value: 'OUT', label: 'OUT' },
+                  { value: 'BIDIRECTIONAL', label: 'BIDIRECTIONAL' },
                 ]}
                 {...form.getInputProps('direction')}
               />
               <Select
-                label="สถานะเริ่มต้น"
+                label={t('Common.status')}
                 data={[
-                  { value: 'ACTIVE', label: 'พร้อมใช้งาน' },
-                  { value: 'MAINTENANCE', label: 'ซ่อมบำรุง' },
-                  { value: 'DISABLED', label: 'ปิดใช้งาน' },
+                  { value: 'ACTIVE', label: 'ACTIVE' },
+                  { value: 'MAINTENANCE', label: 'MAINTENANCE' },
+                  { value: 'DISABLED', label: 'DISABLED' },
                 ]}
                 {...form.getInputProps('status')}
               />
@@ -311,8 +313,8 @@ export default function GateManagement() {
             />
 
             <Group justify="flex-end" mt="md">
-              <Button variant="subtle" onClick={() => setModalOpened(false)}>ยกเลิก</Button>
-              <Button type="submit" color="navy" loading={submitting}>บันทึกข้อมูล</Button>
+              <Button variant="subtle" onClick={() => setModalOpened(false)}>{t('Common.cancel')}</Button>
+              <Button type="submit" color="navy" loading={submitting}>{t('Common.save')}</Button>
             </Group>
           </Stack>
         </form>

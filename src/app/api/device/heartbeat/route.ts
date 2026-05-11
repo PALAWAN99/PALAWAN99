@@ -1,21 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Schema สำหรับตรวจสอบข้อมูลที่ส่งมาจากเครื่องสแกน
 const heartbeatSchema = z.object({
   deviceCode: z.string().min(1, 'ต้องมีรหัสอุปกรณ์'),
   status: z.enum(['ONLINE', 'OFFLINE', 'MAINTENANCE']).default('ONLINE'),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
  * POST /api/device/heartbeat
  * ใช้สำหรับให้อุปกรณ์ (Scanner/Kiosk) ส่งสัญญาณแจ้งสถานะ
  */
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
+  // Check Rate Limit
+  const rateLimitError = checkRateLimit(req, 120); // ให้ถี่กว่าปกติได้สำหรับ Heartbeat
+  if (rateLimitError) return rateLimitError;
+
   try {
-    const body = await request.json();
+    const body = await req.json();
     
     // 1. Validate ข้อมูล
     const result = heartbeatSchema.safeParse(body);
@@ -56,6 +61,18 @@ export async function POST(request: Request) {
         }
       }
     });
+
+    // 4. Trigger แจ้งเตือนถ้าสถานะไม่ใช่ ONLINE (งาน Dev 4)
+    if (status !== 'ONLINE') {
+      const { NotificationService } = await import('@/lib/notifications/service');
+      await NotificationService.notify({
+        type: 'DEVICE_STATUS',
+        title: `อุปกรณ์ ${status}`,
+        message: `อุปกรณ์ ${updatedDevice.name} (${deviceCode}) ที่ประตู ${updatedDevice.gate.nameTh} เปลี่ยนสถานะเป็น ${status}`,
+        level: status === 'OFFLINE' ? 'critical' : 'warning',
+        metadata: { deviceId: updatedDevice.id, gateId: updatedDevice.gateId }
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
 import {
   Title,
   Text,
@@ -9,18 +11,18 @@ import {
   Group,
   Stack,
   Badge,
-  RingProgress,
   ThemeIcon,
   Paper,
   Box,
+  LoadingOverlay,
+  Center,
 } from '@mantine/core';
 import {
   IconUsers,
   IconDoor,
   IconQrcode,
-  IconArrowUpRight,
-  IconArrowDownRight,
   IconBuilding,
+  IconLayoutDashboard,
 } from '@tabler/icons-react';
 
 /* Mock data — จะเชื่อมกับ API จริงภายหลัง */
@@ -33,7 +35,7 @@ const STATS = [
     color: 'skyBlue',
   },
   {
-    titleKey: 'Dashboard.activeGates', // Note: Using appropriate key
+    titleKey: 'Dashboard.activeGates',
     value: '89',
     diff: -3,
     icon: IconBuilding,
@@ -55,19 +57,14 @@ const STATS = [
   },
 ];
 
-const RECENT_EVENTS = [
-  { time: '10:28', member: 'สมชาย รักเรียน', gate: 'ประตูหน้า', dir: 'IN', status: 'ALLOWED' },
-  { time: '10:25', member: 'John Smith', gate: 'Library Gate', dir: 'OUT', status: 'ALLOWED' },
-  { time: '10:22', member: '王小明', gate: '前门', dir: 'IN', status: 'ALLOWED' },
-  { time: '10:18', member: 'สมหญิง ใจดี', gate: 'ประตูหลัง', dir: 'IN', status: 'DENIED' },
-  { time: '10:15', member: 'อำนาจ จิตต์ดี', gate: 'ประตูหน้า', dir: 'OUT', status: 'ALLOWED' },
-];
-
-const GATE_STATUS = [
-  { name: 'ประตูหน้า (Front Gate)', status: 'ACTIVE', in: 45, out: 32, lastScan: '10:28' },
-  { name: 'ประตูหลัง (Back Gate)', status: 'ACTIVE', in: 23, out: 18, lastScan: '10:25' },
-  { name: 'ห้องสมุด (Library)', status: 'MAINTENANCE', in: 0, out: 0, lastScan: '09:00' },
-  { name: 'อาคาร B (Building B)', status: 'ACTIVE', in: 31, out: 22, lastScan: '10:20' },
+// ข้อมูลตั้งต้นก่อนโหลดจริง
+const INITIAL_CHART_DATA = [
+  { name: '08:00', in: 0, out: 0 },
+  { name: '10:00', in: 0, out: 0 },
+  { name: '12:00', in: 0, out: 0 },
+  { name: '14:00', in: 0, out: 0 },
+  { name: '16:00', in: 0, out: 0 },
+  { name: '18:00', in: 0, out: 0 },
 ];
 
 import {
@@ -83,34 +80,106 @@ import {
   Cell,
 } from 'recharts';
 
-/* Mock data สำหรับกราฟ */
-const CHART_DATA = [
-  { name: '08:00', in: 12, out: 4 },
-  { name: '10:00', in: 45, out: 12 },
-  { name: '12:00', in: 30, out: 25 },
-  { name: '14:00', in: 25, out: 30 },
-  { name: '16:00', in: 60, out: 45 },
-  { name: '18:00', in: 15, out: 55 },
+// ข้อมูลตั้งต้นสำหรับสถิติประตู
+const INITIAL_GATE_TRAFFIC = [
+  { name: 'Main Gate', value: 0, color: '#38BDF8' },
 ];
 
-const GATE_TRAFFIC = [
-  { name: 'Main Gate', value: 450, color: '#38BDF8' },
-  { name: 'Side Gate', value: 210, color: '#10B981' },
-  { name: 'Office B', value: 180, color: '#1E3A5F' },
-  { name: 'Parking', value: 320, color: '#0EA5E9' },
-];
+interface GateTrafficItem {
+  name: string;
+  value: number;
+  color: string;
+}
 
 export default function AdminDashboard() {
   const t = useTranslations();
   const locale = useLocale();
+  const router = useRouter();
+  const [stats, setStats] = useState<{
+    members: { total: number; active: number };
+    gates: { total: number; active: number };
+    todayEvents: number;
+  } | null>(null);
+  const [recentEvents, setRecentEvents] = useState<Array<{
+    id: string;
+    scannedAt: string;
+    direction: string;
+    decision: string;
+    member?: { firstNameTh: string; lastNameTh: string };
+  }>>([]);
+  const [chartData, setChartData] = useState<Array<{ name: string; in: number; out: number }>>(INITIAL_CHART_DATA);
+  const [gateTraffic, setGateTraffic] = useState<Array<GateTrafficItem>>(INITIAL_GATE_TRAFFIC);
+  const [gateStatus, setGateStatus] = useState<Array<{ name: string; status: string; in: number; out: number; lastScan: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [statsRes, eventsRes, detailsRes] = await Promise.all([
+          fetch('/api/admin/dashboard/stats'),
+          fetch('/api/admin/events?limit=5'),
+          fetch('/api/admin/dashboard/details')
+        ]);
+        
+        const statsData = await statsRes.json();
+        const eventsData = await eventsRes.json();
+        const detailsData = await detailsRes.json();
+        
+        setStats(statsData);
+        if (Array.isArray(eventsData)) {
+          setRecentEvents(eventsData);
+        }
+        if (detailsData.chartData) setChartData(detailsData.chartData);
+        if (detailsData.gateTraffic) setGateTraffic(detailsData.gateTraffic);
+        if (detailsData.gateStatus) setGateStatus(detailsData.gateStatus);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const statsCards = stats ? [
+    {
+      titleKey: 'Dashboard.totalMembers',
+      value: stats.members.total.toLocaleString(),
+      diff: 0,
+      icon: IconUsers,
+      color: 'skyBlue',
+    },
+    {
+      titleKey: 'Dashboard.gateStatus',
+      value: `${stats.gates.active}/${stats.gates.total}`,
+      diff: 0,
+      icon: IconDoor,
+      color: 'navy',
+    },
+    {
+      titleKey: 'Common.gates',
+      value: stats.gates.total.toLocaleString(),
+      diff: 0,
+      icon: IconBuilding,
+      color: 'emerald',
+    },
+    {
+      titleKey: 'Dashboard.recentActivity',
+      value: stats.todayEvents.toLocaleString(),
+      diff: 0,
+      icon: IconQrcode,
+      color: 'skyBlue',
+    },
+  ] : STATS;
 
   return (
     <Stack gap="xl">
+      <LoadingOverlay visible={loading} />
       {/* Page Header */}
       <Group justify="space-between" align="flex-end">
         <div>
           <Title order={2} fw={800} style={{ letterSpacing: '-0.02em' }}>
-            {t('Common.dashboard')}
+            <Group gap="xs"><IconLayoutDashboard size={28} color="var(--mantine-color-blue-filled)" />{t('Common.dashboard')}</Group>
           </Title>
           <Text size="sm" c="var(--text-secondary)" fw={500}>
             {t('Dashboard.welcome')} · {new Date().toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -125,7 +194,7 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="md">
-        {STATS.map((stat) => (
+        {statsCards.map((stat) => (
           <Card key={stat.titleKey} className="stat-card" p="xl">
             <Group justify="space-between" mb="sm">
               <Text size="xs" c="var(--text-muted)" fw={600} tt="uppercase" lts="0.05em">
@@ -138,19 +207,6 @@ export default function AdminDashboard() {
             <Text size="2rem" fw={800} c="var(--text-primary)" lts="-0.02em">
               {stat.value}
             </Text>
-            {stat.diff !== 0 && (
-              <Group gap={6} mt="xs">
-                <Badge 
-                  size="sm" 
-                  color={stat.diff > 0 ? 'teal' : 'red'} 
-                  variant="light"
-                  leftSection={stat.diff > 0 ? <IconArrowUpRight size={12} /> : <IconArrowDownRight size={12} />}
-                >
-                  {Math.abs(stat.diff)}%
-                </Badge>
-                <Text size="xs" c="var(--text-muted)" fw={500}>vs yesterday</Text>
-              </Group>
-            )}
           </Card>
         ))}
       </SimpleGrid>
@@ -158,10 +214,10 @@ export default function AdminDashboard() {
       {/* Charts Row */}
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
         <Card withBorder p="xl" radius="lg">
-          <Text fw={700} mb="xl" size="lg">Traffic Overview (Real-time)</Text>
+          <Text fw={700} mb="xl" size="lg">{t('Dashboard.trafficOverview')}</Text>
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={CHART_DATA}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#38BDF8" stopOpacity={0.3}/>
@@ -200,41 +256,50 @@ export default function AdminDashboard() {
         </Card>
 
         <Card withBorder p="xl" radius="lg">
-          <Text fw={700} mb="xl" size="lg">Top Gates Activity</Text>
+          <Text fw={700} mb="xl" size="lg">{t('Dashboard.topGates')}</Text>
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={GATE_TRAFFIC} layout="vertical">
-                <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  stroke="var(--text-primary)" 
-                  fontSize={12} 
-                  width={80} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <ChartTooltip cursor={{fill: 'rgba(56, 189, 248, 0.05)'}} />
-                <Bar 
-                  dataKey="value" 
-                  radius={[0, 4, 4, 0]} 
-                  barSize={20}
-                  style={{ cursor: 'pointer' }}
-                  onClick={(data) => {
-                    if (data && data.name) {
-                      router.push(`/admin/events?gate=${data.name}`);
-                    }
-                  }}
-                >
-                  {GATE_TRAFFIC.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.color}
-                      style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
+              {gateTraffic.length > 0 && gateTraffic[0].value > 0 ? (
+                <BarChart data={gateTraffic} layout="vertical">
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    stroke="var(--text-primary)" 
+                    fontSize={12} 
+                    width={80} 
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <ChartTooltip cursor={{fill: 'rgba(56, 189, 248, 0.05)'}} />
+                  <Bar 
+                    dataKey="value" 
+                    radius={[0, 4, 4, 0]} 
+                    barSize={20}
+                    style={{ cursor: 'pointer' }}
+                    onClick={(data: any) => {
+                      if (data && data.name) {
+                        router.push(`/admin/events?gate=${data.name}`);
+                      }
+                    }}
+                  >
+                    {gateTraffic.map((entry: GateTrafficItem, index: number) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color}
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              ) : (
+                <Center h="100%">
+                  <Stack align="center" gap={4}>
+                    <IconDoor size={40} opacity={0.2} />
+                    <Text c="dimmed" size="sm">{t('Common.noData')}</Text>
+                  </Stack>
+                </Center>
+              )}
             </ResponsiveContainer>
           </div>
           <Text size="xs" c="dimmed" ta="center" mt="sm">Tip: Click on a bar to view detailed logs for that gate</Text>
@@ -250,20 +315,25 @@ export default function AdminDashboard() {
             <Badge color="skyBlue" variant="light" size="sm">Live</Badge>
           </Group>
           <Stack gap="xs">
-            {RECENT_EVENTS.map((evt, i) => (
-              <Paper key={i} p="sm" withBorder style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+            {recentEvents.map((evt, i: number) => (
+              <Paper key={evt.id || i} p="sm" withBorder style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <Group justify="space-between">
                   <Group gap="sm">
-                    <Text size="xs" c="var(--text-muted)" fw={600} w={50}>{evt.time}</Text>
-                    <Text size="sm" fw={600}>{evt.member}</Text>
+                    <Text size="xs" c="var(--text-muted)" fw={600} w={50}>
+                      {new Date(evt.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {evt.member?.firstNameTh} {evt.member?.lastNameTh}
+                    </Text>
                   </Group>
                   <Group gap="xs">
-                    <Badge size="xs" color={evt.dir === 'IN' ? 'teal' : 'blue'} variant="light">{evt.dir}</Badge>
-                    <Badge size="xs" color={evt.status === 'ALLOWED' ? 'emerald' : 'red'} variant="filled">{evt.status}</Badge>
+                    <Badge size="xs" color={evt.direction === 'IN' ? 'teal' : 'blue'} variant="light">{evt.direction}</Badge>
+                    <Badge size="xs" color={evt.decision === 'ALLOWED' ? 'emerald' : 'red'} variant="filled">{evt.decision}</Badge>
                   </Group>
                 </Group>
               </Paper>
             ))}
+            {recentEvents.length === 0 && <Text c="dimmed" ta="center" py="xl">{t('Common.noData')}</Text>}
           </Stack>
         </Card>
 
@@ -274,7 +344,7 @@ export default function AdminDashboard() {
             <Badge color="navy" variant="light" size="sm">4 Gates Active</Badge>
           </Group>
           <Stack gap="xs">
-            {GATE_STATUS.map((gate) => (
+            {gateStatus.map((gate) => (
               <Paper key={gate.name} p="sm" withBorder style={{ borderColor: 'var(--border-color)' }}>
                 <Group justify="space-between">
                   <Group gap="sm">
@@ -288,6 +358,7 @@ export default function AdminDashboard() {
                 </Group>
               </Paper>
             ))}
+            {gateStatus.length === 0 && <Text c="dimmed" ta="center" py="xl">{t('Common.noData')}</Text>}
           </Stack>
         </Card>
       </SimpleGrid>

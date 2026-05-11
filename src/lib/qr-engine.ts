@@ -1,21 +1,13 @@
-import { crypto } from 'next/dist/compiled/@edge-runtime/primitives';
+import crypto from 'crypto';
 import { prisma } from './prisma';
 import dayjs from 'dayjs';
-
-/**
- * QR Engine Logic
- * รับผิดชอบการสร้าง Hash, ตรวจสอบความถูกต้อง และจัดการสถานะของ QR Token
- */
-
-// สำหรับใช้ใน Node.js environment (ถ้าไม่ใช่ edge)
-const nodeCrypto = require('crypto');
 
 /**
  * สร้าง Token แบบสุ่มและคืนค่า Hash
  */
 export function generateToken() {
-  const token = nodeCrypto.randomBytes(32).toString('hex');
-  const hash = nodeCrypto.createHash('sha256').update(token).digest('hex');
+  const token = crypto.randomBytes(32).toString('hex');
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
   return { token, hash };
 }
 
@@ -23,7 +15,7 @@ export function generateToken() {
  * ตรวจสอบ Token ว่าถูกต้องและใช้งานได้หรือไม่
  */
 export async function validateQrToken(token: string, gateId: string) {
-  const hash = nodeCrypto.createHash('sha256').update(token).digest('hex');
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
 
   const qrToken = await prisma.qrToken.findUnique({
     where: { tokenHash: hash },
