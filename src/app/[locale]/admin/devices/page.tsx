@@ -20,19 +20,14 @@ import {
   Alert,
   Code,
   CopyButton,
-  Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import {
-  IconDeviceCamera,
   IconPlus,
   IconSearch,
   IconDotsVertical,
-  IconRefresh,
-  IconTrash,
   IconCheck,
-  IconX,
   IconCopy,
   IconAlertCircle,
 } from '@tabler/icons-react';
@@ -80,7 +75,7 @@ export default function DevicesPage() {
       const res = await fetch('/api/admin/gates');
       const data = await res.json();
       if (Array.isArray(data)) {
-        setGates(data.map((g: any) => ({ value: g.id, label: `${g.nameTh} (${g.gateCode})` })));
+        setGates(data.map((g: { id: string; nameTh: string; gateCode: string }) => ({ value: g.id, label: `${g.nameTh} (${g.gateCode})` })));
       }
     } catch (error) {
       console.error('Fetch gates failed:', error);
@@ -127,10 +122,11 @@ export default function DevicesPage() {
       } else {
         throw new Error(data.error);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       notifications.show({
         title: 'เกิดข้อผิดพลาด',
-        message: error.message,
+        message,
         color: 'red',
       });
     } finally {

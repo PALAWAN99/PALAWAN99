@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
     await prisma.accessEvent.create({
       data: {
         gateId: gateId,
-        memberId: result.member?.id || null, // กรณีไม่พบสมาชิก ให้เป็น null (แก้ปัญหา FK violation)
-        qrTokenId: result.qrToken?.id || null,
+        memberId: result.member?.id || undefined, // กรณีไม่พบสมาชิก ให้เป็น undefined (แก้ปัญหา FK violation)
+        qrTokenId: result.qrToken?.id || undefined,
         direction: direction as any,
         source: 'QR_CODE',
         decision: result.decision as any,

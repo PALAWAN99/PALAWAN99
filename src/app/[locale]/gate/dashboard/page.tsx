@@ -15,8 +15,8 @@ import {
   Badge,
   Avatar,
   Box,
+  Box,
   SimpleGrid,
-  Alert,
   Center,
   Loader,
 } from '@mantine/core';
@@ -25,7 +25,6 @@ import {
   IconScan,
   IconCheck,
   IconX,
-  IconUser,
   IconDoorEnter,
   IconDoorExit,
 } from '@tabler/icons-react';
@@ -89,7 +88,7 @@ export default function GateDashboard() {
         // เล่นเสียงแจ้งเตือนสำเร็จ (ถ้าต้องการ)
         setToken(''); // Clear token for next scan
       }
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: t('Common.error'),
