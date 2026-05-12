@@ -44,7 +44,7 @@ const DIRECTION_LABELS: Record<string, string> = {
 
 const DECISION_LABELS: Record<string, string> = {
   ALLOWED: 'อนุญาต',
-  DENIED: 'ปฏิเสธ',
+  DENIED: 'หมดอายุ',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -192,7 +192,6 @@ export default function HistoryClient() {
                   <Table.Th>จุดควบคุม (Gate)</Table.Th>
                   <Table.Th>เวลาสแกน</Table.Th>
                   <Table.Th>ทิศทาง</Table.Th>
-                  <Table.Th>ช่องทาง</Table.Th>
                   <Table.Th>สถานะ</Table.Th>
                   <Table.Th />
                 </Table.Tr>
@@ -225,11 +224,6 @@ export default function HistoryClient() {
                         size="sm"
                       >
                         {DIRECTION_LABELS[item.direction] || item.direction}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge variant="dot" color="gray" size="sm">
-                        {SOURCE_LABELS[item.source] || item.source}
                       </Badge>
                     </Table.Td>
                     <Table.Td>

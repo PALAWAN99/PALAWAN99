@@ -982,7 +982,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                           color={event.decision === 'ALLOWED' ? 'green' : 'red'}
                           size="sm"
                         >
-                          {event.decision === 'ALLOWED' ? 'ผ่าน' : 'ปฏิเสธ'}
+                          {event.decision === 'ALLOWED' ? 'ผ่าน' : 'หมดอายุ'}
                         </Badge>
                       </Table.Td>
                     </Table.Tr>
