@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "prisma-generate": "prisma generate",
-    "test-logic": "tsx dev-test/test-logic-final.ts",
+    "test-logic": "tsx test-logic.ts",
     "db:push": "prisma db push"
   },
   "dependencies": {
