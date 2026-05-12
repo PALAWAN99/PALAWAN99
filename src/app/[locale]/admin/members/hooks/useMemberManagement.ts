@@ -218,11 +218,42 @@ export function useMemberManagement(initialMembers: Member[]) {
     }
   };
 
+  const [historyOpened, { open: openHistory, close: closeHistory }] = useDisclosure(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [accessHistory, setAccessHistory] = useState<any[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+
+  const handleOpenHistory = async (member: Member) => {
+    setSelectedMember(member);
+    setHistoryLoading(true);
+    openHistory();
+    
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}/history`);
+      const result = await res.json();
+      setHistoryLoading(false);
+      
+      if (result.success) {
+        setAccessHistory(result.data.history || []);
+      } else {
+        notifications.show({
+          title: 'ไม่สามารถดึงข้อมูลประวัติได้',
+          message: result.error?.message || 'Failed to fetch history',
+          color: 'red',
+        });
+      }
+    } catch (error) {
+      setHistoryLoading(false);
+      notifications.show({ title: 'ข้อผิดพลาด', message: 'Network error', color: 'red' });
+    }
+  };
+
   return {
     members, filtered, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
     page, setPage, total, totalPages,
     initialFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
-    handleDelete, handleReadIdCard, clearFilters: () => { setSearch(''); setFilterType(null); setFilterStatus(null); setPage(1); }
+    handleDelete, handleReadIdCard, clearFilters: () => { setSearch(''); setFilterType(null); setFilterStatus(null); setPage(1); },
+    historyOpened, closeHistory, historyLoading, accessHistory, selectedMember, handleOpenHistory
   };
 }

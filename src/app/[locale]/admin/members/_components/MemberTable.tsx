@@ -7,6 +7,7 @@ interface MemberTableProps {
   members: Member[];
   onEdit: (member: Member) => void;
   onRenew: (member: Member) => void;
+  onOpenHistory: (member: Member) => void;
   onDelete: (id: string, name: string) => void;
   onClearFilters: () => void;
   hasFilter: boolean;
@@ -17,7 +18,7 @@ interface MemberTableProps {
 }
 
 export function MemberTable({ 
-  members, onEdit, onRenew, onDelete, t,
+  members, onEdit, onRenew, onOpenHistory, onDelete, t,
   page, totalPages, onPageChange, hasFilter
 }: MemberTableProps) {
   return (
@@ -29,7 +30,7 @@ export function MemberTable({
               <Table.Th>{t('Member.name')}</Table.Th>
               <Table.Th>{t('Member.no')}</Table.Th>
               <Table.Th>{t('Member.contact')}</Table.Th>
-              <Table.Th>{t('Member.type')}</Table.Th>
+              <Table.Th>{t('Member.memberType')}</Table.Th>
               <Table.Th>{t('Common.status')}</Table.Th>
               <Table.Th>{t('Member.expireDate')}</Table.Th>
               <Table.Th>{t('Member.createdAt')}</Table.Th>
@@ -44,6 +45,7 @@ export function MemberTable({
                   member={member} 
                   onEdit={onEdit} 
                   onRenew={onRenew} 
+                  onOpenHistory={onOpenHistory}
                   onDelete={onDelete} 
                   t={t} 
                 />

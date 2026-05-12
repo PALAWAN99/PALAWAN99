@@ -28,7 +28,11 @@
     "view": "查看详情",
     "admins": "管理员管理",
     "security": "安全",
-    "noData": "暂无数据"
+    "noData": "暂无数据",
+    "manage": "Manage",
+    "nameTh": "Thai Name",
+    "nameEn": "English Name",
+    "nameZh": "Chinese Name"
   },
   "Dashboard": {
     "welcome": "欢迎回来",
@@ -62,7 +66,16 @@
     "maintenance": "维护中",
     "open": "开门",
     "close": "关门",
-    "restart": "重启设备"
+    "restart": "重启设备",
+    "management": "Gate Management",
+    "desc": "Manage gate information",
+    "filterBranch": "Filter Branch",
+    "addNew": "Add New",
+    "code": "Gate Code",
+    "branch": "Branch",
+    "direction": "Direction",
+    "selectBranch": "Select Branch",
+    "selectBranchPlaceholder": "Please select a branch"
   },
   "Member": {
     "list": "成员列表",
@@ -77,12 +90,25 @@
     "expiryDate": "到期日期",
     "active": "有效",
     "inactive": "无效",
+    "manageDesc": "Monitor and manage all library members' data",
+    "add": "Add New Member",
+    "name": "Member",
+    "no": "Member ID",
+    "contact": "Contact",
+    "expireDate": "Expiry Date",
+    "createdAt": "Registration Date",
     "type": {
       "student": "学生",
       "staff": "员工",
       "faculty": "教师",
       "external": "外部人员",
       "guest": "访客"
+    },
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "suspended": "Suspended",
+      "revoked": "Revoked"
     }
   },
   "Report": {

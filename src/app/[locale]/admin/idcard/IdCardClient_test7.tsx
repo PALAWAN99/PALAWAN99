@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -257,7 +257,7 @@ export default function IdCardClient() {
                           onClick={() => {
                             setCardData({
                               citizenId: '1-2345-67890-12-3',
-                              fullNameTh: 'เธเธฒเธข เธชเธกเธกเธ•เธด เธ—เธ”เธชเธญเธ',
+                              fullNameTh: 'เธเธฒเธข สมมติ เธ—เธ”เธชเธญเธ',
                               fullNameEn: 'Mr. Sommot Todsob',
                               birthDate: '15/04/1995',
                               gender: 'เธเธฒเธข',
@@ -446,7 +446,7 @@ export default function IdCardClient() {
                             </Grid.Col>
                             <Grid.Col span={6}>
                               <TextInput 
-                                label="เธญเธตเน€เธกเธฅ" 
+                                label="อีเมล" 
                                 placeholder="example@mail.com" 
                                 value={additionalData.email}
                                 onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
@@ -570,7 +570,7 @@ export default function IdCardClient() {
 
               <Group grow>
                 <TextInput 
-                  label="เธงเธฑเธเน€เธเธดเธ” (เธฃเธฐเธเธธเน€เธเนเธ เธ.เธจ.)" 
+                  label="เธงเธฑเธเน€เธเธดเธ” (เธฃเธฐเธเธธเน€เธเนเธ เธ.ศ.)" 
                   placeholder="เน€เธเนเธ 15/04/2538" 
                   value={manualData.birthDate}
                   onChange={(e) => {
@@ -618,7 +618,7 @@ export default function IdCardClient() {
                   maxLength={12}
                 />
                 <TextInput 
-                  label="เธญเธตเน€เธกเธฅ" 
+                  label="อีเมล" 
                   placeholder="example@mail.com" 
                   value={additionalData.email}
                   onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}

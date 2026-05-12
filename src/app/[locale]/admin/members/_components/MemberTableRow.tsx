@@ -6,16 +6,17 @@ interface MemberTableRowProps {
   member: Member;
   onEdit: (member: Member) => void;
   onRenew: (member: Member) => void;
+  onOpenHistory: (member: Member) => void;
   onDelete: (id: string, name: string) => void;
   t: (key: string) => string;
 }
 
 const MEMBER_TYPE_LABELS: Record<string, string> = {
-  STUDENT: 'Member.typeStudent',
-  STAFF: 'Member.typeStaff',
-  FACULTY: 'Member.typeFaculty',
-  EXTERNAL: 'Member.typeExternal',
-  GUEST: 'Member.typeGuest',
+  STUDENT: 'Member.type.student',
+  STAFF: 'Member.type.staff',
+  FACULTY: 'Member.type.faculty',
+  EXTERNAL: 'Member.type.external',
+  GUEST: 'Member.type.guest',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,10 +27,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'Member.statusActive',
-  EXPIRED: 'Member.statusExpired',
-  SUSPENDED: 'Member.statusSuspended',
-  REVOKED: 'Member.statusRevoked',
+  ACTIVE: 'Member.status.active',
+  EXPIRED: 'Member.status.expired',
+  SUSPENDED: 'Member.status.suspended',
+  REVOKED: 'Member.status.revoked',
 };
 
 const AVATAR_COLORS = ['blue', 'cyan', 'teal', 'green', 'violet', 'grape', 'pink', 'orange'];
@@ -44,7 +45,7 @@ function getAvatarColor(id: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export function MemberTableRow({ member, onEdit, onRenew, onDelete, t }: MemberTableRowProps) {
+export function MemberTableRow({ member, onEdit, onRenew, onOpenHistory, onDelete, t }: MemberTableRowProps) {
   const fullName = `${member.firstNameTh} ${member.lastNameTh}`;
   
   return (
@@ -110,6 +111,7 @@ export function MemberTableRow({ member, onEdit, onRenew, onDelete, t }: MemberT
           <Menu.Dropdown>
             <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => onEdit(member)}>แก้ไขข้อมูล</Menu.Item>
             <Menu.Item leftSection={<IconClockHour4 size={14} />} color="teal" onClick={() => onRenew(member)}>ต่ออายุสมาชิก</Menu.Item>
+            <Menu.Item leftSection={<IconClockHour4 size={14} />} onClick={() => onOpenHistory(member)}>ประวัติการเข้า-ออก</Menu.Item>
             <Menu.Item leftSection={<IconRefresh size={14} />} onClick={() => {}}>สร้าง QR Code ใหม่</Menu.Item>
             <Menu.Divider />
             <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => onDelete(member.id, fullName)}>ลบสมาชิก</Menu.Item>

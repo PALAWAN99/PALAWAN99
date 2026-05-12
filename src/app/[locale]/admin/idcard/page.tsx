@@ -1,8 +1,8 @@
-import IdCardClient from './IdCardClient';
+﻿import IdCardClient from './IdCardClient';
 
 export const metadata = {
-  title: 'ระบบบัตรประชาชน | QR Gate Access',
-  description: 'จัดการและลงทะเบียนสมาชิกผ่านเครื่องอ่าน Smart Card',
+  title: 'เธฃเธฐเธเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ | QR Gate Access',
+  description: 'เธเธฑเธ”เธเธฒเธฃเนเธฅเธฐเธฅเธเธ—เธฐเน€เธเธตเธขเธเธชเธกเธฒเธเธดเธเธเนเธฒเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธ Smart Card',
 };
 
 export default function IdCardAdminPage() {

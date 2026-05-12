@@ -83,4 +83,24 @@ export class MemberService {
       where: { id },
     });
   }
+
+  /**
+   * ดึงประวัติการเข้า-ออกของสมาชิก
+   */
+  static async getMemberAccessHistory(memberId: string) {
+    const { prisma } = await import('@/lib/prisma');
+    return prisma.accessEvent.findMany({
+      where: { memberId },
+      include: {
+        gate: {
+          select: {
+            nameTh: true,
+            nameEn: true,
+          }
+        },
+      },
+      orderBy: { scannedAt: 'desc' },
+      take: 100,
+    });
+  }
 }

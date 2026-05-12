@@ -1,5 +1,7 @@
-import { Modal, Stack, Button, Divider, Group, TextInput, Select, Text, Card, Badge, Avatar } from '@mantine/core';
+import { Modal, Stack, Button, Divider, Group, TextInput, Select, Text, Card, Badge, Avatar, LoadingOverlay, Table } from '@mantine/core';
 import { IconId, IconMail, IconPhone, IconCalendar, IconClockHour4 } from '@tabler/icons-react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import { Member } from '../types';
 
 interface MemberModalsProps {
@@ -20,6 +22,11 @@ interface MemberModalsProps {
   renewLoading: boolean;
   handleRenew: () => void;
   t: (key: string) => string;
+  historyOpened: boolean;
+  closeHistory: () => void;
+  historyLoading: boolean;
+  accessHistory: any[];
+  selectedMember: Member | null;
 }
 
 const PREFIX_MAP: Record<string, string> = {
@@ -32,7 +39,8 @@ const PREFIX_MAP: Record<string, string> = {
 
 export function MemberModals({
   opened, onClose, isEdit, formData, setFormData, loading, readingId, handleReadIdCard, handleSubmit,
-  renewOpened, onCloseRenew, renewMember, renewDate, setRenewDate, renewLoading, handleRenew, t
+  renewOpened, onCloseRenew, renewMember, renewDate, setRenewDate, renewLoading, handleRenew, t,
+  historyOpened, closeHistory, historyLoading, accessHistory, selectedMember
 }: MemberModalsProps) {
   return (
     <>
@@ -70,6 +78,86 @@ export function MemberModals({
             <TextInput label="เบอร์โทรศัพท์" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
           </Group>
           <Group justify="flex-end"><Button variant="light" onClick={onClose}>ยกเลิก</Button><Button onClick={handleSubmit} loading={loading}>บันทึก</Button></Group>
+        </Stack>
+      </Modal>
+
+      {/* History Modal */}
+      <Modal
+        opened={historyOpened}
+        onClose={closeHistory}
+        title={
+          <Group gap="xs">
+            <IconClockHour4 size={20} />
+            <Text fw={600} size="lg">
+              ประวัติการเข้า-ออก: {selectedMember?.firstNameTh} {selectedMember?.lastNameTh}
+            </Text>
+          </Group>
+        }
+        size="xl"
+      >
+        <Stack gap="md" style={{ minHeight: 400, position: 'relative' }}>
+          <LoadingOverlay visible={historyLoading} overlayProps={{ blur: 2 }} />
+          
+          {accessHistory.length > 0 ? (
+            <Table.ScrollContainer minWidth={600}>
+              <Table verticalSpacing="sm">
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>วัน/เวลา</Table.Th>
+                    <Table.Th>ประตู/จุดควบคุม</Table.Th>
+                    <Table.Th>ทิศทาง</Table.Th>
+                    <Table.Th>สถานะ</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {accessHistory.map((event) => (
+                    <Table.Tr key={event.id}>
+                      <Table.Td>
+                        <Stack gap={0}>
+                          <Text size="sm" fw={500}>
+                            {dayjs(event.scannedAt).format('D MMM YYYY')}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {dayjs(event.scannedAt).format('HH:mm:ss')} น.
+                          </Text>
+                        </Stack>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{event.gate?.nameTh || 'ไม่ระบุ'}</Text>
+                        <Text size="xs" c="dimmed">{event.gate?.nameEn || ''}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge 
+                          variant="light" 
+                          color={event.direction === 'IN' ? 'blue' : 'orange'}
+                        >
+                          {event.direction === 'IN' ? 'เข้า' : 'ออก'}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge 
+                          color={event.decision === 'ALLOWED' ? 'green' : 'red'}
+                        >
+                          {event.decision === 'ALLOWED' ? 'ผ่าน' : 'ปฏิเสธ'}
+                        </Badge>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+          ) : !historyLoading && (
+            <Stack align="center" py={60} gap="xs">
+              <IconClockHour4 size={40} color="var(--mantine-color-dimmed)" />
+              <Text c="dimmed">ไม่พบประวัติการเข้า-ออก</Text>
+            </Stack>
+          )}
+          
+          <Group justify="flex-end">
+            <Button variant="light" color="gray" onClick={closeHistory}>
+              ปิดหน้าต่าง
+            </Button>
+          </Group>
         </Stack>
       </Modal>
     </>

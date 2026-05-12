@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -41,11 +41,11 @@ import {
 import { ThaiIdCardReader, ThaiIdData } from '@/lib/idcard/reader';
 
 const PREFIX_MAP: Record<string, string> = {
-  'เธเธฒเธข': 'Mr.',
-  'เธเธฒเธ': 'Mrs.',
-  'เธเธฒเธเธชเธฒเธง': 'Ms.',
-  'เน€เธ”เนเธเธเธฒเธข': 'Master',
-  'เน€เธ”เนเธเธซเธเธดเธ': 'Miss',
+  'าย': 'Mr.',
+  'า': 'Mrs.',
+  'าสาว': 'Ms.',
+  'เดาย': 'Master',
+  'เดหิ': 'Miss',
 };
 
 export default function IdCardClient() {
@@ -117,7 +117,7 @@ export default function IdCardClient() {
     if (success) {
       setIsConnected(true);
     } else {
-      setError('เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เน€เธเธทเนเธญเธกเธ•เนเธญเธเธฑเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธเธฑเธ•เธฃเนเธ”เน เนเธเธฃเธ”เธ•เธฃเธงเธเธชเธญเธเธเธฒเธฃเน€เธเธทเนเธญเธกเธ•เนเธญ USB');
+      setError('มสามารถเือมตอัเรืออาัตรด รดตรวสอารเือมตอ USB');
     }
   };
 
@@ -139,15 +139,15 @@ export default function IdCardClient() {
             const currentYear = new Date().getFullYear();
             const yearCe = year > 2500 ? year - 543 : year;
             if (yearCe < currentYear) {
-              setError('โ ๏ธ เธเธณเน€เธ•เธทเธญเธ: เธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธเนเธเธเธตเนเธซเธกเธ”เธญเธฒเธขเธธเนเธฅเนเธง');
+              setError(' ำเตือ: ัตรระาีหมดอายุลว');
             }
           }
         }
       } else {
-        setError('เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธญเนเธฒเธเธเนเธญเธกเธนเธฅเธเธฒเธเธเธฑเธ•เธฃเนเธ”เน เนเธเธฃเธ”เน€เธชเธตเธขเธเธเธฑเธ•เธฃเนเธซเนเนเธเนเธ');
+        setError('มสามารถอาอมูลาัตรด รดเสียัตรห');
       }
     } catch (err) {
-      setError('เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”เธฃเธฐเธซเธงเนเธฒเธเธเธฒเธฃเธญเนเธฒเธเธเธฑเธ•เธฃ');
+      setError('เิดอิดลาดระหวาารอาัตร');
     } finally {
       setIsReading(false);
     }
@@ -176,21 +176,21 @@ export default function IdCardClient() {
     <Stack gap="lg">
       <Group justify="space-between" align="flex-end">
         <div>
-          <Title order={2}>เธฃเธฐเธเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ (Thai ID Card)</Title>
+          <Title order={2}>ระัตรระา (Thai ID Card)</Title>
           <Text size="sm" c="dimmed">
-            เธเธฑเธ”เธเธฒเธฃเนเธฅเธฐเธฅเธเธ—เธฐเน€เธเธตเธขเธเธชเธกเธฒเธเธดเธเธเนเธฒเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธ Smart Card
+            ัดารละลทะเียสมาิาเรืออา Smart Card
           </Text>
         </div>
         <Group gap="xs">
           {isConnected ? (
             <Group gap={8}>
               <div style={{width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--mantine-color-green-filled)', boxShadow: '0 0 8px var(--mantine-color-green-filled)'}} />
-              <Badge color="green" variant="light" size="lg">เน€เธเธทเนเธญเธกเธ•เนเธญเนเธฅเนเธง (เธเธฃเนเธญเธกเธญเนเธฒเธ)</Badge>
+              <Badge color="green" variant="light" size="lg">เือมตอลว (รอมอา)</Badge>
             </Group>
           ) : (
             <Group gap={8}>
               <div style={{width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--mantine-color-red-filled)'}} />
-              <Badge color="red" variant="light" size="lg">เธ•เธฑเธ”เธเธฒเธฃเน€เธเธทเนเธญเธกเธ•เนเธญเนเธฅเนเธง</Badge>
+              <Badge color="red" variant="light" size="lg">ตัดารเือมตอลว</Badge>
             </Group>
           )}
         </Group>
@@ -199,13 +199,13 @@ export default function IdCardClient() {
       <Tabs value={activeTab} onChange={setActiveTab} variant="pills" radius="md">
         <Tabs.List grow>
           <Tabs.Tab value="register" leftSection={<IconId size={18} />}>
-            เธญเนเธฒเธเธเนเธญเธกเธนเธฅเธเธฒเธเธเธฑเธ•เธฃ
+            อาอมูลาัตร
           </Tabs.Tab>
           <Tabs.Tab value="manual" leftSection={<IconUserPlus size={18} />}>
-            เธเธฃเธญเธเธเนเธญเธกเธนเธฅเน€เธญเธ
+            รออมูลเอ
           </Tabs.Tab>
           <Tabs.Tab value="settings" leftSection={<IconSettings size={18} />}>
-            เธ•เธฑเนเธเธเนเธฒเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธ
+            ตัาเรืออา
           </Tabs.Tab>
         </Tabs.List>
 
@@ -234,9 +234,9 @@ export default function IdCardClient() {
                         <IconDeviceUsb size={60} color="var(--color-sky)" />
                       </Box>
                       <Stack align="center" gap={4}>
-                        <Text fw={700} size="lg">เธเธฃเนเธญเธกเน€เธเธทเนเธญเธกเธ•เนเธญเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธ</Text>
+                        <Text fw={700} size="lg">รอมเือมตอเรืออา</Text>
                         <Text size="sm" c="dimmed" ta="center">
-                          เนเธเธฃเธ”เน€เธชเธตเธขเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธเธฑเธ•เธฃ Smart Card เนเธฅเธฐเธเธ”เธเธธเนเธกเน€เธเธทเนเธญเธกเธ•เนเธญ
+                          รดเสียเรืออาัตร Smart Card ละดุมเือมตอ
                         </Text>
                       </Stack>
                       <Button 
@@ -247,7 +247,7 @@ export default function IdCardClient() {
                         leftSection={<IconDeviceUsb size={18} />}
                         color="skyBlue"
                       >
-                        เน€เธเธทเนเธญเธกเธ•เนเธญ USB
+                        เือมตอ USB
                       </Button>
                       {process.env.NODE_ENV === 'development' && (
                         <Button
@@ -257,17 +257,17 @@ export default function IdCardClient() {
                           onClick={() => {
                             setCardData({
                               citizenId: '1-2345-67890-12-3',
-                              fullNameTh: 'เธเธฒเธข เธชเธกเธกเธ•เธด เธ—เธ”เธชเธญเธ',
+                              fullNameTh: 'าย สมมติ ทดสอ',
                               fullNameEn: 'Mr. Sommot Todsob',
                               birthDate: '15/04/1995',
-                              gender: 'เธเธฒเธข',
-                              address: '123/45 เธ–เธเธเธชเธกเธกเธ•เธด เนเธเธงเธเธ—เธ”เธชเธญเธ เน€เธเธ•เธเธณเธฅเธญเธ เธเธฃเธธเธเน€เธ—เธเธกเธซเธฒเธเธเธฃ 10000',
+                              gender: 'าย',
+                              address: '123/45 ถสมมติ วทดสอ เตำลอ รุเทมหาร 10000',
                               expireDate: '14/04/2030'
                             } as any);
                             setIsConnected(true);
                           }}
                         >
-                          [Dev] เธเธณเธฅเธญเธเธเนเธญเธกเธนเธฅเธเธฑเธ•เธฃ (Mock)
+                          [Dev] ำลออมูลัตร (Mock)
                         </Button>
                       )}
                     </>
@@ -306,20 +306,20 @@ export default function IdCardClient() {
                         size="sm"
                         leftSection={isConnected ? <IconCheck size={10} /> : null}
                       >
-                        {isConnected ? "เน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธเธฃเนเธญเธกเธ—เธณเธเธฒเธ" : "เธขเธฑเธเนเธกเนเนเธ”เนเน€เธเธทเนเธญเธกเธ•เนเธญ"}
+                        {isConnected ? "เรืออารอมทำา" : "ยัมดเือมตอ"}
                       </Badge>
                       <Stack align="center" gap={4}>
                         <Text fw={700} size="lg">
-                          {isReading ? 'เธเธณเธฅเธฑเธเธญเนเธฒเธเธเนเธญเธกเธนเธฅ...' : 'เน€เธชเธตเธขเธเธเธฑเธ•เธฃเน€เธเธทเนเธญเน€เธฃเธดเนเธกเธ•เนเธ'}
+                          {isReading ? 'ำลัอาอมูล...' : 'เสียัตรเือเริมต'}
                         </Text>
                         <Text size="sm" c="dimmed" ta="center">
-                          เธงเธฒเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธเธฅเธเนเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเนเธฅเธฐเธเธ”เธเธธเนเธกเธ”เนเธฒเธเธฅเนเธฒเธ
+                          วาัตรระาลเรืออาละดุมดาลา
                         </Text>
                       </Stack>
                       <Group grow w="100%">
                       <Stack gap={4} w="100%">
                         {isReading && (
-                          <Text size="xs" c="green" fw={500} ta="center">เธเธณเธฅเธฑเธเธชเธทเนเธญเธชเธฒเธฃเธเธฑเธเธชเธกเธฒเธฃเนเธ—เธเธฒเธฃเนเธ”...</Text>
+                          <Text size="xs" c="green" fw={500} ta="center">ำลัสือสารัสมารทารด...</Text>
                         )}
                         <Button 
                           size="lg" 
@@ -332,7 +332,7 @@ export default function IdCardClient() {
                           fullWidth
                           style={{ height: 54 }}
                         >
-                          เน€เธฃเธดเนเธกเธญเนเธฒเธเธเนเธญเธกเธนเธฅเธเธฑเธ•เธฃ
+                          เริมอาอมูลัตร
                         </Button>
                       </Stack>
                       </Group>
@@ -351,7 +351,7 @@ export default function IdCardClient() {
               <Card withBorder radius="md" p="xl" h="100%">
                 <Stack gap="md">
                   <Group justify="space-between">
-                    <Text fw={700}>เธเนเธญเธกเธนเธฅเธ—เธตเนเธญเนเธฒเธเนเธ”เน</Text>
+                    <Text fw={700}>อมูลทีอาด</Text>
                     {cardData && (
                       <Button 
                         size="md" 
@@ -361,7 +361,7 @@ export default function IdCardClient() {
                         onClick={handleRegister}
                         loading={isReading}
                       >
-                        เธฅเธเธ—เธฐเน€เธเธตเธขเธเธชเธกเธฒเธเธดเธ
+                        ลทะเียสมาิ
                       </Button>
                     )}
                   </Group>
@@ -387,7 +387,7 @@ export default function IdCardClient() {
                       <Grid gutter="xs">
                         <Grid.Col span={6}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                            <Text size="xs" c="dimmed">เธเธทเนเธญ-เธเธฒเธกเธชเธเธธเธฅ (TH)</Text>
+                            <Text size="xs" c="dimmed">ือ-ามสุล (TH)</Text>
                             <Text fw={600}>
                               {cardData?.fullNameTh || '-'}
                             </Text>
@@ -401,36 +401,36 @@ export default function IdCardClient() {
                         </Grid.Col>
                         <Grid.Col span={4}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                            <Text size="xs" c="dimmed">เธงเธฑเธเน€เธเธดเธ”</Text>
+                            <Text size="xs" c="dimmed">วัเิด</Text>
                             <Text fw={600}>{cardData?.birthDate || '-'}</Text>
                           </Paper>
                         </Grid.Col>
                         <Grid.Col span={4}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                            <Text size="xs" c="dimmed">เน€เธเธจ</Text>
+                            <Text size="xs" c="dimmed">เศ</Text>
                             <Text fw={600}>{cardData?.gender || '-'}</Text>
                           </Paper>
                         </Grid.Col>
                         <Grid.Col span={4}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                            <Text size="xs" c="dimmed">เธงเธฑเธเธซเธกเธ”เธญเธฒเธขเธธ</Text>
+                            <Text size="xs" c="dimmed">วัหมดอายุ</Text>
                             <Text fw={600} color="red">{cardData?.expireDate || '-'}</Text>
                           </Paper>
                         </Grid.Col>
                         <Grid.Col span={12}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
-                            <Text size="xs" c="dimmed">เธ—เธตเนเธญเธขเธนเน</Text>
+                            <Text size="xs" c="dimmed">ทีอยู</Text>
                             <Text size="sm">{cardData?.address || '-'}</Text>
                           </Paper>
                         </Grid.Col>
                       </Grid>
 
                       <Divider my="sm" />
-                          <Text fw={600} size="sm">เธเนเธญเธกเธนเธฅเน€เธเธดเนเธกเน€เธ•เธดเธกเธชเธณเธซเธฃเธฑเธเธเธฒเธฃเธ•เธดเธ”เธ•เนเธญ</Text>
+                          <Text fw={600} size="sm">อมูลเิมเติมสำหรัารติดตอ</Text>
                           <Grid gutter="xs">
                             <Grid.Col span={6}>
                               <TextInput 
-                                label="เน€เธเธญเธฃเนเนเธ—เธฃเธจเธฑเธเธ—เน" 
+                                label="เอรทรศัท" 
                                 placeholder="08X-XXX-XXXX" 
                                 value={additionalData.phone}
                                 onChange={(e) => {
@@ -446,7 +446,7 @@ export default function IdCardClient() {
                             </Grid.Col>
                             <Grid.Col span={6}>
                               <TextInput 
-                                label="เธญเธตเน€เธกเธฅ" 
+                                label="อีเมล" 
                                 placeholder="example@mail.com" 
                                 value={additionalData.email}
                                 onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
@@ -454,8 +454,8 @@ export default function IdCardClient() {
                             </Grid.Col>
                             <Grid.Col span={12}>
                               <TextInput 
-                                label="เธเธทเนเธญเธชเธ–เธฒเธเธฑเธเธเธฒเธฃเธจเธถเธเธฉเธฒ / เนเธฃเธเน€เธฃเธตเธขเธ" 
-                                placeholder="เธเธฃเธญเธเธเธทเนเธญเธชเธ–เธฒเธเธฑเธเธเธฒเธฃเธจเธถเธเธฉเธฒ..." 
+                                label="ือสถาัารศึษา / รเรีย" 
+                                placeholder="รอือสถาัารศึษา..." 
                                 value={additionalData.school}
                                 onChange={(e) => setAdditionalData({...additionalData, school: e.target.value})}
                               />
@@ -466,7 +466,7 @@ export default function IdCardClient() {
                     <Center h={300}>
                       <Stack align="center" gap="xs">
                         <IconId size={48} color="rgba(255,255,255,0.1)" />
-                        <Text c="dimmed" size="sm">เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅ เนเธเธฃเธ”เธ—เธณเธเธฒเธฃเธญเนเธฒเธเธเธฑเธ•เธฃ</Text>
+                        <Text c="dimmed" size="sm">ยัมมีอมูล รดทำารอาัตร</Text>
                       </Stack>
                     </Center>
                   )}
@@ -484,7 +484,7 @@ export default function IdCardClient() {
           <Card withBorder radius="md" p="xl">
             <Stack gap="md">
               <Group justify="space-between">
-                <Text fw={700}>เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธฅเธเธ—เธฐเน€เธเธตเธขเธเธ”เนเธงเธขเธ•เธเน€เธญเธ</Text>
+                <Text fw={700}>รออมูลลทะเียดวยตเอ</Text>
                 <Button 
                   size="md" 
                   variant="filled" 
@@ -493,13 +493,13 @@ export default function IdCardClient() {
                   onClick={handleRegister}
                   loading={isReading}
                 >
-                  เธฅเธเธ—เธฐเน€เธเธตเธขเธเธชเธกเธฒเธเธดเธ
+                  ลทะเียสมาิ
                 </Button>
               </Group>
               <Divider />
 
               <TextInput 
-                label="เน€เธฅเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ" 
+                label="เลัตรระา" 
                 placeholder="x-xxxx-xxxxx-xx-x" 
                 value={manualData.citizenId}
                 onChange={(e) => {
@@ -517,9 +517,9 @@ export default function IdCardClient() {
 
               <Group grow>
                 <Select
-                  label="เธเธณเธเธณเธซเธเนเธฒ (TH)"
-                  placeholder="เน€เธฅเธทเธญเธ"
-                  data={['เธเธฒเธข', 'เธเธฒเธ', 'เธเธฒเธเธชเธฒเธง', 'เน€เธ”เนเธเธเธฒเธข', 'เน€เธ”เนเธเธซเธเธดเธ']}
+                  label="ำำหา (TH)"
+                  placeholder="เลือ"
+                  data={['าย', 'า', 'าสาว', 'เดาย', 'เดหิ']}
                   style={{ flex: '0 0 120px' }}
                   value={manualData.prefixTh}
                   onChange={(val) => {
@@ -532,14 +532,14 @@ export default function IdCardClient() {
                   }}
                 />
                 <TextInput 
-                  label="เธเธทเนเธญ (เธ เธฒเธฉเธฒเนเธ—เธข)" 
-                  placeholder="เธเธทเนเธญ" 
+                  label="ือ (ภาษาทย)" 
+                  placeholder="ือ" 
                   value={manualData.firstNameTh}
                   onChange={(e) => setManualData({...manualData, firstNameTh: e.target.value})}
                 />
                 <TextInput 
-                  label="เธเธฒเธกเธชเธเธธเธฅ (เธ เธฒเธฉเธฒเนเธ—เธข)" 
-                  placeholder="เธเธฒเธกเธชเธเธธเธฅ" 
+                  label="ามสุล (ภาษาทย)" 
+                  placeholder="ามสุล" 
                   value={manualData.lastNameTh}
                   onChange={(e) => setManualData({...manualData, lastNameTh: e.target.value})}
                 />
@@ -555,13 +555,13 @@ export default function IdCardClient() {
                   onChange={(val) => setManualData({ ...manualData, prefixEn: val || '' })}
                 />
                 <TextInput 
-                  label="เธเธทเนเธญ (English)" 
+                  label="ือ (English)" 
                   placeholder="First Name" 
                   value={manualData.firstNameEn}
                   onChange={(e) => setManualData({...manualData, firstNameEn: e.target.value})}
                 />
                 <TextInput 
-                  label="เธเธฒเธกเธชเธเธธเธฅ (English)" 
+                  label="ามสุล (English)" 
                   placeholder="Last Name" 
                   value={manualData.lastNameEn}
                   onChange={(e) => setManualData({...manualData, lastNameEn: e.target.value})}
@@ -570,8 +570,8 @@ export default function IdCardClient() {
 
               <Group grow>
                 <TextInput 
-                  label="เธงเธฑเธเน€เธเธดเธ” (เธฃเธฐเธเธธเน€เธเนเธ เธ.เธจ.)" 
-                  placeholder="เน€เธเนเธ 15/04/2538" 
+                  label="วัเิด (ระุเ .ศ.)" 
+                  placeholder="เ 15/04/2538" 
                   value={manualData.birthDate}
                   onChange={(e) => {
                     const raw = e.target.value.replace(/\//g, '');
@@ -584,27 +584,27 @@ export default function IdCardClient() {
                   maxLength={10}
                 />
                 <Select
-                  label="เน€เธเธจ"
-                  placeholder="เน€เธฅเธทเธญเธ"
-                  data={['เธเธฒเธข', 'เธซเธเธดเธ']}
+                  label="เศ"
+                  placeholder="เลือ"
+                  data={['าย', 'หิ']}
                   value={manualData.gender}
                   onChange={(val) => setManualData({...manualData, gender: val || ''})}
                 />
               </Group>
 
               <TextInput 
-                label="เธ—เธตเนเธญเธขเธนเน" 
-                placeholder="เธเนเธฒเธเน€เธฅเธเธ—เธตเน เธซเธกเธนเน เธเธญเธข เธ–เธเธ เนเธเธงเธ เน€เธเธ• เธเธฑเธเธซเธงเธฑเธ” เธฃเธซเธฑเธชเนเธเธฃเธฉเธ“เธตเธขเน" 
+                label="ทีอยู" 
+                placeholder="าเลที หมู อย ถ ว เต ัหวัด รหัสรษณีย" 
                 value={manualData.address}
                 onChange={(e) => setManualData({...manualData, address: e.target.value})}
               />
 
               <Divider my="sm" />
-              <Text fw={600} size="sm">เธเนเธญเธกเธนเธฅเน€เธเธดเนเธกเน€เธ•เธดเธกเธชเธณเธซเธฃเธฑเธเธเธฒเธฃเธ•เธดเธ”เธ•เนเธญ</Text>
+              <Text fw={600} size="sm">อมูลเิมเติมสำหรัารติดตอ</Text>
               
               <Group grow>
                 <TextInput 
-                  label="เน€เธเธญเธฃเนเนเธ—เธฃเธจเธฑเธเธ—เน" 
+                  label="เอรทรศัท" 
                   placeholder="08X-XXX-XXXX" 
                   value={additionalData.phone}
                   onChange={(e) => {
@@ -618,7 +618,7 @@ export default function IdCardClient() {
                   maxLength={12}
                 />
                 <TextInput 
-                  label="เธญเธตเน€เธกเธฅ" 
+                  label="อีเมล" 
                   placeholder="example@mail.com" 
                   value={additionalData.email}
                   onChange={(e) => setAdditionalData({...additionalData, email: e.target.value})}
@@ -626,8 +626,8 @@ export default function IdCardClient() {
               </Group>
 
               <TextInput 
-                label="เธเธทเนเธญเธชเธ–เธฒเธเธฑเธเธเธฒเธฃเธจเธถเธเธฉเธฒ / เนเธฃเธเน€เธฃเธตเธขเธ" 
-                placeholder="เธเธฃเธญเธเธเธทเนเธญเธชเธ–เธฒเธเธฑเธเธเธฒเธฃเธจเธถเธเธฉเธฒ..." 
+                label="ือสถาัารศึษา / รเรีย" 
+                placeholder="รอือสถาัารศึษา..." 
                 value={additionalData.school}
                 onChange={(e) => setAdditionalData({...additionalData, school: e.target.value})}
               />
@@ -643,20 +643,20 @@ export default function IdCardClient() {
             <Stack gap="md">
               <Group>
                 <IconSettings size={20} color="var(--color-sky)" />
-                <Text fw={700}>เธเธฒเธฃเธ•เธฑเนเธเธเนเธฒเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธเธฑเธ•เธฃ (Web USB)</Text>
+                <Text fw={700}>ารตัาเรืออาัตร (Web USB)</Text>
               </Group>
               <Divider />
               
               <Text size="sm">
-                เธฃเธฐเธเธเนเธเน Web USB API เน€เธเธทเนเธญเธชเธทเนเธญเธชเธฒเธฃเธเธฑเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธเธฑเธ•เธฃเนเธ”เธขเธ•เธฃเธเธเนเธฒเธเน€เธเธฃเธฒเธงเนเน€เธเธญเธฃเน 
-                เนเธ”เธขเนเธกเนเธเธณเน€เธเนเธเธ•เนเธญเธเธ•เธดเธ”เธ•เธฑเนเธ Driver เน€เธเธดเนเธกเน€เธ•เธดเธก (เน€เธเธเธฒเธฐเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธ—เธตเนเธฃเธญเธเธฃเธฑเธเธกเธฒเธ•เธฃเธเธฒเธ CCID)
+                ระ Web USB API เือสือสารัเรืออาัตรดยตราเราวเอร 
+                ดยมำเตอติดตั Driver เิมเติม (เาะเรืออาทีรอรัมาตรา CCID)
               </Text>
 
               <Grid gutter="md">
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <Paper withBorder p="md" radius="md">
                     <Stack gap="xs">
-                      <Text fw={600} size="sm">Vendor IDs เธ—เธตเนเธฃเธญเธเธฃเธฑเธ</Text>
+                      <Text fw={600} size="sm">Vendor IDs ทีรอรั</Text>
                       <Group gap="xs">
                         <Badge variant="outline">0x072F (ACS)</Badge>
                         <Badge variant="outline">0x04E6 (SCM)</Badge>
@@ -664,7 +664,7 @@ export default function IdCardClient() {
                         <Badge variant="outline">0x08E6 (Gemalto)</Badge>
                       </Group>
                       <Text size="xs" c="dimmed" mt="xs">
-                        เธเธธเธ“เธชเธฒเธกเธฒเธฃเธ–เน€เธเธดเนเธก Vendor ID เน€เธเธดเนเธกเน€เธ•เธดเธกเนเธ”เนเนเธเนเธเธฅเน `src/lib/idcard/reader.ts`
+                        ุณสามารถเิม Vendor ID เิมเติมดล `src/lib/idcard/reader.ts`
                       </Text>
                     </Stack>
                   </Paper>
@@ -672,7 +672,7 @@ export default function IdCardClient() {
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <Paper withBorder p="md" radius="md">
                     <Stack gap="xs">
-                      <Text fw={600} size="sm">เธชเธ–เธฒเธเธฐเธฃเธฐเธเธ</Text>
+                      <Text fw={600} size="sm">สถาะระ</Text>
                       <Group justify="space-between">
                         <Text size="xs">Web USB Support</Text>
                         <Badge color="green">Supported</Badge>
@@ -723,16 +723,16 @@ export default function IdCardClient() {
       <Modal
         opened={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
-        title={<Text fw={700}>เธฃเธฑเธ E-Ticket เน€เธเนเธฒเธกเธทเธญเธ–เธทเธญ</Text>}
+        title={<Text fw={700}>รั E-Ticket เามือถือ</Text>}
         centered
         size="md"
         radius="lg"
       >
         <Stack align="center" py="xl" gap="xl">
           <Stack align="center" gap={4}>
-            <Text fw={800} size="xl" c="skyBlue">เธชเนเธเธเน€เธเธทเนเธญเธฃเธฑเธเธ•เธฑเนเธง</Text>
+            <Text fw={800} size="xl" c="skyBlue">สเือรัตัว</Text>
             <Text size="sm" c="dimmed" ta="center">
-              เนเธเนเธเธฅเนเธญเธเนเธ—เธฃเธจเธฑเธเธ—เนเธกเธทเธญเธ–เธทเธญเธชเนเธเธ QR Code เธ”เนเธฒเธเธฅเนเธฒเธ<br/>เน€เธเธทเนเธญเธฃเธฑเธ E-Ticket เธฅเธเนเธเน€เธเธฃเธทเนเธญเธเธเธญเธเธเธธเธ“
+              ลอทรศัทมือถือส QR Code ดาลา<br/>เือรั E-Ticket ลเรืออุณ
             </Text>
           </Stack>
 
@@ -763,13 +763,13 @@ export default function IdCardClient() {
                 : cardData?.fullNameTh}
             </Text>
             <Text size="sm" c="dimmed">
-              เน€เธฅเธเธเธฑเธ•เธฃ: {activeTab === 'manual' ? manualData.citizenId : cardData?.citizenId}
+              เลัตร: {activeTab === 'manual' ? manualData.citizenId : cardData?.citizenId}
             </Text>
           </Stack>
 
           <Group grow w="100%">
             <Button size="md" variant="light" color="gray" onClick={() => setShowSuccessModal(false)}>
-              เธเธดเธ”เธซเธเนเธฒเธ•เนเธฒเธ
+              ิดหาตา
             </Button>
             {ticketUrl && (
               <Button 
@@ -779,7 +779,7 @@ export default function IdCardClient() {
                 href={ticketUrl} 
                 target="_blank"
               >
-                เธ—เธ”เธชเธญเธเน€เธเธดเธ”เธ•เธฑเนเธง
+                ทดสอเิดตัว
               </Button>
             )}
           </Group>

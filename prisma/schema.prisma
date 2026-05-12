@@ -19,6 +19,7 @@ enum UserRole {
   LIBRARIAN
   STAFF
   SECURITY
+  GATE_OFFICER
   VIEWER
 }
 
@@ -133,6 +134,7 @@ model Gate {
   branchId  String        @map("branch_id") 
   direction GateDirection @default(BIDIRECTIONAL)
   status    GateStatus    @default(ACTIVE)
+  isOpen    Boolean       @default(false) @map("is_open")
   metadata  Json?
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")

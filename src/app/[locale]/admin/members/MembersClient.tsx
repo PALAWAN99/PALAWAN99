@@ -12,6 +12,7 @@ import { MemberFilters } from './_components/MemberFilters';
 import { MemberTable } from './_components/MemberTable';
 import { MemberFormModal } from './_components/MemberFormModal';
 import { MemberRenewModal } from './_components/MemberRenewModal';
+import { MemberHistoryModal } from './_components/MemberHistoryModal';
 
 export default function MembersClient({ initialMembers }: { initialMembers: Member[] }) {
   const t = useTranslations();
@@ -20,7 +21,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
     page, setPage, total, totalPages,
     initialFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
-    handleDelete, clearFilters
+    handleDelete, clearFilters,
+    historyOpened, closeHistory, historyLoading, accessHistory, selectedMember, handleOpenHistory
   } = useMemberManagement(initialMembers);
 
   const hasFilter = !!(search || filterType || filterStatus);
@@ -91,6 +93,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           />
           <MemberTable 
             members={filtered} onEdit={handleOpenEdit} onRenew={handleOpenRenew} 
+            onOpenHistory={handleOpenHistory}
             onDelete={handleDelete} onClearFilters={clearFilters} hasFilter={hasFilter} t={t} 
             page={page} totalPages={totalPages} onPageChange={setPage}
           />
@@ -114,6 +117,14 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         onDateChange={setRenewDate}
         loading={renewLoading}
         onConfirm={handleRenew}
+      />
+
+      <MemberHistoryModal
+        opened={historyOpened}
+        onClose={closeHistory}
+        loading={historyLoading}
+        history={accessHistory}
+        member={selectedMember}
       />
     </Stack>
   );

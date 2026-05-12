@@ -3,35 +3,23 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
-  Container,
-  Paper,
-  Title,
-  Text,
-  TextInput,
-  Button,
-  Group,
-  Stack,
-  Card,
-  Badge,
-  Avatar,
-  Box,
-  SimpleGrid,
-  Center,
-  Loader,
+  Container, Grid, Paper, Text, Title, Group, Badge, Table, ScrollArea, ActionIcon, Stack, Card, RingProgress, ThemeIcon, Box, SimpleGrid, Center, Button, TextInput, Avatar
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import {
-  IconScan,
-  IconCheck,
-  IconX,
-  IconDoorEnter,
-  IconDoorExit,
+  IconDoorEnter, IconDoorExit, IconAlertCircle, IconCheck, IconX, IconRefresh, IconActivity, IconLock, IconLockOpen, IconWalk, IconScan
 } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
 
-interface GateInfo {
+interface AccessEvent {
   id: string;
-  nameTh: string;
-  gateCode: string;
+  member: {
+    firstNameTh: string;
+    lastNameTh: string;
+    memberNo: string;
+  };
+  direction: 'IN' | 'OUT';
+  decision: 'ALLOWED' | 'DENIED';
+  scannedAt: string;
 }
 
 interface ScanResult {
@@ -46,159 +34,332 @@ interface ScanResult {
 
 export default function GateDashboard() {
   const t = useTranslations();
+  
+  // Dev1 states (QR Scanner)
   const [token, setToken] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [gateInfo, setGateInfo] = useState<GateInfo | null>(null);
   const [direction, setDirection] = useState<'IN' | 'OUT'>('IN');
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanning, setScanning] = useState(false);
 
-  // จำลองว่าเราเลือกประตูไว้แล้ว (ในระบบจริงอาจจะดึงจาก Config หรือ Session)
+  // Dev2 states (Dashboard)
+  const [events, setEvents] = useState<AccessEvent[]>([]);
+  const [stats, setStats] = useState({ todayIn: 0, todayOut: 0, denied: 0 });
+  const [gateInfo, setGateInfo] = useState<{ id?: string; name: string; branch: string; gateCode: string; isOpen?: boolean; isOnline?: boolean }>({ name: 'Loading...', branch: '...', gateCode: '' });
+
+  // 1. Fetch first gate info (Dev1 logic)
   useEffect(() => {
-    // ดึงประตูแรกในระบบมาทดสอบก่อน
     fetch('/api/admin/gates')
       .then(res => res.json())
       .then(data => {
-        if (data && data.length > 0) setGateInfo(data[0]);
+        if (data?.data && data.data.length > 0) {
+           setGateInfo(prev => ({ ...prev, id: data.data[0].id, gateCode: data.data[0].gateCode }));
+        } else if (data && data.length > 0) {
+           setGateInfo(prev => ({ ...prev, id: data[0].id, gateCode: data[0].gateCode }));
+        }
       });
   }, []);
 
-  const handleScan = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!token || !gateInfo) return;
-
-    setLoading(true);
-    setResult(null);
-
+  // 2. Fetch Dashboard stats periodically (Dev2 logic)
+  const fetchDashboard = async () => {
+    if (!gateInfo.gateCode) return;
     try {
-      const res = await fetch('/api/gate/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          gateId: gateInfo.id,
-          direction
-        }),
-      });
-
-      const data = await res.json();
-      setResult(data);
-
-      if (data.isValid) {
-        // เล่นเสียงแจ้งเตือนสำเร็จ (ถ้าต้องการ)
-        setToken(''); // Clear token for next scan
+      const response = await fetch(`/api/gate/dashboard?gateCode=${gateInfo.gateCode}`);
+      if (!response.ok) return;
+      const json = await response.json();
+      if (json.data) {
+        setEvents(json.data.recentEvents || []);
+        setStats(json.data.stats || { todayIn: 0, todayOut: 0, denied: 0 });
+        setGateInfo(prev => ({ ...prev, ...json.data.gate }));
       }
-    } catch {
-      notifications.show({
-        title: 'Error',
-        message: t('Common.error'),
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Fetch Error:', error);
     }
   };
 
-  if (!gateInfo) {
-    return <Center h="100vh"><Loader /></Center>;
-  }
+  useEffect(() => {
+    if (!gateInfo.gateCode) return;
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 3000);
+    return () => clearInterval(interval);
+  }, [gateInfo.gateCode]);
+
+  // Dev1 logic: QR Scan
+  const handleScan = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!token || !gateInfo.id) return;
+
+    setScanning(true);
+    setScanResult(null);
+
+    try {
+      const res = await fetch('/api/qr/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, gateId: gateInfo.id, direction, deviceCode: 'SCANNER-01' }),
+      });
+
+      const data = await res.json();
+      const isValid = data.data?.decision === 'ALLOWED' || data.decision === 'ALLOWED';
+      
+      setScanResult({
+         isValid,
+         message: data.message || data.data?.message || 'Processed',
+         member: data.data?.member
+      });
+
+      if (isValid) {
+        setToken(''); // Clear token for next scan
+      }
+      fetchDashboard(); // Refresh instantly
+    } catch (error) {
+      notifications.show({ title: 'Error', message: t('Common.error'), color: 'red' });
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  // Dev2 logic: Manual Gate Control
+  const handleControl = async (action: 'OPEN' | 'CLOSE') => {
+    if (!gateInfo.id) return;
+    try {
+      const response = await fetch('/api/gate/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gateId: gateInfo.id, action }),
+      });
+      if (response.ok) {
+        notifications.show({
+          title: 'Success',
+          message: `Gate ${action === 'OPEN' ? 'opened' : 'closed'} manually`,
+          color: action === 'OPEN' ? 'blue' : 'red',
+        });
+        fetchDashboard();
+      }
+    } catch (error) {
+      console.error('Control Error:', error);
+    }
+  };
+
+  // Dev2 logic: Sensor Simulate
+  const handleSimulatePass = async () => {
+    if (!gateInfo.id) return;
+    try {
+      const response = await fetch('/api/gate/sensor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gateId: gateInfo.id }),
+      });
+      if (response.ok) {
+        notifications.show({
+          title: 'Sensor Triggered',
+          message: 'Person passed through, gate closing...',
+          color: 'gray',
+          icon: <IconWalk size={16} />,
+        });
+        fetchDashboard();
+      }
+    } catch (error) {
+      console.error('Sensor Error:', error);
+    }
+  };
 
   return (
-    <Container size="md" py="xl">
-      <Stack gap="xl">
-        {/* Header ประตู */}
-        <Paper p="md" radius="md" withBorder shadow="sm" style={{ backgroundColor: '#1E293B' }}>
+    <Box style={{ background: '#f8f9fa', minHeight: '100vh', padding: '24px' }}>
+      <Container size="xl">
+        <Stack gap="lg">
+          {/* Header */}
           <Group justify="space-between">
-            <Stack gap={0}>
-              <Title order={3} c="white">{gateInfo.nameTh}</Title>
-              <Text size="sm" c="dimmed">Gate Code: {gateInfo.gateCode}</Text>
-            </Stack>
+            <div>
+              <Title order={2} c="blue.9">Gate Operational Dashboard</Title>
+              <Text c="dimmed" size="sm">Gate: {gateInfo.name} · Branch: {gateInfo.branch}</Text>
+            </div>
             <Group>
-              <Button 
-                variant={direction === 'IN' ? 'filled' : 'light'} 
-                color="teal" 
-                onClick={() => setDirection('IN')}
-                leftSection={<IconDoorEnter size={18} />}
-              >
-                {t('Gate.in')}
-              </Button>
-              <Button 
-                variant={direction === 'OUT' ? 'filled' : 'light'} 
-                color="orange" 
-                onClick={() => setDirection('OUT')}
-                leftSection={<IconDoorExit size={18} />}
-              >
-                {t('Gate.out')}
-              </Button>
+              <Badge size="lg" color={gateInfo.isOnline ? "green" : "gray"} variant="light" leftSection={<IconActivity size={14} />}>
+                {gateInfo.isOnline ? "System Online" : "System Offline"}
+              </Badge>
+              <ActionIcon variant="light" size="lg" onClick={fetchDashboard}>
+                <IconRefresh size={20} />
+              </ActionIcon>
             </Group>
           </Group>
-        </Paper>
 
-        {/* ช่องสแกน */}
-        <Paper p="xl" radius="lg" withBorder shadow="md">
-          <form onSubmit={handleScan}>
-            <Stack gap="md">
-              <Title order={4} ta="center" mb="xs">{t('Gate.scanPrompt')}</Title>
-              <TextInput
-                size="xl"
-                placeholder={t('Gate.scanPlaceholder')}
-                leftSection={<IconScan size={24} />}
-                value={token}
-                onChange={(e) => setToken(e.currentTarget.value)}
-                autoFocus
-                styles={{ input: { textAlign: 'center', fontSize: '24px', letterSpacing: '2px' } }}
-              />
-              <Button size="lg" fullWidth type="submit" loading={loading} color="skyBlue">
-                {t('Gate.validate')}
-              </Button>
-            </Stack>
-          </form>
-        </Paper>
+          {/* Stats Cards */}
+          <SimpleGrid cols={{ base: 1, sm: 3 }}>
+            <Paper p="md" withBorder radius="md">
+              <Group>
+                <ThemeIcon size={48} radius="md" color="teal" variant="light"><IconDoorEnter size={30} /></ThemeIcon>
+                <div>
+                  <Text size="xs" c="dimmed" fw={700} tt="uppercase">Entry Today</Text>
+                  <Text fw={700} size="xl">{stats.todayIn}</Text>
+                </div>
+              </Group>
+            </Paper>
 
-        {/* ผลลัพธ์ */}
-        {result && (
-          <Card 
-            withBorder 
-            radius="lg" 
-            p="xl" 
-            style={{ 
-              borderColor: result.isValid ? '#22C55E' : '#EF4444',
-              backgroundColor: result.isValid ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)'
-            }}
-          >
-            <Group justify="center" mb="md">
-              <Avatar 
-                size={120} 
-                radius={100} 
-                color={result.isValid ? 'green' : 'red'}
-              >
-                {result.isValid ? <IconCheck size={64} /> : <IconX size={64} />}
-              </Avatar>
-            </Group>
+            <Paper p="md" withBorder radius="md">
+              <Group>
+                <ThemeIcon size={48} radius="md" color="blue" variant="light"><IconDoorExit size={30} /></ThemeIcon>
+                <div>
+                  <Text size="xs" c="dimmed" fw={700} tt="uppercase">Exit Today</Text>
+                  <Text fw={700} size="xl">{stats.todayOut}</Text>
+                </div>
+              </Group>
+            </Paper>
 
-            <Stack align="center" gap="xs">
-              <Title order={1} c={result.isValid ? 'green.7' : 'red.7'}>
-                {result.isValid ? t('Gate.allowed') : t('Gate.denied')}
-              </Title>
-              <Text size="lg" fw={600}>{result.message}</Text>
-            </Stack>
+            <Paper p="md" withBorder radius="md">
+              <Group>
+                <ThemeIcon size={48} radius="md" color="red" variant="light"><IconAlertCircle size={30} /></ThemeIcon>
+                <div>
+                  <Text size="xs" c="dimmed" fw={700} tt="uppercase">Access Denied</Text>
+                  <Text fw={700} size="xl">{stats.denied}</Text>
+                </div>
+              </Group>
+            </Paper>
+          </SimpleGrid>
 
-            {result.member && (
-              <Box mt="xl" p="md" style={{ borderTop: '1px solid #E2E8F0' }}>
-                <SimpleGrid cols={2}>
-                  <Stack gap={0}>
-                    <Text size="xs" c="dimmed">{t('Member.name')}</Text>
-                    <Text fw={700}>{result.member.firstNameTh} {result.member.lastNameTh}</Text>
+          {/* Main Content */}
+          <Grid>
+            <Grid.Col span={{ base: 12, md: 8 }}>
+              <Stack gap="lg">
+                {/* QR Scanner (from Dev1) */}
+                <Paper p="xl" radius="md" withBorder shadow="sm">
+                  <form onSubmit={handleScan}>
+                    <Stack gap="md">
+                      <Group justify="space-between">
+                        <Title order={4}>{t('Gate.scanPrompt')}</Title>
+                        <Group>
+                          <Button variant={direction === 'IN' ? 'filled' : 'light'} color="teal" onClick={() => setDirection('IN')} size="xs">IN</Button>
+                          <Button variant={direction === 'OUT' ? 'filled' : 'light'} color="orange" onClick={() => setDirection('OUT')} size="xs">OUT</Button>
+                        </Group>
+                      </Group>
+                      <TextInput
+                        size="xl"
+                        placeholder={t('Gate.scanPlaceholder')}
+                        leftSection={<IconScan size={24} />}
+                        value={token}
+                        onChange={(e) => setToken(e.currentTarget.value)}
+                        autoFocus
+                        styles={{ input: { textAlign: 'center', fontSize: '24px', letterSpacing: '2px' } }}
+                      />
+                      <Button size="lg" fullWidth type="submit" loading={scanning} color="skyBlue">
+                        {t('Gate.validate')}
+                      </Button>
+                    </Stack>
+                  </form>
+                  {scanResult && (
+                    <Box mt="md" p="sm" style={{ background: scanResult.isValid ? '#dcfce7' : '#fee2e2', borderRadius: '8px' }}>
+                       <Group justify="center">
+                         {scanResult.isValid ? <IconCheck color="green" /> : <IconX color="red" />}
+                         <Text fw={700} c={scanResult.isValid ? "green.9" : "red.9"}>{scanResult.message}</Text>
+                       </Group>
+                    </Box>
+                  )}
+                </Paper>
+
+                {/* Recent Scans (from Dev2) */}
+                <Paper p="md" withBorder radius="md">
+                  <Title order={4} mb="md">Recent Scans</Title>
+                  <ScrollArea h={300}>
+                    <Table verticalSpacing="sm">
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Time</Table.Th>
+                          <Table.Th>Member</Table.Th>
+                          <Table.Th>Direction</Table.Th>
+                          <Table.Th>Status</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {events.map((event) => (
+                          <Table.Tr key={event.id}>
+                            <Table.Td>
+                              <Text size="sm">{new Date(event.scannedAt).toLocaleTimeString()}</Text>
+                            </Table.Td>
+                            <Table.Td>
+                              <Text fw={500} size="sm">{event.member?.firstNameTh} {event.member?.lastNameTh}</Text>
+                              <Text size="xs" c="dimmed">{event.member?.memberNo || '-'}</Text>
+                            </Table.Td>
+                            <Table.Td>
+                              <Badge variant="dot" color={event.direction === 'IN' ? 'teal' : 'blue'}>
+                                {event.direction}
+                              </Badge>
+                            </Table.Td>
+                            <Table.Td>
+                              {event.decision === 'ALLOWED' ? (
+                                <Group gap={4} c="green"><IconCheck size={16} /><Text size="sm" fw={500}>PASS</Text></Group>
+                              ) : (
+                                <Group gap={4} c="red"><IconX size={16} /><Text size="sm" fw={500}>DENIED</Text></Group>
+                              )}
+                            </Table.Td>
+                          </Table.Tr>
+                        ))}
+                      </Table.Tbody>
+                    </Table>
+                  </ScrollArea>
+                </Paper>
+              </Stack>
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Stack>
+                {/* Status Card (from Dev2) */}
+                <Card withBorder radius="md" p="xl">
+                  <Text fw={700} size="lg" mb="md">Current Status</Text>
+                  <Center>
+                    <RingProgress
+                      size={180}
+                      thickness={16}
+                      roundCaps
+                      sections={[{ value: 100, color: gateInfo.isOpen ? 'blue' : 'green' }]}
+                      label={
+                        <Center>
+                          {gateInfo.isOpen ? (
+                            <IconLockOpen size={40} color="var(--mantine-color-blue-filled)" />
+                          ) : (
+                            <IconCheck size={40} color="var(--mantine-color-green-filled)" />
+                          )}
+                        </Center>
+                      }
+                    />
+                  </Center>
+                  <Text ta="center" fw={700} size="xl" mt="md" c={gateInfo.isOpen ? 'blue' : 'green'}>
+                    {gateInfo.isOpen ? 'GATE OPEN' : 'GATE SECURE'}
+                  </Text>
+                  <Text ta="center" size="sm" c="dimmed">
+                    {gateInfo.isOpen ? 'Gate is currently open for passage' : 'All scanners working normally'}
+                  </Text>
+                </Card>
+
+                {/* Manual Control (from Dev2) */}
+                <Paper withBorder p="md" radius="md">
+                  <Title order={5} mb="sm">Manual Control</Title>
+                  <Stack gap="xs">
+                    {gateInfo.isOpen ? (
+                      <Button fullWidth variant="filled" color="red" leftSection={<IconLock size={16} />} onClick={() => handleControl('CLOSE')}>
+                        Close Gate
+                      </Button>
+                    ) : (
+                      <Button fullWidth variant="filled" color="blue" leftSection={<IconLockOpen size={16} />} onClick={() => handleControl('OPEN')}>
+                        Open Gate (Manual)
+                      </Button>
+                    )}
+                    
+                    <Button 
+                      fullWidth 
+                      variant="light" 
+                      color="gray" 
+                      leftSection={<IconWalk size={16} />} 
+                      disabled={!gateInfo.isOpen}
+                      onClick={handleSimulatePass}
+                    >
+                      Simulate Person Passing
+                    </Button>
                   </Stack>
-                  <Stack gap={0}>
-                    <Text size="xs" c="dimmed">{t('Member.type')}</Text>
-                    <Badge>{result.member.memberType}</Badge>
-                  </Stack>
-                </SimpleGrid>
-              </Box>
-            )}
-          </Card>
-        )}
-      </Stack>
-    </Container>
+                </Paper>
+              </Stack>
+            </Grid.Col>
+          </Grid>
+        </Stack>
+      </Container>
+    </Box>
   );
 }

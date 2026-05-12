@@ -1,5 +1,6 @@
-import { Modal, Stack, Button, Group, TextInput, Select, Text, Grid } from '@mantine/core';
-import { useForm, zodResolver } from '@mantine/form';
+import { Modal, Stack, Button, Group, TextInput, Select, Text, Grid, Divider } from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { zodResolver } from 'mantine-form-zod-resolver';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconId, IconDeviceFloppy, IconX } from '@tabler/icons-react';
 import { useEffect } from 'react';
@@ -122,14 +123,18 @@ export function MemberFormModal({
       <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack gap="md">
           {!isEdit && (
-            <Button 
-              variant="light" 
-              leftSection={<IconId size={18} />} 
-              onClick={handleReadIdCard}
-              fullWidth
-            >
-              ดึงข้อมูลจากบัตรประชาชน
-            </Button>
+            <>
+              <Button 
+                variant="light" 
+                color="blue"
+                leftSection={<IconId size={18} />} 
+                onClick={handleReadIdCard}
+                fullWidth
+              >
+                อ่านข้อมูลจากบัตรประชาชน (Web USB)
+              </Button>
+              <Divider label="หรือกรอกข้อมูลด้วยตนเอง" labelPosition="center" />
+            </>
           )}
 
           <Grid gutter="md">

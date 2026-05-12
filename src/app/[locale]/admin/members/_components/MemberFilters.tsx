@@ -1,4 +1,4 @@
-import { Group, TextInput, ActionIcon, Select, Button, Text } from '@mantine/core';
+import { Group, TextInput, ActionIcon, Select, Button, Text, Stack, Box } from '@mantine/core';
 import { IconSearch, IconX } from '@tabler/icons-react';
 
 interface MemberFiltersProps {
