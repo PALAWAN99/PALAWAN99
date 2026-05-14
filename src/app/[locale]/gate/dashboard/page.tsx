@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
-  Container, Grid, Paper, Text, Title, Group, Badge, Table, ScrollArea, ActionIcon, Stack, Card, RingProgress, ThemeIcon, Box, SimpleGrid, Center, Button, TextInput, Avatar
+  Container, Grid, Paper, Text, Title, Group, Badge, Table, ScrollArea, ActionIcon, Stack, Card, RingProgress, ThemeIcon, Box, SimpleGrid, Center, Button, TextInput
 } from '@mantine/core';
 import {
   IconDoorEnter, IconDoorExit, IconAlertCircle, IconCheck, IconX, IconRefresh, IconActivity, IconLock, IconLockOpen, IconWalk, IconScan
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { useCallback } from 'react';
 
 interface AccessEvent {
   id: string;
@@ -60,10 +61,10 @@ export default function GateDashboard() {
   }, []);
 
   // 2. Fetch Dashboard stats periodically (Dev2 logic)
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async (signal?: AbortSignal) => {
     if (!gateInfo.gateCode) return;
     try {
-      const response = await fetch(`/api/gate/dashboard?gateCode=${gateInfo.gateCode}`);
+      const response = await fetch(`/api/gate/dashboard?gateCode=${gateInfo.gateCode}`, { signal });
       if (!response.ok) return;
       const json = await response.json();
       if (json.data) {
@@ -71,17 +72,25 @@ export default function GateDashboard() {
         setStats(json.data.stats || { todayIn: 0, todayOut: 0, denied: 0 });
         setGateInfo(prev => ({ ...prev, ...json.data.gate }));
       }
-    } catch (error) {
-      console.error('Fetch Error:', error);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Fetch Error:', error);
+      }
     }
-  };
+  }, [gateInfo.gateCode]);
 
   useEffect(() => {
     if (!gateInfo.gateCode) return;
-    fetchDashboard();
-    const interval = setInterval(fetchDashboard, 3000);
-    return () => clearInterval(interval);
-  }, [gateInfo.gateCode]);
+    const controller = new AbortController();
+    
+    fetchDashboard(controller.signal);
+    const interval = setInterval(() => fetchDashboard(controller.signal), 30000); // Increased interval to reduce load
+    
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [gateInfo.gateCode, fetchDashboard]);
 
   // Dev1 logic: QR Scan
   const handleScan = async (e?: React.FormEvent) => {
@@ -111,7 +120,7 @@ export default function GateDashboard() {
         setToken(''); // Clear token for next scan
       }
       fetchDashboard(); // Refresh instantly
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: t('Common.error'), color: 'red' });
     } finally {
       setScanning(false);

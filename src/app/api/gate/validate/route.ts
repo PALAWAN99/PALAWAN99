@@ -40,17 +40,24 @@ export async function POST(req: NextRequest) {
     const result = await validateQrToken(token, gateId);
 
     // 3. บันทึกประวัติการเข้า-ออก (AccessEvent) ไม่ว่าจะผ่านหรือไม่ผ่าน
+    const accessEventData: any = {
+      gate: { connect: { id: gateId } },
+      direction: direction,
+      source: 'QR_CODE',
+      decision: result.decision,
+      reasonCode: result.reason || undefined,
+      scannedAt: new Date(),
+    };
+
+    if (result.member?.id) {
+      accessEventData.member = { connect: { id: result.member.id } };
+    }
+    if (result.qrToken?.id) {
+      accessEventData.qrToken = { connect: { id: result.qrToken.id } };
+    }
+
     await prisma.accessEvent.create({
-      data: {
-        gate: { connect: { id: gateId } },
-        ...(result.member?.id ? { member: { connect: { id: result.member.id } } } : {}),
-        ...(result.qrToken?.id ? { qrToken: { connect: { id: result.qrToken.id } } } : {}),
-        direction: direction as any,
-        source: 'QR_CODE',
-        decision: result.decision as any,
-        reasonCode: result.reason || undefined,
-        scannedAt: new Date(),
-      }
+      data: accessEventData
     });
 
     // 4. ถ้าผ่าน ให้บันทึกว่า QR นี้ถูกใช้แล้ว (กรณี One-time)

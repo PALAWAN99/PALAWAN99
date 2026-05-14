@@ -17,16 +17,16 @@ export class NotificationService {
     message: string;
     level?: 'info' | 'warning' | 'critical';
     type?: string;
-    metadata?: any;
+    metadata?: unknown;
   }) {
     return prisma.notification.create({
       data: {
-        userId,
+        userId: userId ?? undefined,
         title,
         message,
         level,
-        type,
-        metadata,
+        type: type ?? undefined,
+        metadata: metadata ? (JSON.parse(JSON.stringify(metadata)) as any) : undefined,
       },
     });
   }
@@ -36,7 +36,7 @@ export class NotificationService {
    */
   static async getNotifications(userId?: string, limit = 10) {
     return prisma.notification.findMany({
-      where: userId ? { OR: [{ userId }, { userId: null }] } : { userId: null },
+      where: userId ? { OR: [{ userId }, { userId: undefined }] } : { userId: undefined },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });

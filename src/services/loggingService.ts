@@ -12,8 +12,8 @@ export async function createAuditLog({
   action: string;
   resource: string;
   resourceId?: string;
-  before?: any;
-  after?: any;
+  before?: unknown;
+  after?: unknown;
   req?: Request;
 }) {
   try {
@@ -30,12 +30,12 @@ export async function createAuditLog({
 
     await prisma.auditLog.create({
       data: {
-        userId,
+        userId: userId ?? null,
         action,
         resource,
-        resourceId,
-        before: before ? JSON.parse(JSON.stringify(before)) : undefined,
-        after: after ? JSON.parse(JSON.stringify(after)) : undefined,
+        resourceId: resourceId ?? null,
+        before: before ? JSON.parse(JSON.stringify(before)) : null,
+        after: after ? JSON.parse(JSON.stringify(after)) : null,
         ipAddress,
         userAgent,
       },

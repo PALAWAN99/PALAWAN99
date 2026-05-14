@@ -15,7 +15,6 @@ import {
   Loader,
   Center,
   ThemeIcon,
-  Badge,
 } from '@mantine/core';
 import {
   IconFileExport,
@@ -44,10 +43,21 @@ import {
 
 const COLORS = ['#38BDF8', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
+interface ReportStats {
+  summary: {
+    totalAccess: number;
+    totalMembers: number;
+    activeGates: number;
+    deniedAccess: number;
+  };
+  dailyStats: { date: string; count: number }[];
+  gateStats: { name: string; value: number }[];
+}
+
 export default function ReportsPage() {
   const t = useTranslations('Report');
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ReportStats | null>(null);
   const [days, setDays] = useState('7');
 
   useEffect(() => {
@@ -59,7 +69,7 @@ export default function ReportsPage() {
           const stats = await res.json();
           setData(stats);
         }
-      } catch (error) {
+      } catch {
         console.error('Failed to fetch stats');
       } finally {
         setLoading(false);
@@ -84,22 +94,19 @@ export default function ReportsPage() {
     const { exportToExcel, exportToPDF } = await import('@/lib/export-utils');
     
     // เตรียมข้อมูลรายวัน
-    const dailyData = data.dailyStats.map((s: any) => ({
+    const dailyData = data.dailyStats.map((s) => ({
       'วันที่': s.date,
       'จำนวนการเข้า-ออก': s.count
     }));
 
-    // เตรียมข้อมูลรายประตู
-    const gateData = data.gateStats.map((s: any) => ({
-      'ประตู': s.name,
-      'จำนวนครั้ง': s.value
-    }));
+    // เตรียมข้อมูลรายประตู (ไม่ได้ใช้ใน Excel โดยตรงในโค้ดนี้ แต่เก็บไว้เป็น reference)
+    // const gateData = data.gateStats.map((s) ...
 
     if (format === 'excel') {
       exportToExcel(dailyData, `Daily_Traffic_Report_Last_${days}_Days`);
     } else {
       const headers = ['วันที่', 'จำนวนการเข้า-ออก'];
-      const body = dailyData.map((d: any) => [d['วันที่'], d['จำนวนการเข้า-ออก']]);
+      const body = dailyData.map((d) => [d['วันที่'], d['จำนวนการเข้า-ออก']]);
       exportToPDF(headers, body, `Traffic_Report`, `รายงานสรุปการเข้า-ออกรายวัน (ย้อนหลัง ${days} วัน)`);
     }
   };
@@ -230,7 +237,7 @@ export default function ReportsPage() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {(data?.gateStats || []).map((entry: any, index: number) => (
+                  {(data?.gateStats || []).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -245,7 +252,14 @@ export default function ReportsPage() {
   );
 }
 
-function StatCard({ title, value, icon, color }: any) {
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+}
+
+function StatCard({ title, value, icon, color }: StatCardProps) {
   return (
     <Card withBorder radius="md" p="xl">
       <Group justify="space-between">

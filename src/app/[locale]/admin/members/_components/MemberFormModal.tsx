@@ -137,7 +137,7 @@ export function MemberFormModal({
             </>
           )}
 
-          <Grid gutter="md">
+          <Grid gap="md">
             <Grid.Col span={{ base: 12, md: 6 }}>
               <TextInput 
                 label="รหัสสมาชิก" 

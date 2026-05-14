@@ -43,15 +43,8 @@ export async function POST(req: NextRequest) {
       return ApiBadRequest('ข้อมูลผู้ใช้ไม่ถูกต้อง', validation.error.flatten().fieldErrors);
     }
 
-    const { email, fullName, password, role } = validation.data;
-
     // Use Service
-    const user = await UserService.createUser({
-      email,
-      fullName,
-      password,
-      role,
-    });
+    const user = await UserService.createUser(validation.data);
 
     // บันทึก Audit Log
     await logAction({

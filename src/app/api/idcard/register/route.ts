@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { checkStrictRateLimit } from '@/lib/rate-limit';
-import { idCardRegisterSchema } from '@/lib/validations';
+import { idCardRegisterSchema } from '@/validators/idCardValidator';
 import { ApiSuccess, ApiUnauthorized, handleError } from '@/lib/api-response';
 import { registerWithIdCard } from '@/services/idCardService';
 

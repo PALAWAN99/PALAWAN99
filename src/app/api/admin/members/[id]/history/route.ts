@@ -5,15 +5,14 @@ import { ApiSuccess, ApiUnauthorized, ApiBadRequest, handleError } from '@/lib/a
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
     if (!session) {
       return ApiUnauthorized();
     }
-
-    const { id } = params;
     if (!id) {
       return ApiBadRequest('Member ID is required');
 

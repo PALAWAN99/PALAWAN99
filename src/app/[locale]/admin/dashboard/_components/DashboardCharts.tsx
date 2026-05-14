@@ -3,9 +3,11 @@ import { IconDoor } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { useRouter } from '@/i18n/routing';
 
+import { ChartDataItem, GateTrafficItem } from '../hooks/useDashboard';
+
 interface DashboardChartsProps {
-  chartData: any[];
-  gateTraffic: any[];
+  chartData: ChartDataItem[];
+  gateTraffic: GateTrafficItem[];
   loading?: boolean;
   t: (key: string) => string;
 }

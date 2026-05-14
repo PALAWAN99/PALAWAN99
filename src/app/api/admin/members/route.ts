@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { MemberService } from '@/services/memberService';
 import { checkAccess } from '@/lib/rbac';
-import { memberSchema } from '@/lib/validations';
+import { memberSchema } from '@/validators/memberValidator';
 import { logAction } from '@/lib/audit';
 import { checkStandardRateLimit } from '@/lib/rate-limit';
 import { ApiSuccess, ApiCreated, ApiUnauthorized, ApiForbidden, ApiBadRequest, handleError } from '@/lib/api-response';
@@ -18,11 +18,13 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') || '';
+  const type = searchParams.get('type');
+  const status = searchParams.get('status');
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '20');
 
   try {
-    const result = await MemberService.getMembers(search, page, limit);
+    const result = await MemberService.getMembers(search, page, limit, type, status);
     return ApiSuccess(result);
   } catch (error) {
     return handleError(error);

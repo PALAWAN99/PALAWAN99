@@ -58,7 +58,7 @@ export default function HistoryClient() {
   dayjs.locale('th');
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [search, setSearch] = useState('');
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null] | any>([null, null]);
 
   const [logs, setLogs] = useState<any[]>([
     { 
@@ -280,7 +280,7 @@ export default function HistoryClient() {
               </Stack>
             </Group>
 
-            <Grid gutter="xs">
+            <Grid gap="xs">
               <Grid.Col span={6}>
                 <Paper p="xs" withBorder bg="var(--bg-secondary)">
                   <Text size="xs" c="dimmed">ชื่อ-นามสกุล (TH)</Text>
@@ -310,7 +310,7 @@ export default function HistoryClient() {
               <Grid.Col span={4}>
                 <Paper p="xs" withBorder bg="var(--bg-secondary)">
                   <Text size="xs" c="dimmed">วันหมดอายุ</Text>
-                  <Text fw={600} color="red">{selectedLog.fullData?.expireDate || '-'}</Text>
+                  <Text fw={600} c="red">{selectedLog.fullData?.expireDate || '-'}</Text>
                 </Paper>
               </Grid.Col>
               <Grid.Col span={12}>

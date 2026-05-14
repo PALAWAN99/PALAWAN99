@@ -8,17 +8,42 @@ export class MemberService {
   /**
    * ดึงรายการสมาชิกพร้อมค้นหาและ Pagination
    */
-  static async getMembers(search: string = '', page: number = 1, limit: number = 20) {
+  static async getMembers(
+    search: string = '', 
+    page: number = 1, 
+    limit: number = 20, 
+    memberType?: string | null, 
+    status?: string | null
+  ) {
     const skip = (page - 1) * limit;
-    const where = {
-      OR: [
-        { memberNo: { contains: search, mode: 'insensitive' as const } },
-        { citizenId: { contains: search, mode: 'insensitive' as const } },
-        { firstNameTh: { contains: search, mode: 'insensitive' as const } },
-        { lastNameTh: { contains: search, mode: 'insensitive' as const } },
-        { email: { contains: search, mode: 'insensitive' as const } },
-      ],
+    
+    const where: { AND: any[] } = {
+      AND: []
     };
+
+    if (search) {
+      where.AND.push({
+        OR: [
+          { memberNo: { contains: search, mode: 'insensitive' as const } },
+          { citizenId: { contains: search, mode: 'insensitive' as const } },
+          { firstNameTh: { contains: search, mode: 'insensitive' as const } },
+          { lastNameTh: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+        ],
+      });
+    }
+
+    if (memberType) {
+      where.AND.push({ memberType });
+    }
+
+    if (status) {
+      if (status === 'INACTIVE') {
+        where.AND.push({ status: { not: 'ACTIVE' } });
+      } else {
+        where.AND.push({ status });
+      }
+    }
 
     const [members, total] = await Promise.all([
       MemberRepository.findMany({
@@ -56,11 +81,17 @@ export class MemberService {
       citizenId: data.citizenId || null,
       email: data.email || null,
       photo: data.photo ? Buffer.from(data.photo.split(',')[1] || data.photo, 'base64') : null,
+      metadata: {
+        birthDate: data.birthDate || '',
+        gender: data.gender || '',
+        address: data.address || '',
+        school: data.school || '',
+      }
     };
 
     // 3. Save to DB (Repository Call)
     const member = await MemberRepository.create({
-      data: processedData as any,
+      data: processedData,
     });
 
     // 4. Post-process (Audit Log)

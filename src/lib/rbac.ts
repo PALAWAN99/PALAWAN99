@@ -47,19 +47,24 @@ const PERMISSIONS: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
     DEVICE: ['CREATE', 'READ', 'UPDATE'],
   },
   LIBRARIAN: {
-    MEMBER: ['CREATE', 'READ', 'UPDATE'], // บรรณารักษ์จัดการสมาชิกได้
+    MEMBER: ['CREATE', 'READ', 'UPDATE'],
     QR_TOKEN: ['ISSUE', 'READ'],
     ACCESS_EVENT: ['READ'],
     GATE: ['READ'],
   },
   STAFF: {
-    MEMBER: ['READ'], // เจ้าหน้าที่ทั่วไปดูข้อมูลได้ แต่แก้ไม่ได้
+    MEMBER: ['READ'],
     QR_TOKEN: ['ISSUE', 'READ'],
     ACCESS_EVENT: ['READ'],
     GATE: ['READ'],
   },
+  GATE_OFFICER: {
+    ACCESS_EVENT: ['READ'],
+    GATE: ['READ'],
+    QR_TOKEN: ['ISSUE', 'READ'],
+  },
   SECURITY: {
-    ACCESS_EVENT: ['READ'], // รปภ. ดูประวัติการเข้าออกได้อย่างเดียว
+    ACCESS_EVENT: ['READ'],
     GATE: ['READ'],
   },
   VIEWER: {
@@ -81,14 +86,14 @@ export function hasPermission(role: UserRole, resource: Resource, action: Action
   if (!resourceActions) return false;
 
   // ถ้ามี MANAGE คือทำได้ทุกอย่างใน Resource นั้น
-  return resourceActions.includes(action) || resourceActions.includes('MANAGE' as Action);
+  return resourceActions.includes(action) || resourceActions.includes('MANAGE');
 }
 
 /**
  * Helper สำหรับใช้งานใน Server Side (เช็คจาก session)
  */
-export function checkAccess(session: any, resource: Resource, action: Action): boolean {
-  const role = session?.user?.role as UserRole;
+export function checkAccess(session: { user?: { role?: UserRole } } | null, resource: Resource, action: Action): boolean {
+  const role = session?.user?.role;
   if (!role) return false;
   return hasPermission(role, resource, action);
 }

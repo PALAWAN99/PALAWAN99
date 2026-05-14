@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { MemberType, MemberStatus } from '@prisma/client';
+import { createAuditLog } from '@/services/loggingService';
+import { MemberFormData } from './types';
 
 export async function getMembers() {
   console.log('[MembersAction] Fetching members. DB_URL:', process.env.DATABASE_URL);
@@ -11,16 +13,16 @@ export async function getMembers() {
       take: 200,
     });
     return { success: true, members };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch members';
     console.error('[MembersAction] Error fetching members:', error);
-    return { success: false, error: error.message || 'Failed to fetch members' };
+    return { success: false, error: message };
   }
 }
 
-import { createAuditLog } from '@/services/loggingService';
-
-export async function addMember(data: any) {
+export async function addMember(data: MemberFormData) {
   try {
+    const photoBase64 = (data as MemberFormData & { photo?: string }).photo;
     const member = await prisma.member.create({
       data: {
         memberNo: data.memberNo,
@@ -34,7 +36,9 @@ export async function addMember(data: any) {
         memberType: data.memberType as MemberType,
         status: (data.status as MemberStatus) || 'ACTIVE',
         expireDate: data.expireDate ? new Date(data.expireDate) : null,
-        photo: data.photo ? Buffer.from(data.photo.split(',')[1] || data.photo, 'base64') : null,
+        photo: photoBase64 
+          ? Buffer.from(photoBase64.includes(',') ? photoBase64.split(',')[1] : photoBase64, 'base64') 
+          : null,
         metadata: {
           birthDate: data.birthDate || '',
           gender: data.gender || '',
@@ -53,15 +57,17 @@ export async function addMember(data: any) {
     });
 
     return { success: true, member };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to add member';
     console.error('[MembersAction] Error adding member:', error);
-    return { success: false, error: error.message || 'Failed to add member' };
+    return { success: false, error: message };
   }
 }
 
-export async function updateMember(id: string, data: any) {
+export async function updateMember(id: string, data: MemberFormData) {
   try {
     const before = await prisma.member.findUnique({ where: { id } });
+    const photoBase64 = (data as MemberFormData & { photo?: string }).photo;
     
     const member = await prisma.member.update({
       where: { id },
@@ -77,7 +83,9 @@ export async function updateMember(id: string, data: any) {
         memberType: data.memberType as MemberType,
         status: data.status as MemberStatus,
         expireDate: data.expireDate ? new Date(data.expireDate) : null,
-        photo: data.photo ? Buffer.from(data.photo.split(',')[1] || data.photo, 'base64') : null,
+        photo: photoBase64 
+          ? Buffer.from(photoBase64.includes(',') ? photoBase64.split(',')[1] : photoBase64, 'base64') 
+          : null,
         metadata: {
           birthDate: data.birthDate || '',
           gender: data.gender || '',
@@ -96,9 +104,10 @@ export async function updateMember(id: string, data: any) {
     });
 
     return { success: true, member };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to update member';
     console.error('[MembersAction] Error updating member:', error);
-    return { success: false, error: error.message || 'Failed to update member' };
+    return { success: false, error: message };
   }
 }
 
@@ -118,9 +127,10 @@ export async function deleteMember(id: string) {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to delete member';
     console.error('[MembersAction] Error deleting member:', error);
-    return { success: false, error: error.message || 'Failed to delete member' };
+    return { success: false, error: message };
   }
 }
 
@@ -135,8 +145,9 @@ export async function getMemberAccessHistory(memberId: string) {
       take: 100, // Limit to last 100 entries
     });
     return { success: true, history };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch history';
     console.error('[MembersAction] Error fetching member history:', error);
-    return { success: false, error: error.message || 'Failed to fetch history' };
+    return { success: false, error: message };
   }
 }

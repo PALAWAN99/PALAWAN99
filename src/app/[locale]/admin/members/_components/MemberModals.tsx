@@ -1,15 +1,15 @@
-import { Modal, Stack, Button, Divider, Group, TextInput, Select, Text, Card, Badge, Avatar, LoadingOverlay, Table } from '@mantine/core';
-import { IconId, IconMail, IconPhone, IconCalendar, IconClockHour4 } from '@tabler/icons-react';
+import { Modal, Stack, Button, Group, TextInput, Select, Text, Card, Badge, Avatar, LoadingOverlay, Table } from '@mantine/core';
+import { IconId, IconClockHour4 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import { Member } from '../types';
+import { Member, MemberFormData, AccessEvent } from '../types';
 
 interface MemberModalsProps {
   opened: boolean;
   onClose: () => void;
   isEdit: boolean;
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: MemberFormData;
+  setFormData: (data: MemberFormData) => void;
   loading: boolean;
   readingId: boolean;
   handleReadIdCard: () => void;
@@ -25,21 +25,15 @@ interface MemberModalsProps {
   historyOpened: boolean;
   closeHistory: () => void;
   historyLoading: boolean;
-  accessHistory: any[];
+  accessHistory: AccessEvent[];
   selectedMember: Member | null;
 }
 
-const PREFIX_MAP: Record<string, string> = {
-  'นาย': 'Mr.',
-  'นาง': 'Mrs.',
-  'นางสาว': 'Ms.',
-  'เด็กชาย': 'Master',
-  'เด็กหญิง': 'Miss',
-};
+// PREFIX_MAP was unused, removed.
 
 export function MemberModals({
   opened, onClose, isEdit, formData, setFormData, loading, readingId, handleReadIdCard, handleSubmit,
-  renewOpened, onCloseRenew, renewMember, renewDate, setRenewDate, renewLoading, handleRenew, t,
+  renewOpened, onCloseRenew, renewMember, renewDate, setRenewDate, renewLoading, handleRenew,
   historyOpened, closeHistory, historyLoading, accessHistory, selectedMember
 }: MemberModalsProps) {
   return (

@@ -1,19 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { Member, MemberMetadata } from '../types';
+import { Member, MemberMetadata, AccessEvent, MemberFormData } from '../types';
 import { addMember, updateMember, deleteMember } from '../memberActions';
-import { ThaiIdCardReader } from '@/lib/idcard/reader';
 
-const PREFIX_MAP: Record<string, string> = {
-  'นาย': 'Mr.',
-  'นาง': 'Mrs.',
-  'นางสาว': 'Ms.',
-  'เด็กชาย': 'Master',
-  'เด็กหญิง': 'Miss',
-};
-
-const emptyForm = {
+const emptyForm: MemberFormData = {
   id: '',
   memberNo: '',
   citizenId: '',
@@ -45,27 +36,30 @@ export function useMemberManagement(initialMembers: Member[]) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [initialFormData, setInitialFormData] = useState<any>(null);
+  const [initialFormData, setInitialFormData] = useState<MemberFormData | null>(null);
   const [isEdit, setIsEdit] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/members?search=${search}&page=${page}&limit=20`);
-      const data = await res.json();
-      if (data.members) {
-        setMembers(data.members);
-        setTotal(data.total);
-        setTotalPages(data.pages);
+      const typeParam = filterType ? `&type=${filterType}` : '';
+      const statusParam = filterStatus ? `&status=${filterStatus}` : '';
+      const res = await fetch(`/api/admin/members?search=${search}&page=${page}&limit=20${typeParam}${statusParam}`);
+      const result = await res.json();
+      
+      if (result.success && result.data) {
+        setMembers(result.data.members);
+        setTotal(result.data.total);
+        setTotalPages(result.data.pages);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Fetch members failed:', e);
     } finally {
       setLoading(false);
     }
-  }, [search, page]);
+  }, [search, page, filterType, filterStatus]);
 
-  // Fetch when search or page changes (debounced search would be better)
+  // Fetch when filters change (with debounce)
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchMembers();
@@ -79,26 +73,12 @@ export function useMemberManagement(initialMembers: Member[]) {
   const [renewLoading, setRenewLoading] = useState(false);
 
   const stats = useMemo(() => ({
-    total: members.length,
+    total: total,
     active: members.filter((m) => m.status === 'ACTIVE').length,
     inactive: members.filter((m) => m.status !== 'ACTIVE').length,
-  }), [members]);
+  }), [members, total]);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return members.filter((m) => {
-      const matchQ = !q || 
-        m.firstNameTh.toLowerCase().includes(q) || 
-        m.lastNameTh.toLowerCase().includes(q) || 
-        m.memberNo.toLowerCase().includes(q) || 
-        (m.citizenId ?? '').includes(q) || 
-        (m.email ?? '').toLowerCase().includes(q) || 
-        (m.phone ?? '').includes(q);
-      const matchType = !filterType || m.memberType === filterType;
-      const matchStatus = !filterStatus || (filterStatus === 'INACTIVE' ? m.status !== 'ACTIVE' : m.status === filterStatus);
-      return matchQ && matchType && matchStatus;
-    });
-  }, [members, search, filterType, filterStatus]);
+  const filtered = members;
 
   const handleOpenAdd = useCallback(() => {
     setIsEdit(false);
@@ -137,17 +117,13 @@ export function useMemberManagement(initialMembers: Member[]) {
     open();
   }, [open]);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: MemberFormData) => {
     setLoading(true);
-    const result = isEdit ? await updateMember(values.id, values) : await addMember(values);
+    const result = isEdit && values.id ? await updateMember(values.id, values) : await addMember(values);
     setLoading(false);
     
     if (result.success) {
-      if (isEdit) {
-        setMembers(prev => prev.map(m => m.id === values.id ? { ...m, ...values, expireDate: values.expireDate ? new Date(values.expireDate) : null } : m));
-      } else if (result.member) {
-        setMembers(prev => [result.member as Member, ...prev]);
-      }
+      fetchMembers();
       notifications.show({ title: 'สำเร็จ', message: 'บันทึกข้อมูลเรียบร้อย', color: 'green' });
       close();
     } else {
@@ -170,7 +146,7 @@ export function useMemberManagement(initialMembers: Member[]) {
     const result = await updateMember(renewMember.id, { ...renewMember, expireDate: renewDate.toISOString().split('T')[0], status: 'ACTIVE' });
     setRenewLoading(false);
     if (result.success) {
-      setMembers(prev => prev.map(m => m.id === renewMember.id ? { ...m, expireDate: renewDate, status: 'ACTIVE' } : m));
+      fetchMembers();
       notifications.show({ title: 'ต่ออายุสำเร็จ', message: 'ขยายวันหมดอายุเรียบร้อย', color: 'teal' });
       closeRenew();
     }
@@ -182,50 +158,20 @@ export function useMemberManagement(initialMembers: Member[]) {
     const result = await deleteMember(id);
     setLoading(false);
     if (result.success) {
-      setMembers(prev => prev.filter(m => m.id !== id));
+      fetchMembers();
       notifications.show({ title: 'ลบสำเร็จ', message: 'ลบข้อมูลออกจากระบบแล้ว', color: 'green' });
-    }
-  };
-
-
-  const handleReadIdCard = async () => {
-    setReadingId(true);
-    const reader = new ThaiIdCardReader();
-    try {
-      const connected = await reader.connect();
-      if (!connected) throw new Error('ไม่พบเครื่องอ่าน');
-      const data = await reader.readAllData();
-      if (!data) throw new Error('อ่านข้อมูลไม่ได้');
-      const namesTh = data.fullNameTh.split(' ');
-      const namesEn = data.fullNameEn.split(' ');
-      setFormData(prev => ({
-        ...prev,
-        citizenId: data.citizenId,
-        prefixTh: namesTh[0] ?? '',
-        firstNameTh: namesTh[1] ?? '',
-        lastNameTh: namesTh.slice(2).join(' ') || '',
-        firstNameEn: namesEn[1] ?? '',
-        lastNameEn: namesEn.slice(2).join(' ') || '',
-        gender: data.gender,
-        birthDate: data.birthDate,
-        address: data.address,
-      }));
-    } catch (e: any) {
-      notifications.show({ title: 'ข้อผิดพลาด', message: e.message, color: 'red' });
-    } finally {
-      await reader.disconnect();
-      setReadingId(false);
     }
   };
 
   const [historyOpened, { open: openHistory, close: closeHistory }] = useDisclosure(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [accessHistory, setAccessHistory] = useState<any[]>([]);
+  const [accessHistory, setAccessHistory] = useState<AccessEvent[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   const handleOpenHistory = async (member: Member) => {
     setSelectedMember(member);
     setHistoryLoading(true);
+    setAccessHistory([]);
     openHistory();
     
     try {
@@ -248,12 +194,19 @@ export function useMemberManagement(initialMembers: Member[]) {
     }
   };
 
+  const clearFilters = useCallback(() => {
+    setSearch('');
+    setFilterType(null);
+    setFilterStatus(null);
+    setPage(1);
+  }, []);
+
   return {
     members, filtered, stats, loading, readingId, search, setSearch, filterType, setFilterType, filterStatus, setFilterStatus,
     page, setPage, total, totalPages,
     initialFormData, isEdit, opened, handleOpenAdd, handleOpenEdit, handleSubmit, close,
     renewOpened, renewMember, renewDate, setRenewDate, renewLoading, handleOpenRenew, handleRenew, closeRenew,
-    handleDelete, handleReadIdCard, clearFilters: () => { setSearch(''); setFilterType(null); setFilterStatus(null); setPage(1); },
+    handleDelete, clearFilters,
     historyOpened, closeHistory, historyLoading, accessHistory, selectedMember, handleOpenHistory
   };
 }

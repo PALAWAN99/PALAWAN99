@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       await prisma.accessEvent.create({
         data: {
           gateId,
-          memberId: validation.qrToken?.memberId || null,
+          memberId: validation.qrToken?.memberId ?? undefined,
           direction: 'IN',
           source: 'QR_CODE',
           decision: 'DENIED',
@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { qrToken, member, gate } = validation;
+    if (!qrToken || !member || !gate) {
+       return handleError(new Error('Validation successful but data is missing'));
+    }
 
     // 2. บันทึกประวัติการเข้า-ออก (Allowed)
     const event = await prisma.accessEvent.create({

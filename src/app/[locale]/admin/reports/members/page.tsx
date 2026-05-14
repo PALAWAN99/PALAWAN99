@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Title, Text, Stack, Card, Button, Group, SimpleGrid, ThemeIcon, Box, SegmentedControl, Divider } from '@mantine/core';
+import { Title, Text, Stack, Card, Button, Group, SimpleGrid, ThemeIcon, Box, SegmentedControl, Divider, ActionIcon } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconFileTypeCsv, IconFileTypePdf, IconChartPie, IconUsers, IconCalendarStats, IconPrinter } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -9,7 +9,7 @@ import { notifications } from '@mantine/notifications';
 
 export default function MemberReportsPage() {
   const t = useTranslations();
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([new Date(), new Date()]);
+  const [dateRange, setDateRange] = useState<any>([new Date(), new Date()]);
   const [isExporting, setIsExporting] = useState(false);
 
   // ข้อมูลจำลองสำหรับ Export

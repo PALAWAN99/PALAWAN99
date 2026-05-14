@@ -63,7 +63,10 @@ export async function POST(req: NextRequest) {
     }
 
     const gate = await prisma.gate.create({
-      data: validatedData
+      data: {
+        ...validatedData,
+        metadata: validatedData.metadata as any
+      }
     });
 
     // บันทึก Audit Log

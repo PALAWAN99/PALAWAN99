@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
-  Container, Title, Text, Button, Group, Stack, Card, Table, Badge, ActionIcon, TextInput, Modal, Select, Center, Loader, Box, Alert, Code, CopyButton, Menu
+  Title, Text, Button, Group, Stack, Card, Table, Badge, ActionIcon, TextInput, Modal, Select, Center, Loader, Alert, Code, CopyButton, Menu
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import {
   IconPlus, IconSearch, IconDotsVertical, IconCheck, IconCopy, IconAlertCircle, IconDevices, IconEdit, IconTrash, IconRefresh, IconCircleFilled
 } from '@tabler/icons-react';
+import { useCallback } from 'react';
 
 interface Device {
   id: string;
@@ -51,34 +52,39 @@ export default function DevicesPage() {
     },
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const [devicesRes, gatesRes] = await Promise.all([
-        fetch('/api/admin/devices'),
-        fetch('/api/admin/gates'),
+        fetch('/api/admin/devices', { signal }),
+        fetch('/api/admin/gates', { signal }),
       ]);
       
+      if (!devicesRes.ok || !gatesRes.ok) return;
+
       const devicesData = await devicesRes.json();
       const gatesData = await gatesRes.json();
       
-      // Handle array or Dev1 ApiSuccess wrapper { data: [...] }
       const deviceList = Array.isArray(devicesData) ? devicesData : (devicesData.data || []);
       const gateList = Array.isArray(gatesData) ? gatesData : (gatesData.data || []);
 
       setDevices(deviceList);
-      setGates(gateList.map((g: any) => ({ value: g.id, label: `${g.nameTh} (${g.gateCode})` })));
-    } catch (error) {
-      console.error('Fetch error:', error);
-      notifications.show({ title: 'Error', message: 'Failed to fetch data', color: 'red' });
+      setGates(gateList.map((g: { id: string; nameTh: string; gateCode: string }) => ({ value: g.id, label: `${g.nameTh} (${g.gateCode})` })));
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Fetch error:', error);
+        notifications.show({ title: 'Error', message: 'Failed to fetch data', color: 'red' });
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
   const handleSubmit = async (values: typeof form.values) => {
     setSubmitting(true);
@@ -109,8 +115,9 @@ export default function DevicesPage() {
       } else {
         throw new Error(data.error?.message || data.error || 'Operation failed');
       }
-    } catch (error: any) {
-      notifications.show({ title: 'Error', message: error.message || 'Something went wrong', color: 'red' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Something went wrong';
+      notifications.show({ title: 'Error', message, color: 'red' });
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +132,7 @@ export default function DevicesPage() {
       
       notifications.show({ title: t('Common.success') || 'Success', message: 'Device deleted', color: 'green' });
       fetchData();
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: 'Delete failed', color: 'red' });
     }
   };

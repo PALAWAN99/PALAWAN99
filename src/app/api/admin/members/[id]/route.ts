@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { checkAccess } from '@/lib/rbac';
-import { memberSchema } from '@/lib/validations';
+import { memberSchema } from '@/validators/memberValidator';
 import { logAction } from '@/lib/audit';
 import { ApiSuccess, ApiUnauthorized, ApiForbidden, ApiNotFound, ApiValidationError, handleError } from '@/lib/api-response';
 

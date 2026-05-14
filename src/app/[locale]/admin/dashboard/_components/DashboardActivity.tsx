@@ -1,8 +1,10 @@
 import { SimpleGrid, Card, Group, Text, Badge, Stack, Paper, Box, Skeleton } from '@mantine/core';
 
+import { DashboardEvent, GateStatusInfo } from '../hooks/useDashboard';
+
 interface DashboardActivityProps {
-  recentEvents: any[];
-  gateStatus: any[];
+  recentEvents: DashboardEvent[];
+  gateStatus: GateStatusInfo[];
   loading?: boolean;
   t: (key: string) => string;
 }

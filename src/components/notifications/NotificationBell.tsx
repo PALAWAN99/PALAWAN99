@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ActionIcon,
   Indicator,
@@ -14,7 +14,6 @@ import {
   Loader,
   Center,
   Switch,
-  Badge,
 } from '@mantine/core';
 import { IconBell, IconAlertCircle, IconCheck, IconInfoCircle, IconVolume, IconVolume3 } from '@tabler/icons-react';
 
@@ -34,25 +33,34 @@ export default function NotificationBell() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [enableSound, setEnableSound] = useState(true);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/notifications');
+      const res = await fetch('/api/notifications', { signal });
+      if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data)) {
         setNotifications(data);
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Failed to fetch notifications:', error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    const controller = new AbortController();
+    
+    fetchNotifications(controller.signal);
+    const interval = setInterval(() => fetchNotifications(controller.signal), 30000);
+    
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.readAt).length;
 

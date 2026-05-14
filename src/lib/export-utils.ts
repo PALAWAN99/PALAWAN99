@@ -5,7 +5,7 @@ import autoTable from 'jspdf-autotable';
 /**
  * ส่งออกข้อมูลเป็นไฟล์ Excel (.xlsx)
  */
-export function exportToExcel(data: any[], fileName: string) {
+export function exportToExcel(data: Record<string, unknown>[], fileName: string) {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
@@ -16,7 +16,7 @@ export function exportToExcel(data: any[], fileName: string) {
  * ส่งออกข้อมูลเป็นไฟล์ PDF
  * หมายเหตุ: สำหรับภาษาไทยต้องมีการเพิ่ม Font (.ttf) เข้าไปใน jsPDF ก่อน
  */
-export function exportToPDF(headers: string[], data: any[][], fileName: string, title: string) {
+export function exportToPDF(headers: string[], data: (string | number | null | undefined)[][], fileName: string, title: string) {
   const doc = new jsPDF();
   
   // เพิ่มหัวข้อรายงาน
@@ -28,7 +28,7 @@ export function exportToPDF(headers: string[], data: any[][], fileName: string, 
 
   autoTable(doc, {
     head: [headers],
-    body: data,
+    body: data.map(row => row.map(cell => cell ?? '')),
     startY: 35,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 8 }, // ในงานจริงต้องเปลี่ยนเป็น Font ภาษาไทย
@@ -41,7 +41,7 @@ export function exportToPDF(headers: string[], data: any[][], fileName: string, 
 /**
  * ส่งออกข้อมูลเป็นไฟล์ CSV
  */
-export function exportToCSV(data: any[], fileName: string) {
+export function exportToCSV(data: Record<string, any>[], fileName: string) {
   if (data.length === 0) return;
   
   const headers = Object.keys(data[0]);
