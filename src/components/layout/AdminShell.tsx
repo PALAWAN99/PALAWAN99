@@ -31,6 +31,7 @@ import {
   IconMenu2,
   IconBell,
   IconLogout,
+  IconHistory,
   IconUserShield,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { labelKey: 'Common.members', icon: IconUsers, href: '/admin/members' },
   { labelKey: 'Common.idcard', icon: IconId, href: '/admin/idcard' },
   { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports' },
+  { labelKey: 'Common.history', icon: IconHistory, href: '/admin/history' },
   { labelKey: 'Common.security', icon: IconShield, href: '/admin/security' },
   { labelKey: 'Common.settings', icon: IconSettings, href: '/admin/settings' },
 ];

@@ -123,3 +123,20 @@ export async function deleteMember(id: string) {
     return { success: false, error: error.message || 'Failed to delete member' };
   }
 }
+
+export async function getMemberAccessHistory(memberId: string) {
+  try {
+    const history = await prisma.accessEvent.findMany({
+      where: { memberId },
+      include: {
+        gate: true,
+      },
+      orderBy: { scannedAt: 'desc' },
+      take: 100, // Limit to last 100 entries
+    });
+    return { success: true, history };
+  } catch (error: any) {
+    console.error('[MembersAction] Error fetching member history:', error);
+    return { success: false, error: error.message || 'Failed to fetch history' };
+  }
+}

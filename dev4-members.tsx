@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import {
@@ -68,11 +68,11 @@ interface Member {
 }
 
 const MEMBER_TYPE_LABELS: Record<string, string> = {
-  STUDENT: 'เธเธฑเธเน€เธฃเธตเธขเธ',
-  STAFF: 'เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเน',
-  FACULTY: 'เธญเธฒเธเธฒเธฃเธขเน',
-  EXTERNAL: 'เธเธธเธเธเธฅเธ เธฒเธขเธเธญเธ',
-  GUEST: 'เธเธนเนเน€เธขเธตเนเธขเธกเธเธก',
+  STUDENT: 'นักเรียน',
+  STAFF: 'เจ้าหน้าที่',
+  FACULTY: 'อาจารย์',
+  EXTERNAL: 'บุคคลภายนอก',
+  GUEST: 'ผู้เยี่ยมชม',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -83,10 +83,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'เนเธเนเธเธฒเธ',
-  EXPIRED: 'เธซเธกเธ”เธญเธฒเธขเธธ',
-  SUSPENDED: 'เธฃเธฐเธเธฑเธ',
-  REVOKED: 'เธขเธเน€เธฅเธดเธ',
+  ACTIVE: 'ใช้งาน',
+  EXPIRED: 'หมดอายุ',
+  SUSPENDED: 'ระงับ',
+  REVOKED: 'ยกเลิก',
 };
 
 function getInitials(firstTh: string, lastTh: string) {
@@ -101,11 +101,11 @@ function getAvatarColor(id: string) {
 }
 
 const PREFIX_MAP: Record<string, string> = {
-  'เธเธฒเธข': 'Mr.',
-  'เธเธฒเธ': 'Mrs.',
-  'เธเธฒเธเธชเธฒเธง': 'Ms.',
-  'เน€เธ”เนเธเธเธฒเธข': 'Master',
-  'เน€เธ”เนเธเธซเธเธดเธ': 'Miss',
+  'นาย': 'Mr.',
+  'นาง': 'Mrs.',
+  'นางสาว': 'Ms.',
+  'เด็กชาย': 'Master',
+  'เด็กหญิง': 'Miss',
 };
 
 const emptyForm = {
@@ -142,20 +142,20 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const [formData, setFormData] = useState(emptyForm);
   const [isEdit, setIsEdit] = useState(false);
 
-  // โ”€โ”€โ”€ History State โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // ─── History State ──────────────────────────────────────────────────────────
   const [historyOpened, { open: openHistory, close: closeHistory }] = useDisclosure(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [accessHistory, setAccessHistory] = useState<any[]>([]);
 
-  // โ”€โ”€โ”€ Stats โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // ─── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
     total: members.length,
     active: members.filter((m) => m.status === 'ACTIVE').length,
     inactive: members.filter((m) => m.status !== 'ACTIVE').length,
   }), [members]);
 
-  // โ”€โ”€โ”€ Filtered list โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // ─── Filtered list ───────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return members.filter((m) => {
@@ -175,7 +175,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
     });
   }, [members, search, filterType, filterStatus]);
 
-  // โ”€โ”€โ”€ Handlers โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleOpenAdd = () => {
     setIsEdit(false);
     setFormData(emptyForm);
@@ -222,8 +222,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
   const handleSubmit = async () => {
     if (!formData.memberNo || !formData.firstNameTh || !formData.lastNameTh) {
       notifications.show({
-        title: 'เธเธฃเธธเธ“เธฒเธเธฃเธญเธเธเนเธญเธกเธนเธฅเนเธซเนเธเธฃเธ',
-        message: 'เธฃเธซเธฑเธชเธชเธกเธฒเธเธดเธ, เธเธทเนเธญ, เธเธฒเธกเธชเธเธธเธฅ (เธ เธฒเธฉเธฒเนเธ—เธข) เน€เธเนเธเธเนเธญเธกเธนเธฅเธ—เธตเนเธเธณเน€เธเนเธ',
+        title: 'กรุณากรอกข้อมูลให้ครบ',
+        message: 'รหัสสมาชิก, ชื่อ, นามสกุล (ภาษาไทย) เป็นข้อมูลที่จำเป็น',
         color: 'orange',
       });
       return;
@@ -268,30 +268,30 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         setMembers((prev) => [result.member as Member, ...prev]);
       }
       notifications.show({
-        title: isEdit ? 'เนเธเนเนเธเธชเธณเน€เธฃเนเธ โ“' : 'เน€เธเธดเนเธกเธชเธกเธฒเธเธดเธเธชเธณเน€เธฃเนเธ โ“',
-        message: `${formData.firstNameTh} ${formData.lastNameTh} โ€” ${isEdit ? 'เธญเธฑเธเน€เธ”เธ•เนเธฅเนเธง' : 'เน€เธเธดเนเธกเน€เธเนเธฒเธฃเธฐเธเธเนเธฅเนเธง'}`,
+        title: isEdit ? 'แก้ไขสำเร็จ ✓' : 'เพิ่มสมาชิกสำเร็จ ✓',
+        message: `${formData.firstNameTh} ${formData.lastNameTh} — ${isEdit ? 'อัปเดตแล้ว' : 'เพิ่มเข้าระบบแล้ว'}`,
         color: 'green',
       });
       close();
     } else {
       notifications.show({
-        title: 'เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”',
-        message: (result as any).error ?? 'เนเธกเนเธ—เธฃเธฒเธเธชเธฒเน€เธซเธ•เธธ',
+        title: 'เกิดข้อผิดพลาด',
+        message: (result as any).error ?? 'ไม่ทราบสาเหตุ',
         color: 'red',
       });
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`เธขเธทเธเธขเธฑเธเธฅเธเธชเธกเธฒเธเธดเธ "${name}" เธญเธญเธเธเธฒเธเธฃเธฐเธเธ?`)) return;
+    if (!confirm(`ยืนยันลบสมาชิก "${name}" ออกจากระบบ?`)) return;
     setLoading(true);
     const result = await deleteMember(id);
     setLoading(false);
     if (result.success) {
       setMembers((prev) => prev.filter((m) => m.id !== id));
-      notifications.show({ title: 'เธฅเธเธชเธณเน€เธฃเนเธ', message: `เธฅเธ ${name} เธญเธญเธเธเธฒเธเธฃเธฐเธเธเนเธฅเนเธง`, color: 'green' });
+      notifications.show({ title: 'ลบสำเร็จ', message: `ลบ ${name} ออกจากระบบแล้ว`, color: 'green' });
     } else {
-      notifications.show({ title: 'เธฅเธเนเธกเนเธชเธณเน€เธฃเนเธ', message: result.error, color: 'red' });
+      notifications.show({ title: 'ลบไม่สำเร็จ', message: result.error, color: 'red' });
     }
   };
 
@@ -300,9 +300,9 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
     const reader = new ThaiIdCardReader();
     try {
       const connected = await reader.connect();
-      if (!connected) throw new Error('เนเธกเนเธเธเน€เธเธฃเธทเนเธญเธเธญเนเธฒเธเธเธฑเธ•เธฃ');
+      if (!connected) throw new Error('ไม่พบเครื่องอ่านบัตร');
       const data = await reader.readAllData();
-      if (!data) throw new Error('เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธญเนเธฒเธเธเนเธญเธกเธนเธฅเธเธฒเธเธเธฑเธ•เธฃเนเธ”เน');
+      if (!data) throw new Error('ไม่สามารถอ่านข้อมูลจากบัตรได้');
 
       const namesTh = data.fullNameTh.split(' ');
       const namesEn = data.fullNameEn.split(' ');
@@ -319,12 +319,12 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         address: data.address,
       }));
       notifications.show({
-        title: 'เธญเนเธฒเธเธเธฑเธ•เธฃเธชเธณเน€เธฃเนเธ โ“',
-        message: `เธเธเธเนเธญเธกเธนเธฅเธเธธเธ“ ${data.fullNameTh}`,
+        title: 'อ่านบัตรสำเร็จ ✓',
+        message: `พบข้อมูลคุณ ${data.fullNameTh}`,
         color: 'blue',
       });
     } catch (error: any) {
-      notifications.show({ title: 'เธญเนเธฒเธเธเธฑเธ•เธฃเนเธกเนเนเธ”เน', message: error.message, color: 'red' });
+      notifications.show({ title: 'อ่านบัตรไม่ได้', message: error.message, color: 'red' });
     } finally {
       await reader.disconnect();
       setReadingId(false);
@@ -343,7 +343,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
       setAccessHistory(result.history || []);
     } else {
       notifications.show({
-        title: 'เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธ”เธถเธเธเนเธญเธกเธนเธฅเธเธฃเธฐเธงเธฑเธ•เธดเนเธ”เน',
+        title: 'ไม่สามารถดึงข้อมูลประวัติได้',
         message: result.error,
         color: 'red',
       });
@@ -358,15 +358,15 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
 
   const hasFilter = search || filterType || filterStatus;
 
-  // โ”€โ”€โ”€ Render โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <Stack gap="lg">
       {/* Header */}
       <Group justify="space-between" align="flex-start">
         <div>
-          <Title order={2}>เธเธฑเธ”เธเธฒเธฃเธชเธกเธฒเธเธดเธ</Title>
+          <Title order={2}>จัดการสมาชิก</Title>
           <Text size="sm" c="dimmed" mt={4}>
-            เธ•เธฃเธงเธเธชเธญเธเนเธฅเธฐเธเธฑเธ”เธเธฒเธฃเธเนเธญเธกเธนเธฅเธชเธกเธฒเธเธดเธเธเธนเนเน€เธเนเธฒเนเธเนเธซเธญเธชเธกเธธเธ”เธ—เธฑเนเธเธซเธกเธ”
+            ตรวจสอบและจัดการข้อมูลสมาชิกผู้เข้าใช้หอสมุดทั้งหมด
           </Text>
         </div>
       </Group>
@@ -390,7 +390,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               <IconUsers size={24} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>เธชเธกเธฒเธเธดเธเธ—เธฑเนเธเธซเธกเธ”</Text>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>สมาชิกทั้งหมด</Text>
               <Text size="xl" fw={700}>{stats.total.toLocaleString()}</Text>
             </div>
           </Group>
@@ -412,7 +412,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               <IconUserCheck size={24} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>เธเธณเธฅเธฑเธเนเธเนเธเธฒเธ</Text>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>กำลังใช้งาน</Text>
               <Text size="xl" fw={700}>{stats.active.toLocaleString()}</Text>
             </div>
           </Group>
@@ -434,7 +434,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               <IconUserX size={24} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>เนเธกเนเนเธเนเธเธฒเธ</Text>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>ไม่ใช้งาน</Text>
               <Text size="xl" fw={700}>{stats.inactive.toLocaleString()}</Text>
             </div>
           </Group>
@@ -457,7 +457,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Search & Filter */}
           <Group>
             <TextInput
-              placeholder="เธเนเธเธซเธฒเธเธทเนเธญ, เธฃเธซเธฑเธชเธชเธกเธฒเธเธดเธ, เน€เธฅเธเธเธฑเธ•เธฃ, เธญเธตเน€เธกเธฅ..."
+              placeholder="ค้นหาชื่อ, รหัสสมาชิก, เลขบัตร, อีเมล..."
               leftSection={<IconSearch size={16} />}
               style={{ flex: 1 }}
               value={search}
@@ -471,27 +471,27 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               }
             />
             <Select
-              placeholder="เธเธฃเธฐเน€เธ เธ—เธชเธกเธฒเธเธดเธ"
+              placeholder="ประเภทสมาชิก"
               clearable
               data={[
-                { value: 'STUDENT', label: 'เธเธฑเธเน€เธฃเธตเธขเธ' },
-                { value: 'STAFF', label: 'เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเน' },
-                { value: 'FACULTY', label: 'เธญเธฒเธเธฒเธฃเธขเน' },
-                { value: 'EXTERNAL', label: 'เธเธธเธเธเธฅเธ เธฒเธขเธเธญเธ' },
-                { value: 'GUEST', label: 'เธเธนเนเน€เธขเธตเนเธขเธกเธเธก' },
+                { value: 'STUDENT', label: 'นักเรียน' },
+                { value: 'STAFF', label: 'เจ้าหน้าที่' },
+                { value: 'FACULTY', label: 'อาจารย์' },
+                { value: 'EXTERNAL', label: 'บุคคลภายนอก' },
+                { value: 'GUEST', label: 'ผู้เยี่ยมชม' },
               ]}
               value={filterType}
               onChange={setFilterType}
               w={160}
             />
             <Select
-              placeholder="เธชเธ–เธฒเธเธฐ"
+              placeholder="สถานะ"
               clearable
               data={[
-                { value: 'ACTIVE', label: 'เนเธเนเธเธฒเธ' },
-                { value: 'EXPIRED', label: 'เธซเธกเธ”เธญเธฒเธขเธธ' },
-                { value: 'SUSPENDED', label: 'เธฃเธฐเธเธฑเธ' },
-                { value: 'REVOKED', label: 'เธขเธเน€เธฅเธดเธ' },
+                { value: 'ACTIVE', label: 'ใช้งาน' },
+                { value: 'EXPIRED', label: 'หมดอายุ' },
+                { value: 'SUSPENDED', label: 'ระงับ' },
+                { value: 'REVOKED', label: 'ยกเลิก' },
               ]}
               value={filterStatus}
               onChange={setFilterStatus}
@@ -499,14 +499,14 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             />
             {hasFilter && (
               <Button variant="subtle" color="gray" size="sm" onClick={clearFilters} leftSection={<IconX size={14} />}>
-                เธฅเนเธฒเธเธ•เธฑเธงเธเธฃเธญเธ
+                ล้างตัวกรอง
               </Button>
             )}
           </Group>
 
           {hasFilter && (
             <Text size="sm" c="dimmed">
-              เนเธชเธ”เธ {filtered.length} เธเธฒเธ {members.length} เธฃเธฒเธขเธเธฒเธฃ
+              แสดง {filtered.length} จาก {members.length} รายการ
             </Text>
           )}
 
@@ -515,13 +515,13 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>เธชเธกเธฒเธเธดเธ</Table.Th>
-                  <Table.Th>เธฃเธซเธฑเธชเธชเธกเธฒเธเธดเธ</Table.Th>
-                  <Table.Th>เธ•เธดเธ”เธ•เนเธญ</Table.Th>
-                  <Table.Th>เธเธฃเธฐเน€เธ เธ—</Table.Th>
-                  <Table.Th>เธชเธ–เธฒเธเธฐ</Table.Th>
-                  <Table.Th>เธงเธฑเธเธซเธกเธ”เธญเธฒเธขเธธ</Table.Th>
-                  <Table.Th>เธงเธฑเธเธ—เธตเนเธชเธกเธฑเธเธฃ</Table.Th>
+                  <Table.Th>สมาชิก</Table.Th>
+                  <Table.Th>รหัสสมาชิก</Table.Th>
+                  <Table.Th>ติดต่อ</Table.Th>
+                  <Table.Th>ประเภท</Table.Th>
+                  <Table.Th>สถานะ</Table.Th>
+                  <Table.Th>วันหมดอายุ</Table.Th>
+                  <Table.Th>วันที่สมัคร</Table.Th>
                   <Table.Th />
                 </Table.Tr>
               </Table.Thead>
@@ -575,7 +575,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                             </Group>
                           )}
                           {!member.email && !member.phone && (
-                            <Text size="xs" c="dimmed">โ€”</Text>
+                            <Text size="xs" c="dimmed">—</Text>
                           )}
                         </Stack>
                       </Table.Td>
@@ -608,7 +608,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                             </Text>
                           </Group>
                         ) : (
-                          <Text size="xs" c="dimmed">โ€”</Text>
+                          <Text size="xs" c="dimmed">—</Text>
                         )}
                       </Table.Td>
 
@@ -632,19 +632,19 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                               leftSection={<IconEdit size={14} />}
                               onClick={() => handleOpenEdit(member)}
                             >
-                              เนเธเนเนเธเธเนเธญเธกเธนเธฅ
+                              แก้ไขข้อมูล
                             </Menu.Item>
                             <Menu.Item
                               leftSection={<IconClockHour4 size={14} />}
                               onClick={() => handleOpenHistory(member)}
                             >
-                              เธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเน€เธเนเธฒ-เธญเธญเธ
+                              ประวัติการเข้า-ออก
                             </Menu.Item>
                             <Menu.Item
                               leftSection={<IconRefresh size={14} />}
-                              onClick={() => notifications.show({ title: 'เธชเธฃเนเธฒเธ QR Code เธชเธณเน€เธฃเนเธ', message: `เธฃเธซเธฑเธช QR Code เธเธญเธเธเธธเธ“เธ–เธนเธเธชเธฃเนเธฒเธเนเธซเธกเนเนเธฅเนเธง`, color: 'teal' })}
+                              onClick={() => notifications.show({ title: 'สร้าง QR Code สำเร็จ', message: `รหัส QR Code ของคุณถูกสร้างใหม่แล้ว`, color: 'teal' })}
                             >
-                              เธชเธฃเนเธฒเธ QR Code เนเธซเธกเน
+                              สร้าง QR Code ใหม่
                             </Menu.Item>
                             <Menu.Divider />
                             <Menu.Item
@@ -654,7 +654,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                                 handleDelete(member.id, `${member.firstNameTh} ${member.lastNameTh}`)
                               }
                             >
-                              เธฅเธเธชเธกเธฒเธเธดเธ
+                              ลบสมาชิก
                             </Menu.Item>
                           </Menu.Dropdown>
                         </Menu>
@@ -667,11 +667,11 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                       <Stack align="center" py="xl" gap="xs">
                         <IconUsers size={40} color="var(--mantine-color-dimmed)" />
                         <Text c="dimmed">
-                          {hasFilter ? 'เนเธกเนเธเธเธชเธกเธฒเธเธดเธเธ—เธตเนเธ•เธฃเธเธเธฑเธเธเธฒเธฃเธเนเธเธซเธฒ' : 'เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธชเธกเธฒเธเธดเธ'}
+                          {hasFilter ? 'ไม่พบสมาชิกที่ตรงกับการค้นหา' : 'ยังไม่มีข้อมูลสมาชิก'}
                         </Text>
                         {hasFilter && (
                           <Button variant="subtle" size="xs" onClick={clearFilters}>
-                            เธฅเนเธฒเธเธ•เธฑเธงเธเธฃเธญเธ
+                            ล้างตัวกรอง
                           </Button>
                         )}
                       </Stack>
@@ -692,7 +692,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
         onClose={close}
         title={
           <Text fw={600} size="lg">
-            {isEdit ? 'เนเธเนเนเธเธเนเธญเธกเธนเธฅเธชเธกเธฒเธเธดเธ' : 'เน€เธเธดเนเธกเธชเธกเธฒเธเธดเธเนเธซเธกเน'}
+            {isEdit ? 'แก้ไขข้อมูลสมาชิก' : 'เพิ่มสมาชิกใหม่'}
           </Text>
         }
         size="lg"
@@ -709,23 +709,23 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                 onClick={handleReadIdCard}
                 fullWidth
               >
-                เธญเนเธฒเธเธเนเธญเธกเธนเธฅเธเธฒเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ (Web USB)
+                อ่านข้อมูลจากบัตรประชาชน (Web USB)
               </Button>
-              <Divider label="เธซเธฃเธทเธญเธเธฃเธญเธเธเนเธญเธกเธนเธฅเธ”เนเธงเธขเธ•เธเน€เธญเธ" labelPosition="center" />
+              <Divider label="หรือกรอกข้อมูลด้วยตนเอง" labelPosition="center" />
             </>
           )}
 
           {/* Row 1: memberNo + citizenId */}
           <Group grow>
             <TextInput
-              label="เธฃเธซเธฑเธชเธชเธกเธฒเธเธดเธ"
+              label="รหัสสมาชิก"
               placeholder="M-202505-0001"
               required
               value={formData.memberNo}
               onChange={(e) => setFormData({ ...formData, memberNo: e.target.value })}
             />
             <TextInput
-              label="เน€เธฅเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ"
+              label="เลขบัตรประชาชน"
               placeholder="x-xxxx-xxxxx-xx-x"
               value={formData.citizenId}
               onChange={(e) => {
@@ -745,9 +745,9 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row 2: prefix + firstNameTh + lastNameTh */}
           <Group grow>
             <Select
-              label="เธเธณเธเธณเธซเธเนเธฒ"
-              placeholder="เน€เธฅเธทเธญเธ"
-              data={['เธเธฒเธข', 'เธเธฒเธ', 'เธเธฒเธเธชเธฒเธง', 'เน€เธ”เนเธเธเธฒเธข', 'เน€เธ”เนเธเธซเธเธดเธ']}
+              label="คำนำหน้า"
+              placeholder="เลือก"
+              data={['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง']}
               style={{ flex: '0 0 100px' }}
               value={formData.prefixTh}
               onChange={(val) => {
@@ -760,15 +760,15 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               }}
             />
             <TextInput
-              label="เธเธทเนเธญ (เธ เธฒเธฉเธฒเนเธ—เธข)"
-              placeholder="เธเธทเนเธญ"
+              label="ชื่อ (ภาษาไทย)"
+              placeholder="ชื่อ"
               required
               value={formData.firstNameTh}
               onChange={(e) => setFormData({ ...formData, firstNameTh: e.target.value })}
             />
             <TextInput
-              label="เธเธฒเธกเธชเธเธธเธฅ (เธ เธฒเธฉเธฒเนเธ—เธข)"
-              placeholder="เธเธฒเธกเธชเธเธธเธฅ"
+              label="นามสกุล (ภาษาไทย)"
+              placeholder="นามสกุล"
               required
               value={formData.lastNameTh}
               onChange={(e) => setFormData({ ...formData, lastNameTh: e.target.value })}
@@ -786,13 +786,13 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               onChange={(val) => setFormData({ ...formData, prefixEn: val || '' })}
             />
             <TextInput
-              label="เธเธทเนเธญ (English)"
+              label="ชื่อ (English)"
               placeholder="First Name"
               value={formData.firstNameEn}
               onChange={(e) => setFormData({ ...formData, firstNameEn: e.target.value })}
             />
             <TextInput
-              label="เธเธฒเธกเธชเธเธธเธฅ (English)"
+              label="นามสกุล (English)"
               placeholder="Last Name"
               value={formData.lastNameEn}
               onChange={(e) => setFormData({ ...formData, lastNameEn: e.target.value })}
@@ -802,8 +802,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row: birthDate + gender */}
           <Group grow>
             <TextInput
-              label="เธงเธฑเธเน€เธเธดเธ” (เธฃเธฐเธเธธเน€เธเนเธ เธ.เธจ.)"
-              placeholder="เน€เธเนเธ 15/04/2538"
+              label="วันเกิด (ระบุเป็น พ.ศ.)"
+              placeholder="เช่น 15/04/2538"
               value={formData.birthDate}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\//g, '');
@@ -816,11 +816,11 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               maxLength={10}
             />
             <Select
-              label="เน€เธเธจ"
-              placeholder="เน€เธฅเธทเธญเธ"
+              label="เพศ"
+              placeholder="เลือก"
               data={[
-                { value: 'เธเธฒเธข', label: 'เธเธฒเธข' },
-                { value: 'เธซเธเธดเธ', label: 'เธซเธเธดเธ' },
+                { value: 'ชาย', label: 'ชาย' },
+                { value: 'หญิง', label: 'หญิง' },
               ]}
               value={formData.gender}
               onChange={(val) => setFormData({ ...formData, gender: val ?? '' })}
@@ -829,8 +829,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
 
           {/* Row: address */}
           <TextInput
-            label="เธ—เธตเนเธญเธขเธนเน"
-            placeholder="เธเนเธฒเธเน€เธฅเธเธ—เธตเน เธซเธกเธนเน เธเธญเธข เธ–เธเธ เนเธเธงเธ เน€เธเธ• เธเธฑเธเธซเธงเธฑเธ” เธฃเธซเธฑเธชเนเธเธฃเธฉเธ“เธตเธขเน"
+            label="ที่อยู่"
+            placeholder="บ้านเลขที่ หมู่ ซอย ถนน แขวง เขต จังหวัด รหัสไปรษณีย์"
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           />
@@ -838,7 +838,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row: phone + email */}
           <Group grow>
             <TextInput
-              label="เน€เธเธญเธฃเนเนเธ—เธฃเธจเธฑเธเธ—เน"
+              label="เบอร์โทรศัพท์"
               placeholder="08X-XXX-XXXX"
               leftSection={<IconPhone size={15} />}
               value={formData.phone}
@@ -853,7 +853,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               maxLength={12}
             />
             <TextInput
-              label="เธญเธตเน€เธกเธฅ"
+              label="อีเมล"
               placeholder="example@email.com"
               leftSection={<IconMail size={15} />}
               value={formData.email}
@@ -863,8 +863,8 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
 
           {/* Row: school */}
           <TextInput
-            label="เธเธทเนเธญเธชเธ–เธฒเธเธฑเธเธเธฒเธฃเธจเธถเธเธฉเธฒ / เนเธฃเธเน€เธฃเธตเธขเธ"
-            placeholder="เธเธฃเธญเธเธเธทเนเธญเธชเธ–เธฒเธเธฑเธเธเธฒเธฃเธจเธถเธเธฉเธฒ..."
+            label="ชื่อสถาบันการศึกษา / โรงเรียน"
+            placeholder="กรอกชื่อสถาบันการศึกษา..."
             value={formData.school}
             onChange={(e) => setFormData({ ...formData, school: e.target.value })}
           />
@@ -872,33 +872,33 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Row 5: memberType + status + expireDate */}
           <Group grow>
             <Select
-              label="เธเธฃเธฐเน€เธ เธ—เธชเธกเธฒเธเธดเธ"
+              label="ประเภทสมาชิก"
               data={[
-                { value: 'STUDENT', label: 'เธเธฑเธเน€เธฃเธตเธขเธ' },
-                { value: 'STAFF', label: 'เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเน' },
-                { value: 'FACULTY', label: 'เธญเธฒเธเธฒเธฃเธขเน' },
-                { value: 'EXTERNAL', label: 'เธเธธเธเธเธฅเธ เธฒเธขเธเธญเธ' },
-                { value: 'GUEST', label: 'เธเธนเนเน€เธขเธตเนเธขเธกเธเธก' },
+                { value: 'STUDENT', label: 'นักเรียน' },
+                { value: 'STAFF', label: 'เจ้าหน้าที่' },
+                { value: 'FACULTY', label: 'อาจารย์' },
+                { value: 'EXTERNAL', label: 'บุคคลภายนอก' },
+                { value: 'GUEST', label: 'ผู้เยี่ยมชม' },
               ]}
               value={formData.memberType}
               onChange={(val) => setFormData({ ...formData, memberType: val ?? 'STUDENT' })}
             />
             {isEdit && (
               <Select
-                label="เธชเธ–เธฒเธเธฐ"
+                label="สถานะ"
                 data={[
-                  { value: 'ACTIVE', label: 'เนเธเนเธเธฒเธ' },
-                  { value: 'EXPIRED', label: 'เธซเธกเธ”เธญเธฒเธขเธธ' },
-                  { value: 'SUSPENDED', label: 'เธฃเธฐเธเธฑเธ' },
-                  { value: 'REVOKED', label: 'เธขเธเน€เธฅเธดเธ' },
+                  { value: 'ACTIVE', label: 'ใช้งาน' },
+                  { value: 'EXPIRED', label: 'หมดอายุ' },
+                  { value: 'SUSPENDED', label: 'ระงับ' },
+                  { value: 'REVOKED', label: 'ยกเลิก' },
                 ]}
                 value={formData.status}
                 onChange={(val) => setFormData({ ...formData, status: val ?? 'ACTIVE' })}
               />
             )}
             <DatePickerInput
-              label="เธงเธฑเธเธซเธกเธ”เธญเธฒเธขเธธเธชเธกเธฒเธเธดเธ"
-              placeholder="เน€เธฅเธทเธญเธเธงเธฑเธเธ—เธตเน"
+              label="วันหมดอายุสมาชิก"
+              placeholder="เลือกวันที่"
               locale="th"
               valueFormat="D MMM YYYY"
               leftSection={<IconCalendar size={15} />}
@@ -914,10 +914,10 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           {/* Actions */}
           <Group justify="flex-end" mt="xs">
             <Button variant="light" color="gray" onClick={close}>
-              เธขเธเน€เธฅเธดเธ
+              ยกเลิก
             </Button>
             <Button color="blue" onClick={handleSubmit} loading={loading}>
-              {isEdit ? 'เธเธฑเธเธ—เธถเธเธเธฒเธฃเนเธเนเนเธ' : 'เน€เธเธดเนเธกเธชเธกเธฒเธเธดเธ'}
+              {isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มสมาชิก'}
             </Button>
           </Group>
         </Stack>
@@ -931,7 +931,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           <Group gap="xs">
             <IconClockHour4 size={20} />
             <Text fw={600} size="lg">
-              เธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเน€เธเนเธฒ-เธญเธญเธ: {selectedMember?.firstNameTh} {selectedMember?.lastNameTh}
+              ประวัติการเข้า-ออก: {selectedMember?.firstNameTh} {selectedMember?.lastNameTh}
             </Text>
           </Group>
         }
@@ -945,10 +945,10 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
               <Table verticalSpacing="sm">
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>เธงเธฑเธ/เน€เธงเธฅเธฒ</Table.Th>
-                    <Table.Th>เธเธฃเธฐเธ•เธน/เธเธธเธ”เธเธงเธเธเธธเธก</Table.Th>
-                    <Table.Th>เธ—เธดเธจเธ—เธฒเธ</Table.Th>
-                    <Table.Th>เธชเธ–เธฒเธเธฐ</Table.Th>
+                    <Table.Th>วัน/เวลา</Table.Th>
+                    <Table.Th>ประตู/จุดควบคุม</Table.Th>
+                    <Table.Th>ทิศทาง</Table.Th>
+                    <Table.Th>สถานะ</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -960,12 +960,12 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                             {dayjs(event.scannedAt).format('D MMM YYYY')}
                           </Text>
                           <Text size="xs" c="dimmed">
-                            {dayjs(event.scannedAt).format('HH:mm:ss')} เธ.
+                            {dayjs(event.scannedAt).format('HH:mm:ss')} น.
                           </Text>
                         </Stack>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{event.gate?.nameTh || 'เนเธกเนเธฃเธฐเธเธธ'}</Text>
+                        <Text size="sm">{event.gate?.nameTh || 'ไม่ระบุ'}</Text>
                         <Text size="xs" c="dimmed">{event.gate?.gateCode}</Text>
                       </Table.Td>
                       <Table.Td>
@@ -973,7 +973,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                           variant="light" 
                           color={event.direction === 'IN' ? 'blue' : 'orange'}
                         >
-                          {event.direction === 'IN' ? 'เน€เธเนเธฒ' : 'เธญเธญเธ'}
+                          {event.direction === 'IN' ? 'เข้า' : 'ออก'}
                         </Badge>
                       </Table.Td>
                       <Table.Td>
@@ -982,7 +982,7 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
                           color={event.decision === 'ALLOWED' ? 'green' : 'red'}
                           size="sm"
                         >
-                          {event.decision === 'ALLOWED' ? 'เธเนเธฒเธ' : 'เธเธเธดเน€เธชเธ'}
+                          {event.decision === 'ALLOWED' ? 'ผ่าน' : 'หมดอายุ'}
                         </Badge>
                       </Table.Td>
                     </Table.Tr>
@@ -993,13 +993,13 @@ export default function MembersClient({ initialMembers }: { initialMembers: Memb
           ) : !historyLoading && (
             <Stack align="center" py={60} gap="xs">
               <IconClockHour4 size={40} color="var(--mantine-color-dimmed)" />
-              <Text c="dimmed">เนเธกเนเธเธเธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเน€เธเนเธฒ-เธญเธญเธ</Text>
+              <Text c="dimmed">ไม่พบประวัติการเข้า-ออก</Text>
             </Stack>
           )}
           
           <Group justify="flex-end">
             <Button variant="light" color="gray" onClick={closeHistory}>
-              เธเธดเธ”เธซเธเนเธฒเธ•เนเธฒเธ
+              ปิดหน้าต่าง
             </Button>
           </Group>
         </Stack>
