@@ -1,0 +1,146 @@
+//ALL COMMAND
+#define IOCTL_IC_POWER_ON  	0x901
+#define IOCTL_IC_POWER_OFF 	0x902
+#define IOCTL_IC_COMMAND   	0x903
+#define IOCTL_SET_PARAM 	0x904
+#define IOCTL_GET_PARAM 	0x905
+#define IOCTL_BYPASS_COMMAND 	0x906
+#define IOCTL_BUZZER	   	0x907
+#define IOCTL_READ_FLASH   	0x908
+#define IOCTL_WRITE_FLASH   	0x909
+#define IOCTL_GET_READERINFO   	0x910
+#define IOCTL_GET_DRIVERVER   	0x911
+
+Polling on command :  0x81 0x00
+Polling off command : 0x81 0xFF 0x03
+
+DWORD RetLen;
+ret = SCardControl(card_handle, 
+                   SCARD_CTL_CODE(IOCTL_XXX), 
+                   InBuffer, InBufferLength,
+                   OutBuffer, OutBufferLength,
+                   &RetLen);
+
+IOCTL_IC_POWER_ON (0x901)
+-----------------------------
+InBuffer .... SAM ID(0~3)
+	      if you use DE-600S, you should not use SAM ID.	
+OutBuffer ... ATR of the SAM or '000102' if no SAM present
+
+
+IOCTL_IC_POWER_OFF (0x902)
+------------------------------
+InBuffer .... SAM ID(0~3)
+	      if you use DE-600S, you should not use SAM ID.
+OutBuffer ... '000100' if successful
+
+
+IOCTL_IC_COMMAND (0x903)
+------------------------------
+InBuffer .... SAM ID(0~3) + APDU data
+	      if you use DE-600S, you should not use SAM ID.
+              Example - Send the "Get Challenge" to the SAM with T0:
+              T0 protocol: InBuffer = {00 84 00 00 08}
+OutBuffer ... response from the SAM
+              '000102' if there was no response
+	      
+
+IOCTL_SET_PARAM (0x904)
+------------------------------
+InBuffer .... Parameter's ID(1~8) + data to set
+              =>Parameter's ID
+		1:Max Card Communication Speed:0~3(106K,212K,24k,848K)
+		2:Field Strength Resister:0~3F
+		3:B-TYPE Modulation Resister:0~3F
+		4:A-TYPE Receive Gain:1~3
+		5:B-TYPE Receive Gain:1~3
+		6:A-TYPE Receive Threshold:0~0xFF
+		7:B-TYPE Receive Threshold:0~0xFF
+		8:Max Card Wait Parameter Set:10~14(300ms,600ms,1.2s,2.4s,4.8s)	
+OutBuffer ... response from the SAM
+              '000100' if successful
+
+IOCTL_GET_PARAM (0x905)
+------------------------------
+InBuffer .... not used		
+OutBuffer ... response from the SAM
+	        OutBuffer[1]:Max Card Communication Speed
+		OutBuffer[2]:Field Strength Resister
+		OutBuffer[3]:B-TYPE Modulation Resister
+		OutBuffer[4]:A-TYPE Receive Gain
+		OutBuffer[5]:B-TYPE Receive Gain
+		OutBuffer[6]:A-TYPE Receive Threshold
+		OutBuffer[7]:B-TYPE Receive Threshold
+		OutBuffer[8]:Auto communication change
+
+IOCTL_BYPASS_COMMAND (0x906)
+------------------------------
+InBuffer .... data that a driver send to the card or the reader.
+	      protocol : len(high) len(low) command data
+			length = command + data	
+	      Example - Send the "Get Data - cardserial(00ca011108)" to the CARD 
+		with T0 protocol: InBuffer = {00 06 53 00 ca 01 11 08}
+		with T1 protocol(B-type card): InBuffer = {00 09 60 0a 00 00 ca 01 11 08 0b}					
+OutBuffer ... response from the CARD or the reader
+	        
+IOCTL_BUZZER	   (0x907)
+------------------------------
+InBuffer ....   InBuffer[0] : 0  => Buzzer on		
+		InBuffer[0] : 1  => Buzzer off
+OutBuffer ... response from the Reader
+	      '000100' if successful		
+
+IOCTL_READ_FLASH   	(0x908)
+------------------------------
+This command reads user data from the flash memory in CPU. Memory size is 128 bytes.
+So ¡®offset + data length[N]¡¯ should not exceed 128.
+InBuffer ....   InBuffer[0] : Offset		
+		InBuffer[1] : Length  of data to read
+OutBuffer ... response from the Reader 
+	       '000101' if you send wrong data		 
+		OutBuffer[0]:high byte of data length
+		OutBuffer[1]:low byte of data length
+		OutBuffer[2]:status byte
+		OutBuffer[3~N]:data bytes in the flash memory.
+
+
+IOCTL_WRITE_FLASH   	(0x909)
+------------------------------
+This command writes user data to the flash memory in CPU. Memory size is 128 bytes.
+So ¡®offset + data length[N]¡¯ should not exceed 128.    
+InBuffer ....   InBuffer[0] : Offset		
+		InBuffer[1~N] : Data to write
+OutBuffer ... response from the Reader	
+	      '000100' if successful
+	      '000101' if you send wrong data		
+	      
+IOCTL_GET_READERINFO   	(0x910)  
+------------------------------
+This command get information of the module/reader.
+InBuffer ....   don't need input data.
+OutBuffer ... response from the Reader	
+	      	OutBuffer[0]:Auto Polling (1:disable,  0:enable)
+              	OutBuffer[1]:RF Status    (1:rf on,  0:rf off)		
+	      	OutBuffer[2]:Card type    ('A'(0x41):type A, 'B'(0x42):tpye B, 'M'(0x4d):Mifare, 0xff:No Card)
+	      	OutBuffer[3]:Module/Reader Bit rates(Tx/Rx max) (0:106 kbit/s 1:212 kbit/s 2:424 kbit/s 3:847 kbit/s)
+	      	OutBuffer[4]:Card Bit rates(Tx max) (0:106 kbit/s 1:212 kbit/s 2:424 kbit/s 3:847 kbit/s)
+		OutBuffer[5]:Card Bit rates(Tx current) (0:106 kbit/s 1:212 kbit/s 2:424 kbit/s 3:847 kbit/s)		
+		OutBuffer[6]:Card Bit rates(Rx max) (0:106 kbit/s 1:212 kbit/s 2:424 kbit/s 3:847 kbit/s)
+		OutBuffer[7]:Card Bit rates(Rx current) (0:106 kbit/s 1:212 kbit/s 2:424 kbit/s 3:847 kbit/s)
+		OutBuffer[8]:Cascade level (Type A:0x01,0x02,0x03   Type B:0xff)
+		OutBuffer[9]~[18]:UID (default:0xff) 
+				ex1]type A card, cascade levle 1 => OutBuffer[9]~[12] : UID, last bytes(OutBuffer[13]~[19]) will be 0xff;
+				ex2]type A card, cascade levle 2 => OutBuffer[9]~[15] : UID, last bytes(OutBuffer[16]~[19]) will be 0xff;
+				ex3]type A card, cascade levle 3 => OutBuffer[9]~[19] : UID
+				ex4]type B card => OutBuffer[9]~[12] : UID, last bytes(OutBuffer[13]~[18]) will be 0xff;	
+
+
+IOCTL_GET_DRIVERVER   	(0x911)
+------------------------------
+This command reads driver version.
+So ¡®offset + data length[N]¡¯ should not exceed 128.
+InBuffer ....  not used
+OutBuffer ...  Driver version 
+	       ex]VER_PCSC09022611
+
+Exclusive for R&D Computer System Co., Ltd.

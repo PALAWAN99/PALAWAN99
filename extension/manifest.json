@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApyP6K/z9Rl6Ouo/LT2ABO/4hEGst7AGLDHP4TG0LBbT2BdO/ImOvLqV04CdUVoHIttdO2tjTNgQmTArIuh87E1Eazy6KxT4Pc0Yho/Gnm7PT+wjJeWguvuivztAddEowHJjv2tR6nsF57WzSwfiEIVpiLkF0wroJWstDGAg6eqKbYKlCAXDm+1sZY8ybhwzrS5yaO1H713EBt6uFBn1VgjH/wSdjYaVaXjHEEYcMIlvwVnnaEKHsFbFS5kYJYNTqJj4zswPkz2FCNb+wAikkYBXXFxKoEdhn+x0Ijn34NTJbiFrPmrpkhoyjkhMHJBbC34HoSStzmXQr4wN5pxblGQIDAQAB",
+  "name": "KKU Smart Access — Card Bridge",
+  "version": "1.0.2",
+  "description": "อ่านบัตรประชาชนผ่าน USB บนเครื่องเคาน์เตอร์ (Mac/Windows) สำหรับ lib.kku.ac.th/smart-access",
+  "permissions": ["nativeMessaging", "storage"],
+  "host_permissions": [
+    "https://lib.kku.ac.th/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://lib.kku.ac.th/smart-access/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
+      ],
+      "js": ["content-bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "KKU Card Bridge",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

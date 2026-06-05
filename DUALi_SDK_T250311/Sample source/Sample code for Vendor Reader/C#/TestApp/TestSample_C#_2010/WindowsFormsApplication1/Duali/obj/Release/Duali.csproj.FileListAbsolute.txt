@@ -1,0 +1,8 @@
+H:\SDK\Sample source\TestSample_C#_2010\WindowsFormsApplication1\Duali\bin\Release\Duali.dll
+H:\SDK\Sample source\TestSample_C#_2010\WindowsFormsApplication1\Duali\bin\Release\Duali.pdb
+H:\SDK\Sample source\TestSample_C#_2010\WindowsFormsApplication1\Duali\obj\Release\Duali.dll
+H:\SDK\Sample source\TestSample_C#_2010\WindowsFormsApplication1\Duali\obj\Release\Duali.pdb
+H:\SDK\Sample source\Sample code for Vendor Reader\C#\TestSample_C#_2010\WindowsFormsApplication1\Duali\bin\Release\Duali.dll
+H:\SDK\Sample source\Sample code for Vendor Reader\C#\TestSample_C#_2010\WindowsFormsApplication1\Duali\bin\Release\Duali.pdb
+H:\SDK\Sample source\Sample code for Vendor Reader\C#\TestSample_C#_2010\WindowsFormsApplication1\Duali\obj\Release\Duali.dll
+H:\SDK\Sample source\Sample code for Vendor Reader\C#\TestSample_C#_2010\WindowsFormsApplication1\Duali\obj\Release\Duali.pdb

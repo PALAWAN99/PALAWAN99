@@ -1,0 +1,30 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: PCSC - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\yschoi\LOCALS~1\Temp\RSP96.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /FR"Debug/" /Fp"Debug/PCSC.pch" /Yu"stdafx.h" /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"D:\DualCard\Sample source\PCSC_Sample App\PCSCDlg.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\yschoi\LOCALS~1\Temp\RSP96.tmp" 
+Creating command line "link.exe Winscard.lib /nologo /subsystem:windows /incremental:yes /pdb:"Debug/PCSC.pdb" /debug /machine:I386 /out:"Debug/PCSC.exe" /pdbtype:sept  ".\Debug\PCSC.obj" ".\Debug\PCSCDlg.obj" ".\Debug\StdAfx.obj" ".\Debug\PCSC.res" "
+<h3>Output Window</h3>
+Compiling...
+PCSCDlg.cpp
+Linking...
+Creating command line "bscmake.exe /nologo /o"Debug/PCSC.bsc"  ".\Debug\StdAfx.sbr" ".\Debug\PCSC.sbr" ".\Debug\PCSCDlg.sbr""
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+PCSC.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

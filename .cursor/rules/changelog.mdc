@@ -1,0 +1,54 @@
+---
+description: บันทึก changelog ทุกครั้งที่เพิ่ม/แก้ฟีเจอร์ในโปรเจกต์
+alwaysApply: true
+---
+
+# Changelog (บังคับเมื่อจบงานฟีเจอร์)
+
+เมื่อ **เพิ่มหรือแก้ไขฟังก์ชัน** ที่ผู้ใช้มองเห็นหรือพฤติกรรม API/UI สำคัญ ให้บันทึกลงระบบ changelog ก่อนสรุปงานให้ผู้ใช้
+
+## ขั้นตอน
+
+1. เลขเวอร์ชัน: รัน `changelog:add` **จะเพิ่มแพตช์ใน `APP_VERSION` อัตโนมัติ** (เช่น `1.0.1` → `1.0.2`) แล้วบันทึก changelog ด้วยเลขใหม่ — ใช้ **`--no-bump`** ถ้าต้องการหลายรายการใต้เลขเดิม หรือ **`--version X.Y.Z`** ถ้าต้องการแค่เลขใน DB โดยไม่แก้ `app-meta.ts`
+2. รันจาก `frontend/`:
+
+   ```bash
+   npm run changelog:add -- \
+     --title "หัวข้อสั้น (ภาษาไทย)" \
+     --description "อธิบายว่าเปลี่ยนอะไร ทำไม กระทบใคร" \
+     --type FEATURE
+   ```
+
+3. `--type` หนึ่งใน: `FEATURE` | `FIX` | `IMPROVEMENT` | `SECURITY` | `OTHER`
+4. ผู้ใช้ดูได้ที่ **`/admin/changelog`** (ลิงก์จากเลขเวอร์ชันใน sidebar)
+
+## อัตโนมัติจาก commit (ทางเลือก)
+
+- `cd frontend && npm run changelog:auto` — สร้างรายการจาก `git log -1` (conventional commit) ไม่สร้างซ้ำถ้า description มี `changelog-git:<hash>` อยู่แล้ว
+- ติดตั้ง hook หลังทุก commit: `./scripts/install-git-hooks.sh` (ต้องมี `DATABASE_URL` ในราก `.env`; ถ้าไม่มีหรือ script error hook จะไม่ทำให้ commit ล้ม)
+- ฐานข้อมูลว่าง: `ensureChangelogSeed` สร้าง **รายการแรก** อัตโนมัติจากเวอร์ชันปัจจุบัน
+
+## เมื่อไหร่ต้องบันทึก
+
+- ฟีเจอร์ใหม่, หน้า/API ใหม่
+- แก้บั๊กที่ผู้ใช้สังเกตได้
+- ปรับ UX/UI สำคัญ, RBAC, PDPA, เครื่องอ่านบัตร
+- ไม่ต้องบันทึก: refactor เล็กน้อย, comment, format, markdown อย่างเดียว
+
+## Release ใหม่ (เลขเวอร์ชันตามรอบปล่อย)
+
+แนะนำใช้สคริปต์เดียวให้ **`APP_VERSION`** กับแถว **`/admin/changelog`** ตรงกัน (ถ้าบันทึก DB ไม่สำเร็จ จะคืน `app-meta.ts`):
+
+```bash
+cd frontend
+npm run release:version -- \
+  --description "สรุปการเปลี่ยนแปลงหลักของรอบนี้"
+```
+
+- **ไม่ระบุ `--version`** → เพิ่มแพตช์อัตโนมัติจาก `APP_VERSION` ปัจจุบัน (เช่น `1.0.1` → `1.0.2`)
+- **`--version`** รูปแบบ `X.Y.Z` หรือ `vX.Y.Z` — ใช้เมื่อต้องการกำหนด minor/major เอง
+- จำเป็น: `--description`
+- ทางเลือก: `--title` (ค่าเริ่มต้น `ปล่อย vX.Y.Z`), `--type` (ค่าเริ่มต้น `FEATURE`)
+- หลังรัน: commit `app-meta.ts` + โค้ดรอบนี้ แล้ว deploy / tag ตามทีม
+
+**ทางเลือก (มือ):** อัปเดต `APP_VERSION` ใน `app-meta.ts` แล้วรัน `changelog:add` พร้อม `--no-bump` หรือ `--version` ให้ตรงกัน

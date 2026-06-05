@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd frontend && npx prisma generate && npm run build",
+  "installCommand": "cd frontend && npm install",
+  "framework": "nextjs",
+  "rootDirectory": "frontend",
+  "regions": ["sin1"]
+}

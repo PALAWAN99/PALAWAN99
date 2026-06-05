@@ -1,0 +1,45 @@
+# Production compose.
+# - CARD_API_ON_SERVER=false (default): card API on Windows PC → browser uses 127.0.0.1
+# - CARD_API_ON_SERVER=true: USB reader on this Linux host → backend service + nginx /smart-access/card-api/
+# From repo root: docker compose -f deploy/docker-compose.prod.yml up -d --build
+services:
+  frontend:
+    image: ghcr.io/${GHCR_REPO_OWNER:-panuwath}/qrcode-accesscontrol-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/smart-access}
+        NEXT_PUBLIC_CARD_API_PROXY: ${NEXT_PUBLIC_CARD_API_PROXY:-${CARD_API_ON_SERVER:-false}}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_GOOGLE_RECAPTCHA_SITE_KEY: ${NEXT_PUBLIC_GOOGLE_RECAPTCHA_SITE_KEY:-}
+        NEXT_PUBLIC_RECAPTCHA_ENFORCE: ${NEXT_PUBLIC_RECAPTCHA_ENFORCE:-}
+        DATABASE_URL: ${DATABASE_URL:-postgresql://build:build@127.0.0.1:5432/build?schema=public}
+    container_name: smart-access-frontend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    # Host port only (not 3000) — bind all interfaces so lib-nginx-1 can reach 10.101.118.149:PORT
+    ports:
+      - "${FRONTEND_HOST_PORT:-13010}:3000"
+    environment:
+      - NODE_ENV=production
+      - INTERNAL_MIDDLEWARE_ORIGIN=http://127.0.0.1:3000
+      - CARD_API_INTERNAL_URL=http://smart-access-backend:8000
+
+  # Card API on Linux server (USB reader). Set CARD_API_ON_SERVER=true in .env
+  backend:
+    profiles: [card-api-server]
+    image: ghcr.io/${GHCR_REPO_OWNER:-panuwath}/qrcode-accesscontrol-backend:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: smart-access-backend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "${BACKEND_HOST_PORT:-8004}:8000"
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true

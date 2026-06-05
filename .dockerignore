@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/out
+backend/venv
+.git
+.cursor
+.vscode
+*.md
+!deploy/README-windows-card-api.md
+.DS_Store
+frontend/scratch

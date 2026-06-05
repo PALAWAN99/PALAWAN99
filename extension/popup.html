@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <title>KKU Card Bridge</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        width: 320px;
+        margin: 12px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 8px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 8px;
+        cursor: pointer;
+      }
+      .status {
+        padding: 8px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        margin-top: 8px;
+      }
+      .ok {
+        color: #166534;
+      }
+      .err {
+        color: #b91c1c;
+      }
+      code {
+        font-size: 11px;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>KKU Smart Access — Card Bridge</h1>
+    <p>เชื่อม USB บนเครื่องนี้กับหน้า <code>lib.kku.ac.th/smart-access</code></p>
+    <button id="toggle">เปิดใช้งาน Bridge</button>
+    <button id="test">ทดสอบ Native Host</button>
+    <div class="status" id="status">ยังไม่ได้เปิด Bridge</div>
+    <p style="margin-top: 12px; color: #64748b">
+      Windows: รัน <code>Install-Windows.bat</code> จาก zip ติดตั้ง (ไม่ใช่แค่ Load extension).
+      Mac: <code>Install-Mac.command</code>
+    </p>
+    <script src="popup.js"></script>
+  </body>
+</html>

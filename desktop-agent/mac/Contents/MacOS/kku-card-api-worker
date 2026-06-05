@@ -1,0 +1,88 @@
+#!/bin/bash
+# KKU Library — local Card API (DUALi DE-620). Bundled in KKU Card API.app
+# Runs without Terminal; quit from Dock (Cmd+Q) stops the API.
+set -euo pipefail
+
+APP_ROOT="$(cd "$(dirname "$0")/../Resources/app" && pwd)"
+export KKU_SMART_ACCESS_ROOT="$APP_ROOT"
+BACKEND="$APP_ROOT/backend"
+VENV="$APP_ROOT/venv"
+LOG_DIR="$HOME/Library/Logs"
+LOG_FILE="$LOG_DIR/KKU-Card-API.log"
+SUPPORT_DIR="$HOME/Library/Application Support/KKU-Card-API"
+PORT_FILE="$SUPPORT_DIR/port.txt"
+PID_FILE="$SUPPORT_DIR/card-api.pid"
+mkdir -p "$LOG_DIR" "$SUPPORT_DIR"
+
+pick_python() {
+  for candidate in /opt/homebrew/bin/python3.12 /usr/local/bin/python3.12 python3.12 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      echo "$(command -v "$candidate")"
+      return 0
+    fi
+  done
+  return 1
+}
+
+notify() {
+  osascript -e "display notification \"$1\" with title \"KKU Card API\"" 2>/dev/null || true
+}
+
+stop_server() {
+  if [[ -f "$PID_FILE" ]]; then
+    local pid
+    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
+    rm -f "$PID_FILE"
+  fi
+}
+
+cleanup() {
+  stop_server
+  exit 0
+}
+trap cleanup SIGTERM SIGINT
+
+if [[ ! -x "$VENV/bin/python" ]]; then
+  notify "กำลังติดตั้ง Python packages ครั้งแรก (1–2 นาที)..."
+  PY="$(pick_python)" || {
+    osascript -e 'display alert "ไม่พบ Python 3" message "ติดตั้ง Homebrew แล้วรัน: brew install python@3.12" as critical'
+    exit 1
+  }
+  "$PY" -m venv "$VENV"
+  "$VENV/bin/python" -m pip install --upgrade pip -q
+  "$VENV/bin/pip" install -r "$BACKEND/requirements.txt" -q
+  "$VENV/bin/python" -c "import smartcard" || {
+    osascript -e 'display alert "ติดตั้ง pyscard ไม่สำเร็จ" message "ลอง brew install python@3.12 แล้วเปิดแอปใหม่" as critical'
+    exit 1
+  }
+fi
+
+PICK="$APP_ROOT/bin/pick-port.sh"
+PORT="$("$PICK" 2>/dev/null || echo 8000)"
+echo "$PORT" > "$PORT_FILE"
+
+export CORS_ORIGINS="${CORS_ORIGINS:-https://lib.kku.ac.th,http://localhost:3000,http://127.0.0.1:3000}"
+BASE="http://127.0.0.1:${PORT}"
+
+{
+  echo "=== $(date) ==="
+  echo "KKU Card API starting on $BASE"
+} >> "$LOG_FILE"
+
+stop_server
+
+cd "$BACKEND"
+"$VENV/bin/python" -m uvicorn main:app --host 127.0.0.1 --port "$PORT" >> "$LOG_FILE" 2>&1 &
+echo $! > "$PID_FILE"
+
+notify "Card API พร้อมที่ $BASE — ปิดจาก Dock (คลิกขวา → Quit หรือ Cmd+Q)"
+
+if [[ "${KKU_CARD_API_OPEN_BROWSER:-1}" == "1" ]]; then
+  open "https://lib.kku.ac.th/smart-access/admin/idcard" 2>/dev/null || true
+fi
+
+wait "$(cat "$PID_FILE")"
