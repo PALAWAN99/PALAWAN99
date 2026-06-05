@@ -1,0 +1,282 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 한국어 resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+#ifdef _WIN32
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#pragma code_page(949)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)\r\n"
+    "LANGUAGE 18, 1\r\n"
+    "#pragma code_page(949)\r\n"
+    "#include ""res\\PCSC_Mifare_Sample.rc2""  // Microsoft Visual C++ 이외의 다른 도구에서 편집한 리소스입니다.\r\n"
+    "#include ""l.KOR\\afxres.rc""      // 표준 구성 요소입니다.\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\PCSC_Mifare_Sample.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "PCSC_Mifare_Sample 정보"
+FONT 9, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
+    LTEXT           "PCSC_Mifare_Sample, 버전 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2012",IDC_STATIC,42,26,114,8
+    DEFPUSHBUTTON   "확인",IDOK,113,41,50,14,WS_GROUP
+END
+
+IDD_PCSC_MIFARE_SAMPLE_DLG DIALOGEX 0, 0, 605, 375
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "PCSC_Mifare_Sample"
+FONT 9, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,94,309,274
+    COMBOBOX        IDC_COMBO_READER,77,16,192,287,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Reader Port :",IDC_STATIC,15,19,43,9
+    LTEXT           "Active Protocol :",IDC_STATIC,15,35,54,9
+    EDITTEXT        IDC_EDIT_ACTIVE_PROTO,77,32,192,15,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    CONTROL         "",IDC_LIST_DATA,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,320,94,277,248
+    PUSHBUTTON      "List Clear",IDC_BTN_CLEAR,545,346,53,18
+    PUSHBUTTON      "Text File",IDIDC_BTN_TEXT,488,346,53,18
+    GROUPBOX        "Connect",IDC_STATIC,7,7,590,83
+    PUSHBUTTON      "SCardEstablishContext",IDC_BTN_ESTABLISHCONTEXT,276,19,94,23
+    PUSHBUTTON      "SCardReleaseContext",IDC_REALSECONTEXT_BTN,379,18,94,23
+    COMBOBOX        IDC_COMBO_SHARE_MODE,77,56,191,79,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_PROTOCOL,77,73,191,79,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Share Mode :",IDC_STATIC,14,59,46,9
+    LTEXT           "Preferred Protocol :",IDC_STATIC,13,74,63,9
+    PUSHBUTTON      "SCardConnect",IDC_CONNECT_BTN,276,59,94,23
+    PUSHBUTTON      "SCardDisconnect",IDC_DISCONNECT_BTN,378,59,94,23
+END
+
+IDD_PCSCTEST_DLG DIALOGEX 0, 0, 352, 184
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_EDIT_APDU,11,31,330,14,ES_AUTOHSCROLL | NOT WS_BORDER,WS_EX_STATICEDGE
+    COMBOBOX        IDC_COMBO_COM,81,14,161,276,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "SCardTransmit",IDC_TRANS_BTN,174,49,166,29,0,WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE
+    LTEXT           "APDU Command :",IDC_STATIC,11,15,69,9
+    GROUPBOX        " Transaction ",IDC_STATIC,0,2,351,163
+    LTEXT           "IO Send PCI :",IDC_STATIC,13,52,53,9
+    COMBOBOX        IDC_COMBO_SENDPCI,68,49,101,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,306,12,22,14,ES_AUTOHSCROLL | NOT WS_BORDER,WS_EX_STATICEDGE
+    LTEXT           "Count of Data : ",IDC_STATIC,247,15,54,9
+    GROUPBOX        "",IDC_STATIC,9,80,331,10
+    PUSHBUTTON      "SCardControl",IDC_CTRL_BTN,187,124,159,36,0,WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE
+    EDITTEXT        IDC_EDIT_APDU_SAM,41,142,143,16,ES_AUTOHSCROLL
+    LTEXT           "IOctrl Command :",IDC_STATIC,13,94,70,9
+    COMBOBOX        IDC_COMBO_COM2,12,107,330,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "APDU:",IDC_STATIC,13,146,25,9
+    LTEXT           "SAM ID:",IDC_STATIC,13,125,34,9
+    COMBOBOX        IDC_COMBO_SAMID,48,124,36,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_MIFARETEST_DLG DIALOGEX 0, 0, 335, 192
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Load Key",IDC_STATIC,5,4,322,56
+    PUSHBUTTON      "Read",IDC_BTN_READ,16,146,71,20
+    PUSHBUTTON      "Write",IDC_BTN_WRITE,93,146,71,20
+    PUSHBUTTON      "Increment",IDC_BTN_INCREMENT,169,146,71,20
+    PUSHBUTTON      "Decrement",IDC_BTN_DECREMENT,246,146,71,20
+    LTEXT           "Index",IDC_STATIC,16,38,18,9
+    EDITTEXT        IDC_EDIT_KEY,97,36,69,13,ES_AUTOHSCROLL
+    LTEXT           "Key",IDC_STATIC,80,38,13,9
+    EDITTEXT        IDC_EDIT_KEY_LENGTH,217,36,47,12,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    EDITTEXT        IDC_EDIT_INDEX,39,36,30,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Load Key",IDC_BTN_LOADKEY,271,33,50,19
+    EDITTEXT        IDC_EDIT_DATA,58,101,181,13,ES_AUTOHSCROLL
+    LTEXT           "DATA",IDC_STATIC,16,103,18,9
+    LTEXT           "Data Length",IDC_STATIC,16,121,40,9
+    EDITTEXT        IDC_EDIT_DATA_LENGTH,59,121,60,12,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    EDITTEXT        IDC_EDIT_STATUS,123,121,115,12,ES_CENTER | ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    LTEXT           "Block No.(Decimal)",IDC_STATIC,16,83,60,8
+    EDITTEXT        IDC_EDIT_BLOCK1,81,81,32,14,ES_AUTOHSCROLL
+    LTEXT           "Key Length",IDC_STATIC,175,38,39,9
+    CONTROL         "A Key",IDC_RADIO_AKEY,"Button",BS_AUTORADIOBUTTON,55,19,32,10
+    CONTROL         "B Key",IDC_RADIO_BKEY,"Button",BS_AUTORADIOBUTTON,89,19,32,10
+    LTEXT           "KEY TYPE",IDC_STATIC,15,19,30,9
+    LTEXT           "Transfer Block No.",IDC_STATIC,144,83,60,8
+    EDITTEXT        IDC_EDIT_BLOCK2,207,81,32,14,ES_AUTOHSCROLL
+    GROUPBOX        "",IDC_STATIC,7,65,319,112
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041203b5"
+        BEGIN
+            VALUE "CompanyName", "TODO: <회사 이름>"
+            VALUE "FileDescription", "TODO: <파일 설명>"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "PCSC_Mifare_Sample.exe"
+            VALUE "LegalCopyright", "TODO: (c) <회사 이름>.  All rights reserved."
+            VALUE "OriginalFilename", "PCSC_Mifare_Sample.exe"
+            VALUE "ProductName", "TODO: <제품 이름>"
+            VALUE "ProductVersion", "1.0.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x412, 949
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+
+    IDD_PCSC_MIFARE_SAMPLE_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 598
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 368
+    END
+
+    IDD_PCSCTEST_DLG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 351
+    END
+
+    IDD_MIFARETEST_DLG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 334
+        BOTTOMMARGIN, 187
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_ABOUTBOX            "PCSC_Mifare_Sample 정보(&A)..."
+END
+
+#endif    // 한국어 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+LANGUAGE 18, 1
+#pragma code_page(949)
+#include "res\PCSC_Mifare_Sample.rc2"  // Microsoft Visual C++ 이외의 다른 도구에서 편집한 리소스입니다.
+#include "l.KOR\afxres.rc"      // 표준 구성 요소입니다.
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

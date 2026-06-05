@@ -1,0 +1,236 @@
+/* ──────────────────────────────────────────────
+ * Global Styles — QR Gate Access System
+ * Color Scheme: Sky Blue / Emerald / White / Navy
+ * ──────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+@import "tailwindcss";
+
+/* Mantine styles */
+@import '@mantine/core/styles.css';
+@import '@mantine/notifications/styles.css';
+@import '@mantine/dates/styles.css';
+
+:root {
+  /* Brand colors */
+  --color-sky: #38BDF8;
+  --color-emerald: #10B981;
+  --color-white: #FFFFFF;
+  --color-navy: #1E3A5F;
+  --color-accent: #0EA5E9;
+
+  /* Light mode tokens */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-tertiary: #F1F5F9;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border-color: #E2E8F0;
+  --sidebar-bg: #1E3A5F;
+  --sidebar-text: #F1F5F9;
+  --sidebar-active: #38BDF8;
+
+  /* Premium Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+[data-mantine-color-scheme='dark'] {
+  --bg-primary: #0F172A;
+  --bg-secondary: #020617;
+  --bg-tertiary: #1E293B;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --border-color: #1E293B;
+  --sidebar-bg: #0F172A;
+  --sidebar-text: #94A3B8;
+  --sidebar-active: #38BDF8;
+  
+  /* Premium Glassmorphism Dark */
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Outfit', 'Noto Sans Thai', 'Noto Sans SC', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Card hover animation */
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--bg-primary);
+}
+
+[data-mantine-color-scheme='dark'] .stat-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Status badge animation */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Premium Utilities */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.bg-premium-gradient {
+  background: linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #38BDF8, #10B981);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Admin sidebar: glass on navy ── */
+.admin-sidebar-glass {
+  background: linear-gradient(
+    165deg,
+    rgba(22, 58, 92, 0.94) 0%,
+    rgba(15, 40, 68, 0.97) 45%,
+    rgba(10, 28, 48, 0.98) 100%
+  ) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(148, 163, 184, 0.14) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.admin-sidebar-nav a,
+.admin-sidebar-nav .mantine-NavLink-root,
+.admin-sidebar-nav .mantine-NavLink-label,
+.admin-sidebar-nav .mantine-NavLink-section {
+  background-image: none !important;
+  -webkit-text-fill-color: currentcolor !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-root {
+  color: #e2e8f0 !important;
+  background: transparent !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-label {
+  color: #e2e8f0 !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-section,
+.admin-sidebar-nav .mantine-NavLink-chevron {
+  color: #94a3b8 !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-root:hover:not([data-active]) {
+  background: rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-root:hover:not([data-active]) .mantine-NavLink-label {
+  color: #f8fafc !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-root:hover:not([data-active]) .mantine-NavLink-section,
+.admin-sidebar-nav .mantine-NavLink-root:hover:not([data-active]) .mantine-NavLink-chevron {
+  color: #cbd5e1 !important;
+}
+
+/* Active: frosted sky panel + white text (readable) */
+.admin-sidebar-nav .mantine-NavLink-root[data-active] {
+  --nl-bg: rgba(14, 165, 233, 0.22);
+  --nl-color: #ffffff;
+  color: #ffffff !important;
+  background: rgba(14, 165, 233, 0.22) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.5) !important;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.admin-sidebar-nav .mantine-NavLink-root[data-active] .mantine-NavLink-label,
+.admin-sidebar-nav .mantine-NavLink-root[data-active] .mantine-NavLink-section,
+.admin-sidebar-nav .mantine-NavLink-root[data-active] .mantine-NavLink-chevron {
+  color: #ffffff !important;
+}
+
+.admin-sidebar-nav .mantine-NavLink-root[data-active] .mantine-NavLink-label {
+  font-weight: 600;
+}
+
+/* Nested items under expanded group */
+.admin-sidebar-nav .mantine-NavLink-children .mantine-NavLink-root[data-active] {
+  background: rgba(56, 189, 248, 0.16) !important;
+  border-color: rgba(125, 211, 252, 0.35) !important;
+}
+
+@keyframes pdpaHintBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+/* reCAPTCHA v3 badge (bottom-right) — keep visible on dark login page */
+.grecaptcha-badge {
+  visibility: visible !important;
+  z-index: 10000 !important;
+  opacity: 1 !important;
+}

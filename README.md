@@ -69,6 +69,7 @@ erDiagram
 ## 🚀 Getting Started (วิธีการติดตั้ง)
 
 ### 1. ติดตั้งผ่าน Docker (แนะนำสำหรับ Production)
+
 ```bash
 # 1. Clone Repository
 git clone <repository-url>
@@ -82,26 +83,32 @@ docker-compose up -d
 ```
 
 ### 2. ติดตั้งแบบ Local (สำหรับการพัฒนา)
-```bash
-# 1. ติดตั้ง Dependencies
-npm install
 
-# 2. เตรียมฐานข้อมูล
+```bash
+# 1. ตั้งค่า environment (ไฟล์เดียวที่ราก monorepo)
+cp .env.example .env
+# แก้ไข DATABASE_URL, AUTH_SECRET, ฯลฯ
+
+# 2. Frontend
+cd frontend && npm install
 npx prisma generate
 npx prisma db push
+npm run dev          # http://localhost:3000
 
-# 3. รันระบบ Development
-npm run dev
+# 3. Backend (เครื่องอ่านบัตร — โหลด .env จากรากโปรเจกต์อัตโนมัติ)
+cd backend && ./run-dev.sh   # http://localhost:8000
 ```
 
 ---
 
 ## ⚙️ Environment Variables (การตั้งค่า)
 
-ระบบใช้ **Zod Validation** ตรวจสอบไฟล์ `.env` ตอนเริ่มทำงาน:
+ตั้งค่าทั้งหมดใน **`.env` ที่ราก repository** (ไม่ใช้ `frontend/.env.local`) — ดูตัวอย่างใน `.env.example`
+
+ระบบใช้ **Zod Validation** ตรวจสอบตัวแปร environment ตอนเริ่มทำงาน:
 
 | Variable | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `DATABASE_URL` | PostgreSQL Connection String | `postgresql://user:pass@localhost:5432/db` |
 | `NEXTAUTH_SECRET` | คีย์สำหรับเข้ารหัส Session | `your-secret-key` |
 | `QR_SIGN_SECRET` | คีย์สำหรับลงนาม QR Code | `shh-its-a-secret` |
@@ -112,11 +119,13 @@ npm run dev
 ## 📑 API Documentation (สรุป API ที่สำคัญ)
 
 ### Admin API
+
 - `GET /api/admin/dashboard/stats` - ข้อมูลสรุปหน้าแรก
 - `GET /api/admin/members` - จัดการข้อมูลสมาชิก
 - `POST /api/admin/gates` - เพิ่ม/แก้ไขข้อมูลประตู
 
 ### Hardware API (Gate Interface)
+
 - `POST /api/qr/validate` - ตรวจสอบ QR Code (รองรับ Signed Token)
 - `POST /api/device/heartbeat` - ตรวจสอบสถานะอุปกรณ์
 
@@ -124,15 +133,16 @@ npm run dev
 
 ## 📸 Screenshots
 
-*(ตัวอย่างหน้าจอหลักของระบบ)*
+ตัวอย่างหน้าจอหลักของระบบ
 
 | Dashboard | Member Management |
-|-----------|-------------------|
+| --- | --- |
 | ![Dashboard](https://via.placeholder.com/400x250?text=Admin+Dashboard) | ![Members](https://via.placeholder.com/400x250?text=Member+Management) |
 
 ---
 
 ## 🔒 Security Features
+
 - **HMAC-SHA256 Signed QR:** ป้องกันการปลอมแปลง QR Code
 - **Audit Logging:** บันทึกทุกการกระทำของ Admin
 - **Rate Limiting:** ป้องกันการโจมตีแบบ Brute Force/DDoS
@@ -141,5 +151,6 @@ npm run dev
 ---
 
 ## 🛠️ Maintenance (การดูแลรักษา)
+
 - **Backup:** รัน `.\scripts\db-backup.ps1` เพื่อสำรองฐานข้อมูล
 - **Logs:** ตรวจสอบ Log การเข้า-ออกได้ที่เมนู **"ประวัติกิจกรรม"** ในหน้า Admin

@@ -29,11 +29,30 @@
     "view": "View Details",
     "admins": "Admin Management",
     "security": "Security",
-    "noData": "No data available",
-    "manage": "Manage",
-    "nameTh": "Thai Name",
-    "nameEn": "English Name",
-    "nameZh": "Chinese Name"
+    "noData": "No data found",
+    "devices": "Devices",
+    "qrPolicies": "QR Policies"
+  },
+  "Device": {
+    "title": "Device Management",
+    "subtitle": "Register and monitor scanners and kiosks",
+    "addDevice": "Register New Device",
+    "deviceCode": "Device Code",
+    "deviceName": "Device Name",
+    "deviceType": "Device Type",
+    "lastSeen": "Last Seen",
+    "secretKey": "Secret Key",
+    "status": "Status"
+  },
+  "QrPolicy": {
+    "title": "QR Policies",
+    "subtitle": "Define TTL and security conditions for QR codes",
+    "addPolicy": "Add New Policy",
+    "policyName": "Policy Name",
+    "ttl": "TTL (Seconds)",
+    "oneTime": "One-time Use",
+    "limitPerDay": "Max Uses/Day",
+    "isDefault": "Default Policy"
   },
   "Dashboard": {
     "welcome": "Welcome back",

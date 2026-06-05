@@ -1,6 +1,8 @@
 {
   "Common": {
     "title": "ระบบเข้า-ออกประตู QR",
+    "brandName": "Smart Gate Access Control",
+    "brandSubtitle": "ระบบเข้า-ออกประตู · ห้องสมุด มข.",
     "dashboard": "แดชบอร์ด",
     "qr": "QR Code",
     "gates": "ประตู",
@@ -29,11 +31,50 @@
     "view": "ดูรายละเอียด",
     "admins": "จัดการแอดมิน",
     "security": "ความปลอดภัย",
-    "noData": "ไม่มีข้อมูล",
-    "manage": "จัดการ",
-    "nameTh": "ชื่อภาษาไทย",
-    "nameEn": "ชื่อภาษาอังกฤษ",
-    "nameZh": "ชื่อภาษาจีน"
+    "noData": "ไม่พบข้อมูล",
+    "devices": "อุปกรณ์",
+    "qrPolicies": "นโยบาย QR",
+    "about": "เกี่ยวกับระบบ"
+  },
+  "About": {
+    "title": "เกี่ยวกับระบบ QR Gate Access Control",
+    "subtitle": "แพลตฟอร์มควบคุมการเข้า-ออกสำหรับห้องสมุดและองค์กร",
+    "overview": "ระบบนี้รวมการออกและตรวจสอบ QR Code ที่ประตู การจัดการสมาชิกและประตู บันทึกประวัติเข้า-ออก พร้อมอ่านบัตรประชาชนไทยผ่านเครื่องอ่าน Smart Card (DUALi DE-620) สำหรับลงทะเบียนสมาชิกอย่างรวดเร็ว",
+    "capabilitiesTitle": "ความสามารถหลัก",
+    "capQr": "ออก QR เข้า-ออก หมดอายุตามนโยบาย ปลอดภัยด้วยการลงนาม",
+    "capGate": "จัดการประตู สาขา อุปกรณ์ และแดชบอร์ดเจ้าหน้าที่ประตู",
+    "capMember": "จัดการสมาชิก ต่ออายุ ประวัติเข้า-ออก และรายงาน",
+    "capIdCard": "อ่านบัตรประชาชนไทย (Web + เครื่องอ่านบัตร) ลงทะเบียนสมาชิก",
+    "capSecurity": "RBAC, Audit log, Rate limiting และรองรับ PDPA",
+    "techTitle": "เทคโนโลยีที่ใช้",
+    "techNote": "Monorepo: frontend (Next.js) + backend (Python FastAPI) สำหรับอ่านบัตร",
+    "structureTitle": "โครงสร้างโปรเจกต์",
+    "structureFrontend": "frontend/ — แอป Next.js, Prisma, Admin UI (Mantine)",
+    "structureBackend": "backend/ — API อ่านบัตรประชาชน (port 8000)",
+    "developedBy": "พัฒนาโดย KKU Library IT Team",
+    "copyright": "© {year} หอสมุด มหาวิทยาลัยขอนแก่น",
+    "backHome": "กลับหน้าแรก"
+  },
+  "Device": {
+    "title": "ระบบจัดการอุปกรณ์",
+    "subtitle": "ลงทะเบียนและตรวจสอบสถานะเครื่องสแกนและ Kiosk",
+    "addDevice": "ลงทะเบียนอุปกรณ์ใหม่",
+    "deviceCode": "รหัสอุปกรณ์",
+    "deviceName": "ชื่ออุปกรณ์",
+    "deviceType": "ประเภทอุปกรณ์",
+    "lastSeen": "การเชื่อมต่อล่าสุด",
+    "secretKey": "รหัสลับ (Secret Key)",
+    "status": "สถานะการทำงาน"
+  },
+  "QrPolicy": {
+    "title": "นโยบาย QR Code",
+    "subtitle": "กำหนดอายุการใช้งานและเงื่อนไขความปลอดภัยของรหัส QR",
+    "addPolicy": "เพิ่มนโยบายใหม่",
+    "policyName": "ชื่อนโยบาย",
+    "ttl": "อายุการใช้งาน (วินาที)",
+    "oneTime": "ใช้งานครั้งเดียว",
+    "limitPerDay": "จำนวนครั้งสูงสุด/วัน",
+    "isDefault": "นโยบายเริ่มต้น"
   },
   "Dashboard": {
     "welcome": "ยินดีต้อนรับกลับมา",

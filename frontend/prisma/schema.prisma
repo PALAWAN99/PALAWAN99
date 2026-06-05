@@ -1,0 +1,430 @@
+// Prisma Schema — QR Gate Access System
+// Next.js 16 + Prisma 7 + PostgreSQL 16
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  LIBRARIAN
+  STAFF
+  SECURITY
+  GATE_OFFICER
+  VIEWER
+}
+
+enum MemberType {
+  STUDENT
+  STAFF
+  FACULTY
+  EXTERNAL
+  GUEST
+}
+
+enum MemberStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum GateDirection {
+  IN
+  OUT
+  BIDIRECTIONAL
+}
+
+enum GateStatus {
+  ACTIVE
+  MAINTENANCE
+  DISABLED
+}
+
+enum QrPurpose {
+  ENTRY
+  EXIT
+}
+
+enum AccessSource {
+  QR_CODE
+  ID_CARD
+  MANUAL
+}
+
+enum AccessDecision {
+  ALLOWED
+  DENIED
+}
+
+enum DeviceType {
+  QR_SCANNER
+  KIOSK
+  ID_CARD_READER
+  MOBILE
+}
+
+enum ChangelogChangeType {
+  FEATURE
+  FIX
+  IMPROVEMENT
+  SECURITY
+  OTHER
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+  DECOMMISSIONED
+}
+
+enum IdCardReadStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+  TIMEOUT
+}
+
+/// แหล่งที่มาของ route log
+enum RouteLogSource {
+  FRONTEND_PAGE
+  FRONTEND_API
+  BACKEND_FASTAPI
+}
+
+/// ระดับความสำคัญของ log
+enum RouteLogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+/// ผู้ใช้ระบบ (Admin / เจ้าหน้าที่ประตู)
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  role         UserRole  @default(VIEWER)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  auditLogs  AuditLog[]
+  routeLogs  RouteLog[]
+
+  @@map("users")
+}
+
+/// สาขา / อาคาร
+model Branch {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(20)
+  nameTh    String   @map("name_th")
+  nameEn    String   @map("name_en")
+  nameZh    String   @map("name_zh")
+  address   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  gates Gate[]
+
+  @@map("branches")
+}
+
+/// ประตู / จุดควบคุม
+model Gate {
+  id        String        @id @default(uuid()) @db.Uuid
+  gateCode  String        @unique @map("gate_code") @db.VarChar(20)
+  nameTh    String        @map("name_th")
+  nameEn    String        @map("name_en")
+  nameZh    String        @map("name_zh")
+  branchId  String        @map("branch_id") @db.Uuid
+  direction GateDirection @default(BIDIRECTIONAL)
+  status    GateStatus    @default(ACTIVE)
+  /// ล็อกไม่ให้ลบจากแอดมิน (ปลดล็อกก่อนลบ)
+  deleteLocked Boolean @default(false) @map("delete_locked")
+  isOpen    Boolean       @default(false) @map("is_open")
+  metadata  Json?
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  branch       Branch          @relation(fields: [branchId], references: [id])
+  accessEvents AccessEvent[]
+  devices      DeviceRegistry[]
+
+  @@index([branchId, createdAt])
+  @@map("gates")
+}
+
+/// สมาชิก / ผู้ใช้บริการ
+model Member {
+  id          String       @id @default(uuid()) @db.Uuid
+  memberNo    String       @unique @map("member_no") @db.VarChar(30)
+  citizenId   String?      @unique @map("citizen_id") @db.VarChar(13)
+  firstNameTh String       @map("first_name_th")
+  lastNameTh  String       @map("last_name_th")
+  firstNameEn String?      @map("first_name_en")
+  lastNameEn  String?      @map("last_name_en")
+  firstNameZh String?      @map("first_name_zh")
+  lastNameZh  String?      @map("last_name_zh")
+  email       String?
+  phone       String?      @db.VarChar(20)
+  memberType  MemberType   @default(GUEST) @map("member_type")
+  status      MemberStatus @default(ACTIVE)
+  expireDate  DateTime?    @map("expire_date") @db.Date
+  photo       Bytes?
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  qrTokens       QrToken[]
+  accessEvents   AccessEvent[]
+  idCardSessions IdCardSession[]
+
+  @@index([memberNo])
+  @@index([citizenId])
+  @@map("members")
+}
+
+/// QR Token — หมดอายุทุกเที่ยงคืน
+model QrToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  memberId   String    @map("member_id") @db.Uuid
+  purpose    QrPurpose @default(ENTRY)
+  issuedDate DateTime  @map("issued_date") @db.Date
+  expiresAt  DateTime  @map("expires_at")
+  usedAt     DateTime? @map("used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  member      Member       @relation(fields: [memberId], references: [id])
+  accessEvent AccessEvent?
+
+  @@index([memberId, issuedDate])
+  @@index([expiresAt])
+  @@map("qr_tokens")
+}
+
+/// นโยบาย QR
+model QrPolicy {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @unique @db.VarChar(50)
+  ttlSeconds     Int      @default(86400) @map("ttl_seconds")
+  oneTimeUse     Boolean  @default(false) @map("one_time_use")
+  maxUsesPerDay  Int      @default(10) @map("max_uses_per_day")
+  dailyStartTime String?  @map("daily_start_time") @db.VarChar(5)
+  dailyEndTime   String?  @map("daily_end_time") @db.VarChar(5)
+  isDefault      Boolean  @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("qr_policies")
+}
+
+/// เหตุการณ์เข้า-ออก
+model AccessEvent {
+  id         String         @id @default(uuid()) @db.Uuid
+  gateId     String         @map("gate_id") @db.Uuid
+  memberId   String         @map("member_id") @db.Uuid
+  qrTokenId  String?        @unique @map("qr_token_id") @db.Uuid
+  direction  GateDirection
+  source     AccessSource   @default(QR_CODE)
+  decision   AccessDecision
+  reasonCode String?        @map("reason_code") @db.VarChar(50)
+  ipAddress  String?        @map("ip_address")
+  userAgent  String?        @map("user_agent")
+  metadata   Json?
+  scannedAt  DateTime       @map("scanned_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  gate    Gate     @relation(fields: [gateId], references: [id])
+  member  Member?  @relation(fields: [memberId], references: [id])
+  qrToken QrToken? @relation(fields: [qrTokenId], references: [id])
+
+  @@index([gateId])
+  @@index([memberId])
+  @@index([scannedAt])
+  @@index([gateId, scannedAt])
+  @@index([memberId, scannedAt])
+  @@index([createdAt])
+  @@map("access_events")
+}
+
+/// ทะเบียนอุปกรณ์
+model DeviceRegistry {
+  id         String       @id @default(uuid()) @db.Uuid
+  deviceCode String       @unique @map("device_code") @db.VarChar(30)
+  name       String
+  gateId     String       @map("gate_id") @db.Uuid
+  deviceType DeviceType   @map("device_type")
+  secretHash String       @map("secret_hash")
+  status     DeviceStatus @default(OFFLINE)
+  lastSeenAt DateTime?    @map("last_seen_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  gate           Gate            @relation(fields: [gateId], references: [id])
+  idCardSessions IdCardSession[]
+
+  @@index([gateId])
+  @@index([deviceCode])
+  @@map("device_registry")
+}
+
+/// เซสชันอ่านบัตรประชาชน
+model IdCardSession {
+  id         String           @id @default(uuid()) @db.Uuid
+  memberId   String?          @map("member_id") @db.Uuid
+  citizenId  String           @map("citizen_id") @db.VarChar(13)
+  fullNameTh String           @map("full_name_th")
+  fullNameEn String?          @map("full_name_en")
+  birthDate  DateTime?        @map("birth_date") @db.Date
+  address    String?
+  photoRead  Boolean          @default(false) @map("photo_read")
+  deviceId   String?          @map("device_id") @db.Uuid
+  status     IdCardReadStatus
+  readAt     DateTime         @map("read_at")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  member Member?         @relation(fields: [memberId], references: [id])
+  device DeviceRegistry? @relation(fields: [deviceId], references: [id])
+
+  @@index([citizenId])
+  @@index([memberId])
+  @@index([readAt])
+  @@index([citizenId, readAt])
+  @@map("id_card_sessions")
+}
+
+/// บันทึกการเข้าถึง route / action ทั้ง frontend, Next API และ FastAPI
+model RouteLog {
+  id           String         @id @default(uuid()) @db.Uuid
+  source       RouteLogSource
+  level        RouteLogLevel  @default(INFO)
+  method       String?        @db.VarChar(10)
+  path         String         @db.VarChar(500)
+  routePattern String?        @map("route_pattern") @db.VarChar(500)
+  action       String?        @db.VarChar(120)
+  statusCode   Int?           @map("status_code")
+  durationMs   Int?           @map("duration_ms")
+  userId       String?        @map("user_id") @db.Uuid
+  sessionId    String?        @map("session_id") @db.VarChar(64)
+  ipAddress    String?        @map("ip_address") @db.VarChar(45)
+  userAgent    String?        @map("user_agent") @db.Text
+  referer      String?        @db.VarChar(500)
+  locale       String?        @db.VarChar(10)
+  errorMessage String?        @map("error_message") @db.Text
+  metadata     Json?
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([source, createdAt(sort: Desc)])
+  @@index([path, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([statusCode, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("route_logs")
+}
+
+/// Audit Log (การเปลี่ยนแปลงข้อมูลโดยผู้ใช้)
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @db.VarChar(50)
+  resource   String   @db.VarChar(50)
+  resourceId String?  @map("resource_id")
+  dataBefore Json?    @map("data_before")
+  dataAfter  Json?    @map("data_after")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([resource, createdAt])
+  @@map("audit_logs")
+}
+
+/// การแจ้งเตือนในระบบ
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String    @db.VarChar(50)
+  title     String    @db.VarChar(200)
+  message   String    @db.Text
+  level     String    @default("info") @db.VarChar(20) // critical, warning, info
+  readAt    DateTime? @map("read_at")
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+/// บันทึกการเปลี่ยนแปลงเวอร์ชัน (changelog)
+model ChangelogEntry {
+  id          String              @id @default(uuid()) @db.Uuid
+  version     String              @db.VarChar(20)
+  title       String              @db.VarChar(200)
+  description String              @db.Text
+  changeType  ChangelogChangeType @default(FEATURE) @map("change_type")
+  releasedAt  DateTime            @map("released_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  @@index([releasedAt])
+  @@index([version])
+  @@index([changeType])
+  @@map("changelog_entries")
+}
+
+/// บันทึก soft delete สมาชิก Pennueng (mbmembmaster) — เก็บ snapshot ก่อนลบเชิงตรรกะ
+model PennuengMemberSoftDelete {
+  id         String    @id @default(uuid()) @db.Uuid
+  memberNo   String    @unique @map("member_no") @db.VarChar(30)
+  snapshot   Json
+  deletedBy  String?   @map("deleted_by") @db.Uuid
+  deletedAt  DateTime  @default(now()) @map("deleted_at")
+  restoredAt DateTime? @map("restored_at")
+
+  @@index([deletedAt])
+  @@map("pennueng_member_soft_deletes")
+}
+
+/// ตั้งค่าระบบ
+model SystemSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.Text
+  group     String   @default("general") @db.VarChar(50)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" role="img" aria-label="KKU Card API installer">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="55%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#DBEAFE"/>
+    </linearGradient>
+  </defs>
+  <rect width="660" height="400" fill="url(#g)"/>
+  <text x="330" y="72" text-anchor="middle" font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#1E3A5F">KKU Card API</text>
+  <text x="330" y="108" text-anchor="middle" font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="17" fill="#475569">%2D5HB%@-#L Applications @7H-41I</text>
+  <path d="M300 220h80l-24-28 24-28h-80" fill="none" stroke="#38BDF8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="180" cy="248" r="56" fill="#1E3A5F" opacity="0.08"/>
+  <circle cx="480" cy="248" r="56" fill="#10B981" opacity="0.12"/>
+</svg>

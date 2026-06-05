@@ -1,0 +1,30 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: TestSample - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\yschoi\LOCALS~1\Temp\RSP225.tmp" with contents
+[
+/nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /FR"Debug/" /Fp"Debug/TestSample.pch" /Yu"stdafx.h" /Fo"Debug/" /Fd"Debug/" /FD /GZ   /c 
+"D:\DualCard\TestSample\TestSampleDlg.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\yschoi\LOCALS~1\Temp\RSP225.tmp" 
+Creating command line "link.exe DualCardDll.lib /nologo /subsystem:windows /incremental:yes /pdb:"Debug/TestSample.pdb" /debug /machine:I386 /out:"Debug/TestSample.exe" /pdbtype:sept  .\Debug\TestSample.obj .\Debug\TestSampleDlg.obj .\Debug\StdAfx.obj .\Debug\TestSample.res "
+<h3>Output Window</h3>
+Compiling...
+TestSampleDlg.cpp
+Linking...
+Creating command line "bscmake.exe /nologo /o"Debug/TestSample.bsc"  .\Debug\StdAfx.sbr .\Debug\TestSample.sbr .\Debug\TestSampleDlg.sbr"
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+TestSample.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

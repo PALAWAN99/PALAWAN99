@@ -1,0 +1,24 @@
+KKU Card API — ติดตั้งใหม่ / อัปเดต (Reinstall)
+================================================
+
+macOS (.dmg)
+------------
+1. ถ้า KKU Card API เปิดอยู่: Quit จาก Dock (Cmd+Q) ก่อน
+2. ลาก "KKU Card API.app" ไปที่ Applications
+3. ถ้ามีแอปเดิมอยู่แล้ว macOS จะถาม "Replace" — เลือก Replace เพื่อเขียนทับเวอร์ชันเก่า
+4. เปิดแอปจาก Applications แล้วทดสอบ http://127.0.0.1:8000/api/readers
+
+Windows (kku-card-api-setup.exe)
+--------------------------------
+1. Quit จาก system tray (คลิกขวาไอคอน → Quit KKU Card API) ก่อนติดตั้ง
+2. รัน setup — ถ้าติดตั้งเดิมอยู่ จะมีข้อความยืนยันก่อนเขียนทับ
+3. ตัวติดตั้งจะหยุด process เก่าจากไฟล์ PID (ถ้ายังค้างอยู่) ก่อนคัดลอกไฟล์
+4. ทดสอบ http://127.0.0.1:8000/api/readers
+
+Windows (zip แบบ portable)
+--------------------------
+1. Quit จาก tray ก่อน
+2. แตก zip ทับโฟลเดอร์เดิมได้ — ข้อมูล venv ในโฟลเดอร์เดิมจะยังอยู่
+3. รัน Start-KKU-Card-API.bat ใหม่
+
+เวอร์ชันในแพ็กเกจดูที่ VERSION.txt (Windows) หรือ About ใน Finder (Mac).
