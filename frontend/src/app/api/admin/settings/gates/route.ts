@@ -14,7 +14,7 @@ import { isSqlServerConfigured } from '@/lib/sqlserver';
 
 /** GET /api/admin/settings/gates — รายการ gatemaster สำหรับจัดการ IP */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

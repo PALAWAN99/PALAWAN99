@@ -46,7 +46,7 @@ const patchSchema = z.object({
 
 /** PATCH /api/admin/pennueng-members/[memberNo]/keys/[seqNo] */
 export async function PATCH(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -92,7 +92,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
 /** DELETE /api/admin/pennueng-members/[memberNo]/keys/[seqNo] */
 export async function DELETE(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

@@ -8,7 +8,7 @@ import { ApiSuccess, ApiCreated, ApiUnauthorized, ApiForbidden, ApiBadRequest, h
 
 // GET: ดึงข้อมูลรายชื่อผู้ใช้
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
 // POST: สร้างผู้ใช้ใหม่ (Super Admin เท่านั้น)
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

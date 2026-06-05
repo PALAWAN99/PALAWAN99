@@ -6,7 +6,7 @@ import { ApiSuccess, ApiUnauthorized, handleError } from '@/lib/api-response';
 
 /** GET /api/admin/branches/faculty-overview — จัดกลุ่มประตู Pennueng ตามคณะ/หน่วยงาน */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

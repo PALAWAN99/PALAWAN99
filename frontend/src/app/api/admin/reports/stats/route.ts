@@ -24,7 +24,7 @@ function parseGateIds(raw: string | null): string[] {
  * GET /api/admin/reports/stats?startDate=&endDate=&gateIds=
  */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

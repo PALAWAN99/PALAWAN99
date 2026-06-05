@@ -18,7 +18,7 @@ type RouteCtx = { params: Promise<{ memberNo: string }> };
 
 /** POST /api/admin/pennueng-members/[memberNo]/restore */
 export async function POST(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

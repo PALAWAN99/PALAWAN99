@@ -23,7 +23,7 @@ type RouteContext = { params: Promise<{ gateId: string }> };
 
 /** PATCH /api/admin/settings/gates/[gateId] — อัปเดต IP/สถานะใน gatemaster */
 export async function PATCH(req: NextRequest, context: RouteContext) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

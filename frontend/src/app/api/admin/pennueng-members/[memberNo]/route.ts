@@ -29,7 +29,7 @@ function decodeMemberNo(raw: string) {
 
 /** GET /api/admin/pennueng-members/[memberNo] */
 export async function GET(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: RouteCtx) {
 
 /** PATCH /api/admin/pennueng-members/[memberNo] */
 export async function PATCH(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -95,7 +95,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
 /** DELETE /api/admin/pennueng-members/[memberNo] — soft delete */
 export async function DELETE(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

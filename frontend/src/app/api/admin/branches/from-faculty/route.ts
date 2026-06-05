@@ -19,7 +19,7 @@ const bodySchema = z.object({
 
 /** POST /api/admin/branches/from-faculty — สร้างสาขาในระบบจากคีย์คณะ (cel, en, nkc, …) */
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

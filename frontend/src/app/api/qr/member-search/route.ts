@@ -24,7 +24,7 @@ import {
  * - ?query=... → ค้นหาแบบตรง (รหัสสมาชิก / เลขบัตร) เหมือน memberNo
  */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

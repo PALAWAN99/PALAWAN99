@@ -18,7 +18,7 @@ type RouteCtx = { params: Promise<{ memberNo: string }> };
 
 /** GET /api/admin/pennueng-members/[memberNo]/keys — รายการ mbmemberkey */
 export async function GET(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

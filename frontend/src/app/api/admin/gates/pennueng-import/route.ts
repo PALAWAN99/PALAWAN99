@@ -23,7 +23,7 @@ const bodySchema = z.object({
 
 /** POST /api/admin/gates/pennueng-import — สร้างประตูจากรหัส Pennueng */
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

@@ -12,7 +12,7 @@ import {
 
 /** GET /api/admin/gates/pennueng-catalog — รายการประตูจาก Pennueng + สถานะลงทะเบียนในระบบ */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

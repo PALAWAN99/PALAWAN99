@@ -21,7 +21,7 @@ const bodySchema = z.object({
 
 /** PATCH /api/admin/gates/bulk-branch — ย้ายสาขาหลายประตูพร้อมกัน */
 export async function PATCH(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

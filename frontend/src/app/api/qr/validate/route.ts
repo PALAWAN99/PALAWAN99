@@ -25,12 +25,12 @@ export async function POST(req: NextRequest) {
       const deniedMemberId = validation.qrToken?.memberId;
       if (deniedMemberId) {
         // คำนวณทิศทางสำหรับ Log การปฏิเสธ
-        let deniedDirection = 'IN';
+        let deniedDirection: import('@prisma/client').GateDirection = 'IN';
         try {
           const tempGate = await prisma.gate.findUnique({ where: { id: gateId } });
           if (tempGate) {
             deniedDirection = tempGate.direction === 'BIDIRECTIONAL'
-              ? (direction || 'IN')
+              ? (direction as import('@prisma/client').GateDirection || 'IN')
               : tempGate.direction;
           }
         } catch (_) {}
@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
     // คำนวณทิศทางจริงตามเงื่อนไข:
     // - หากประตูเป็นแบบทางเดียว (IN หรือ OUT) ให้ใช้ค่านั้นเสมอ
     // - หากประตูเป็นแบบสองทาง (BIDIRECTIONAL) ให้ใช้ค่า direction ที่ client ส่งมา (หากไม่มีให้ fallback เป็น IN)
-    const finalDirection = gate.direction === 'BIDIRECTIONAL'
-      ? (direction || 'IN')
+    const finalDirection: import('@prisma/client').GateDirection = gate.direction === 'BIDIRECTIONAL'
+      ? (direction as import('@prisma/client').GateDirection || 'IN')
       : gate.direction;
 
     // 2. บันทึกประวัติการเข้า-ออก (Allowed เบื้องต้น)

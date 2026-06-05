@@ -10,7 +10,7 @@ import { registerWithIdCard } from '@/services/idCardService';
  */
 export async function POST(req: NextRequest) {
   // 1. Check Rate Limit (30 req/min — strict for registration)
-  const rateLimitError = checkStrictRateLimit(req);
+  const rateLimitError = await checkStrictRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {
