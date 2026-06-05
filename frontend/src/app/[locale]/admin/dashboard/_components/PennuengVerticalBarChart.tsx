@@ -69,12 +69,6 @@ function BalancedXAxisTick({ x, y, payload }: TickProps) {
   );
 }
 
-export const MOCK_EMPLOYMENT_AFTER_GRAD: PennuengMemberTypeSlice[] = [
-  { name: 'มีงานตรงสาย', value: 50 },
-  { name: 'มีงานไม่ตรงสาย', value: 20 },
-  { name: 'ศึกษาต่อ', value: 25 },
-  { name: 'ยังไม่ระบุ/ว่างงาน', value: 10 },
-];
 
 type PennuengVerticalBarChartProps = {
   data: PennuengMemberTypeSlice[];

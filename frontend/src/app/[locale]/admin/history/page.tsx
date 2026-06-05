@@ -1,5 +1,5 @@
-import HistoryClient from './HistoryClient';
+import { redirect } from 'next/navigation';
 
 export default function HistoryPage() {
-  return <HistoryClient />;
+  redirect('/admin/events');
 }

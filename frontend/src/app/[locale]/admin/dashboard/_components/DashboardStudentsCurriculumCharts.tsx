@@ -1,14 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   Text,
   Group,
   Badge,
   Skeleton,
-  Stack,
   SimpleGrid,
   Center,
+  SegmentedControl,
+  Alert,
 } from '@mantine/core';
 import { IconChartBar, IconChartPie } from '@tabler/icons-react';
 
@@ -17,41 +19,18 @@ import {
   MOCK_STUDENT_STATUS_SHARE,
   PennuengHorizontalBarChart,
 } from './PennuengHorizontalBarChart';
-import {
-  MOCK_EMPLOYMENT_AFTER_GRAD,
-  PennuengVerticalBarChart,
-} from './PennuengVerticalBarChart';
 
 import type { PennuengMemberTypeSlice } from '@/types/pennueng-dashboard';
 
 type ChartCardProps = {
   title: string;
-  data: PennuengMemberTypeSlice[];
   loading: boolean;
-  emptyLabel: string;
-  variant: 'donut' | 'bar' | 'column';
-  mockBadge?: boolean;
-  barColor?: string;
-  barYMin?: number;
-  barYMax?: number;
-  denseBar?: boolean;
-  mergeSmall?: boolean;
+  icon?: 'donut' | 'bar';
+  children: React.ReactNode;
 };
 
-function ChartCard({
-  title,
-  data,
-  loading,
-  emptyLabel,
-  variant,
-  mockBadge = false,
-  barColor,
-  barYMin,
-  barYMax,
-  denseBar,
-  mergeSmall = true,
-}: ChartCardProps) {
-  const Icon = variant === 'donut' ? IconChartPie : IconChartBar;
+function ChartCard({ title, loading, icon = 'donut', children }: ChartCardProps) {
+  const Icon = icon === 'donut' ? IconChartPie : IconChartBar;
 
   return (
     <Card withBorder p="lg" radius="lg">
@@ -60,40 +39,24 @@ function ChartCard({
         <Text fw={700} size="md">
           {title}
         </Text>
-        {mockBadge ? (
-          <Badge variant="light" color="orange" size="sm">
-            MOCK
-          </Badge>
-        ) : (
-          <Badge variant="light" color="navy" size="sm">
-            SQL Server
-          </Badge>
-        )}
+        <Badge variant="light" color="navy" size="sm">
+          SQL Server
+        </Badge>
       </Group>
       <Skeleton visible={loading} radius="md">
-        {!loading && data.length > 0 ? (
-          variant === 'bar' ? (
-            <PennuengHorizontalBarChart
-              data={data}
-              barColor={barColor}
-              dense={denseBar}
-              yAxisMinWidth={barYMin}
-              yAxisMaxWidth={barYMax}
-            />
-          ) : variant === 'column' ? (
-            <PennuengVerticalBarChart data={data} yMax={100} />
-          ) : (
-            <PennuengDonutChart data={data} height={200} mergeSmall={mergeSmall} />
-          )
-        ) : (
-          <Center py="xl">
-            <Text c="dimmed" size="sm">
-              {emptyLabel}
-            </Text>
-          </Center>
-        )}
+        {children}
       </Skeleton>
     </Card>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <Center py="xl">
+      <Text c="dimmed" size="sm">
+        {label}
+      </Text>
+    </Center>
   );
 }
 
@@ -105,7 +68,7 @@ type DashboardStudentsCurriculumChartsProps = {
   t: (key: string) => string;
 };
 
-/** กราฟส่วนนักศึกษา/หลักสูตร — แยกจาก Pennueng section หลัก ปรับ layout แล้ว */
+/** กราฟส่วนนักศึกษา/หลักสูตร — 2 การ์ดพร้อม SegmentedControl */
 export function DashboardStudentsCurriculumCharts({
   memberTypes,
   topCurricula,
@@ -113,57 +76,74 @@ export function DashboardStudentsCurriculumCharts({
   loading,
   t,
 }: DashboardStudentsCurriculumChartsProps) {
+  const [memberTab, setMemberTab] = useState('type');
+  const [curriculumTab, setCurriculumTab] = useState('top');
+
   return (
-    <Stack gap="md">
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-        <ChartCard
-          title={t('Dashboard.pennuengEmploymentAfterGrad')}
-          data={MOCK_EMPLOYMENT_AFTER_GRAD}
-          loading={false}
-          emptyLabel={t('Common.noData')}
-          variant="column"
-          mockBadge
+    <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+      {/* Card 1 — สัดส่วนสมาชิก */}
+      <ChartCard title="สัดส่วนสมาชิก" loading={loading} icon="donut">
+        <SegmentedControl
+          value={memberTab}
+          onChange={setMemberTab}
+          data={[
+            { label: 'ประเภทสมาชิก', value: 'type' },
+            { label: 'ผลลัพธ์วันนี้', value: 'today' },
+          ]}
+          fullWidth
+          mb="md"
+          size="xs"
         />
-        <ChartCard
-          title={t('Dashboard.pennuengMemberTypes')}
-          data={memberTypes}
-          loading={loading}
-          emptyLabel={t('Common.noData')}
-          variant="donut"
+        {memberTab === 'type' ? (
+          memberTypes.length > 0 ? (
+            <PennuengDonutChart data={memberTypes} height={200} mergeSmall />
+          ) : (
+            <EmptyState label={t('Common.noData')} />
+          )
+        ) : todayOutcome.length > 0 ? (
+          <PennuengDonutChart data={todayOutcome} height={200} mergeSmall={false} />
+        ) : (
+          <EmptyState label={t('Common.noData')} />
+        )}
+      </ChartCard>
+
+      {/* Card 2 — ข้อมูลหลักสูตร */}
+      <ChartCard title="ข้อมูลหลักสูตร" loading={loading} icon="bar">
+        <SegmentedControl
+          value={curriculumTab}
+          onChange={setCurriculumTab}
+          data={[
+            { label: 'หลักสูตรยอดนิยม', value: 'top' },
+            { label: 'สถานะนักศึกษา', value: 'status' },
+          ]}
+          fullWidth
+          mb="md"
+          size="xs"
         />
-      </SimpleGrid>
-
-      <ChartCard
-        title={t('Dashboard.pennuengStudentStatus')}
-        data={MOCK_STUDENT_STATUS_SHARE}
-        loading={false}
-        emptyLabel={t('Common.noData')}
-        variant="bar"
-        barColor="#3B82F6"
-        barYMin={200}
-        barYMax={300}
-        denseBar
-        mockBadge
-      />
-
-      <ChartCard
-        title={t('Dashboard.pennuengTopCurricula')}
-        data={topCurricula}
-        loading={loading}
-        emptyLabel={t('Common.noData')}
-        variant="bar"
-        barYMin={260}
-        barYMax={420}
-      />
-
-      <ChartCard
-        title={t('Dashboard.pennuengTodayOutcome')}
-        data={todayOutcome}
-        loading={loading}
-        emptyLabel={t('Common.noData')}
-        variant="donut"
-        mergeSmall={false}
-      />
-    </Stack>
+        {curriculumTab === 'top' ? (
+          topCurricula.length > 0 ? (
+            <PennuengHorizontalBarChart
+              data={topCurricula}
+              yAxisMinWidth={260}
+              yAxisMaxWidth={420}
+            />
+          ) : (
+            <EmptyState label={t('Common.noData')} />
+          )
+        ) : MOCK_STUDENT_STATUS_SHARE.length > 0 ? (
+          <PennuengHorizontalBarChart
+            data={MOCK_STUDENT_STATUS_SHARE}
+            barColor="#3B82F6"
+            dense
+            yAxisMinWidth={200}
+            yAxisMaxWidth={300}
+          />
+        ) : (
+          <Alert variant="light" color="blue" mt="xs">
+            ข้อมูลส่วนนี้กำลังอยู่ในระหว่างพัฒนา
+          </Alert>
+        )}
+      </ChartCard>
+    </SimpleGrid>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import dayjs from 'dayjs';
 import { apiPath } from '@/lib/base-path';
 import { getApiErrorMessage } from '@/lib/parse-api-response';
 import type { PennuengDashboardPayload } from '@/types/pennueng-dashboard';
@@ -61,7 +62,7 @@ function applyPennuengToDashboard(p: PennuengDashboardPayload) {
   };
 }
 
-export function useDashboard() {
+export function useDashboard(dateRange: [Date | null, Date | null] = [null, null]) {
   const [stats, setStats] = useState({
     members: { total: 0, active: 0 },
     gates: { total: 0, active: 0 },
@@ -88,6 +89,37 @@ export function useDashboard() {
     setRecentEvents(merged.recentEvents);
     setDataSource('pennueng');
   }, []);
+  const fetchPennueng = useCallback(async () => {
+    setPennuengLoading(true);
+    setPennuengUnavailable(false);
+    setPennuengError(null);
+    try {
+      const res = await fetch(apiPath('/api/admin/dashboard/pennueng'));
+      if (res.status === 503) {
+        setPennuengUnavailable(true);
+      } else if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const p = json.data as PennuengDashboardPayload;
+          setPennueng(p);
+          applyPennueng(p);
+        }
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setPennuengError(getApiErrorMessage(json) || 'ไม่สามารถโหลดข้อมูล Pennueng ได้');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setPennuengError('ไม่สามารถโหลดข้อมูล Pennueng ได้');
+      }
+    } finally {
+      setPennuengLoading(false);
+    }
+  }, [applyPennueng]);
+
+  const refetchPennueng = useCallback(() => {
+    void fetchPennueng();
+  }, [fetchPennueng]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -95,10 +127,15 @@ export function useDashboard() {
     async function fetchData(signal: AbortSignal) {
       setError(null);
       try {
+        const qParams = new URLSearchParams();
+        if (dateRange[0]) qParams.set('startDate', dayjs(dateRange[0]).format('YYYY-MM-DD'));
+        if (dateRange[1]) qParams.set('endDate', dayjs(dateRange[1]).format('YYYY-MM-DD'));
+        const qStr = qParams.toString() ? `?${qParams.toString()}` : '';
+
         const [statsRes, eventsRes, detailsRes, pennuengRes] = await Promise.all([
-          fetch(apiPath('/api/admin/dashboard/stats'), { signal }),
+          fetch(apiPath(`/api/admin/dashboard/stats${qStr}`), { signal }),
           fetch(apiPath('/api/admin/events?limit=8'), { signal }),
-          fetch(apiPath('/api/admin/dashboard/details'), { signal }),
+          fetch(apiPath(`/api/admin/dashboard/details${qStr}`), { signal }),
           fetch(apiPath('/api/admin/dashboard/pennueng'), { signal }),
         ]);
 
@@ -148,7 +185,7 @@ export function useDashboard() {
     fetchData(controller.signal);
 
     return () => controller.abort();
-  }, [applyPennueng]);
+  }, [applyPennueng, dateRange]);
 
   return {
     stats,
@@ -163,5 +200,6 @@ export function useDashboard() {
     dataSource,
     loading,
     error,
+    refetchPennueng,
   };
 }

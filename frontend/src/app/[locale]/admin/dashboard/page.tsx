@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import {
   Title,
@@ -9,8 +10,10 @@ import {
   Badge,
   Box,
   Alert,
+  Button,
 } from '@mantine/core';
-import { IconLayoutDashboard, IconAlertCircle } from '@tabler/icons-react';
+import { DatePickerInput } from '@mantine/dates';
+import { IconLayoutDashboard, IconAlertCircle, IconPlugOff, IconRefresh } from '@tabler/icons-react';
 
 import { useDashboard } from '../dashboard/hooks/useDashboard';
 import { DashboardStats } from '../dashboard/_components/DashboardStats';
@@ -24,6 +27,8 @@ import { DashboardStudentsCurriculumHeader } from '../dashboard/_components/Dash
 export default function AdminDashboardPage() {
   const t = useTranslations();
   const locale = useLocale();
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+
   const {
     stats,
     recentEvents,
@@ -37,7 +42,8 @@ export default function AdminDashboardPage() {
     dataSource,
     loading,
     error,
-  } = useDashboard();
+    refetchPennueng,
+  } = useDashboard(dateRange);
 
   const formattedDate = new Date().toLocaleDateString(
     locale === 'th' ? 'th-TH' : 'en-US',
@@ -66,6 +72,16 @@ export default function AdminDashboardPage() {
           </Text>
         </div>
         <Group gap="xs">
+          <DatePickerInput
+            type="range"
+            placeholder="เลือกช่วงเวลา"
+            value={dateRange}
+            onChange={setDateRange}
+            clearable
+            size="sm"
+            maxDate={new Date()}
+            w={220}
+          />
           {dataSource === 'pennueng' ? (
             <Badge color="navy" variant="light" size="lg">
               Pennueng DB
@@ -103,7 +119,28 @@ export default function AdminDashboardPage() {
           t={t}
         />
         </Stack>
-      ) : null}
+      ) : (
+        <Alert
+          icon={<IconPlugOff size={18} />}
+          title="ไม่สามารถเชื่อมต่อ Pennueng DB ได้"
+          color="gray"
+          variant="light"
+          radius="md"
+        >
+          <Group justify="space-between" align="center" wrap="wrap">
+            <Text size="sm">ข้อมูลนักศึกษาและหลักสูตรไม่พร้อมใช้งานในขณะนี้</Text>
+            <Button
+              size="xs"
+              variant="light"
+              color="gray"
+              leftSection={<IconRefresh size={14} />}
+              onClick={refetchPennueng}
+            >
+              ลองใหม่
+            </Button>
+          </Group>
+        </Alert>
+      )}
 
       <DashboardGateSummary gates={gateStatus} loading={loading} t={t} />
       <DashboardActivity recentEvents={recentEvents} loading={loading} t={t} />

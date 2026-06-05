@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import dayjs from 'dayjs';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
 
   if (!session) {
@@ -11,37 +11,99 @@ export async function GET() {
   }
 
   try {
-    const today = dayjs();
-    const start = today.startOf('day').toDate();
-    const end = today.endOf('day').toDate();
+    const searchParams = req.nextUrl.searchParams;
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
 
-    // 1. Fetch Chart Data (Last 12 hours)
+    const start = startDateParam ? dayjs(startDateParam).startOf('day').toDate() : dayjs().startOf('day').toDate();
+    const end = endDateParam ? dayjs(endDateParam).endOf('day').toDate() : dayjs().endOf('day').toDate();
+
+    // 1. Fetch Chart Data
+    const isCustomRange = !!(startDateParam || endDateParam);
     const chartData = [];
-    for (let i = 5; i >= 0; i--) {
-      const hourStart = today.subtract(i * 2, 'hour');
-      const hourLabel = hourStart.format('HH:00');
-      
-      const [countIn, countOut] = await Promise.all([
-        prisma.accessEvent.count({
-          where: {
-            direction: 'IN',
-            scannedAt: { gte: hourStart.subtract(2, 'hour').toDate(), lte: hourStart.toDate() }
-          }
-        }),
-        prisma.accessEvent.count({
-          where: {
-            direction: 'OUT',
-            scannedAt: { gte: hourStart.subtract(2, 'hour').toDate(), lte: hourStart.toDate() }
-          }
-        })
-      ]);
 
-      chartData.push({ name: hourLabel, in: countIn, out: countOut });
+    if (isCustomRange) {
+      const diffDays = dayjs(end).diff(dayjs(start), 'day');
+      if (diffDays > 1) {
+        // Multi-day range: divide into 6 intervals
+        const step = Math.max(1, Math.ceil(diffDays / 6));
+        for (let i = 5; i >= 0; i--) {
+          const d = dayjs(end).subtract(i * step, 'day');
+          const label = d.format('DD/MM');
+          const [countIn, countOut] = await Promise.all([
+            prisma.accessEvent.count({
+              where: {
+                direction: 'IN',
+                scannedAt: { gte: d.startOf('day').toDate(), lte: d.endOf('day').toDate() }
+              }
+            }),
+            prisma.accessEvent.count({
+              where: {
+                direction: 'OUT',
+                scannedAt: { gte: d.startOf('day').toDate(), lte: d.endOf('day').toDate() }
+              }
+            })
+          ]);
+          chartData.push({ name: label, in: countIn, out: countOut });
+        }
+      } else {
+        // Single day or same-day range: divide into 2-hour blocks
+        const baseTime = dayjs(end);
+        for (let i = 5; i >= 0; i--) {
+          const hourStart = baseTime.subtract(i * 2, 'hour');
+          const hourLabel = hourStart.format('HH:00');
+          const [countIn, countOut] = await Promise.all([
+            prisma.accessEvent.count({
+              where: {
+                direction: 'IN',
+                scannedAt: { gte: hourStart.subtract(2, 'hour').toDate(), lte: hourStart.toDate() }
+              }
+            }),
+            prisma.accessEvent.count({
+              where: {
+                direction: 'OUT',
+                scannedAt: { gte: hourStart.subtract(2, 'hour').toDate(), lte: hourStart.toDate() }
+              }
+            })
+          ]);
+          chartData.push({ name: hourLabel, in: countIn, out: countOut });
+        }
+      }
+    } else {
+      // Default: Last 12 hours of today
+      const today = dayjs();
+      for (let i = 5; i >= 0; i--) {
+        const hourStart = today.subtract(i * 2, 'hour');
+        const hourLabel = hourStart.format('HH:00');
+        
+        const [countIn, countOut] = await Promise.all([
+          prisma.accessEvent.count({
+            where: {
+              direction: 'IN',
+              scannedAt: { gte: hourStart.subtract(2, 'hour').toDate(), lte: hourStart.toDate() }
+            }
+          }),
+          prisma.accessEvent.count({
+            where: {
+              direction: 'OUT',
+              scannedAt: { gte: hourStart.subtract(2, 'hour').toDate(), lte: hourStart.toDate() }
+            }
+          })
+        ]);
+
+        chartData.push({ name: hourLabel, in: countIn, out: countOut });
+      }
     }
 
     // 2. Fetch Top Gates Activity
     const topGates = await prisma.accessEvent.groupBy({
       by: ['gateId'],
+      where: {
+        scannedAt: {
+          gte: start,
+          lte: end
+        }
+      },
       _count: { _all: true },
       orderBy: { _count: { gateId: 'desc' } },
       take: 5

@@ -1,5 +1,5 @@
 import { SimpleGrid, Card, Group, Text, ThemeIcon, Skeleton } from '@mantine/core';
-import { IconUsers, IconDoor, IconBuilding, IconQrcode } from '@tabler/icons-react';
+import { IconUsers, IconDoor, IconAlertCircle, IconQrcode } from '@tabler/icons-react';
 
 interface DashboardStatsProps {
   stats: any;
@@ -22,10 +22,11 @@ export function DashboardStats({ stats, loading, t }: DashboardStatsProps) {
       color: 'navy',
     },
     {
-      titleKey: 'Common.gates',
-      value: stats?.gates?.total?.toLocaleString() ?? '0',
-      icon: IconBuilding,
-      color: 'emerald',
+      // i18n: add 'Dashboard.offlineGates' → 'ประตูออฟไลน์' to all translation files
+      titleKey: 'Dashboard.offlineGates',
+      value: stats?.gates ? String(stats.gates.total - stats.gates.active) : '0',
+      icon: IconAlertCircle,
+      color: 'red',
     },
     {
       titleKey: 'Dashboard.recentActivity',

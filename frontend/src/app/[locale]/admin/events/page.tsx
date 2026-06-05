@@ -1,242 +1,496 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import dayjs from 'dayjs';
 import { useTranslations } from 'next-intl';
-import { 
-  Title, Text, Stack, Card, Table, Badge, Group, 
-  TextInput, ActionIcon, Menu, Button, Pagination, 
-  Box, LoadingOverlay, Center
+import {
+  Title,
+  Text,
+  Stack,
+  Card,
+  Table,
+  Badge,
+  Group,
+  TextInput,
+  ActionIcon,
+  Select,
+  Button,
+  Pagination,
+  LoadingOverlay,
+  Alert,
+  Tooltip,
+  Modal,
+  Avatar,
+  Grid,
+  Paper,
+  SimpleGrid,
+  Loader,
+  SegmentedControl,
 } from '@mantine/core';
-import { 
-  IconSearch, IconDotsVertical, 
-  IconDownload, IconChevronRight, IconX, IconCalendar
+import { DatePickerInput } from '@mantine/dates';
+import {
+  IconSearch,
+  IconX,
+  IconCalendar,
+  IconRefresh,
+  IconActivity,
+  IconHistory,
+  IconDoorEnter,
+  IconDoorExit,
+  IconAlertTriangle,
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconEye,
 } from '@tabler/icons-react';
-import { useSearchParams } from 'next/navigation';
+import { apiPath } from '@/lib/base-path';
+import { getApiErrorMessage, unwrapApiData } from '@/lib/parse-api-response';
+import { AccessEventCard } from '../access-log/_components/AccessEventCard';
+import type { AccessEventCardEvent } from '../access-log/_components/AccessEventCard';
+import type { PennuengGateHistoryRow, PennuengGateHistoryResult } from '@/types/pennueng-gate-history';
+import type { ReportGateOption } from '@/types/reports-analytics';
 
-interface AccessEventGate {
-  nameTh: string;
-  gateCode: string;
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const HISTORY_PAGE_SIZE = 100;
+const LIVE_MAX = 50;
+const LIVE_INTERVAL_MS = 10_000;
+
+function defaultRange() {
+  return {
+    startDate: dayjs().subtract(6, 'day').format('YYYY-MM-DD'),
+    endDate: dayjs().format('YYYY-MM-DD'),
+  };
 }
 
-interface AccessEventMember {
-  firstNameTh: string;
-  lastNameTh: string;
-  memberNo: string;
-  memberType: string;
-}
+// ─── Live Mode ───────────────────────────────────────────────────────────────
 
-interface AccessEvent {
-  id: string;
-  scannedAt: string;
-  direction: 'IN' | 'OUT';
-  decision: 'ALLOWED' | 'DENIED';
-  reasonCode: string | null;
-  member: AccessEventMember | null;
-  gate: AccessEventGate;
-}
-
-export default function EventsPage() {
-  const t = useTranslations('Events');
-  const searchParams = useSearchParams();
-  const initialGateId = searchParams.get('gateId') || '';
-  
-  const [events, setEvents] = useState<AccessEvent[]>([]);
+function LiveMode() {
+  const [events, setEvents] = useState<AccessEventCardEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
+  const fetchLive = useCallback(async (silent = false) => {
+    if (!silent) setRefreshing(true);
     try {
-      const params = new URLSearchParams({
-        search,
-        page: page.toString(),
-        gateId: initialGateId,
-        startDate,
-        endDate
-      });
-      const res = await fetch(`/api/admin/events?${params.toString()}`);
-      const data = await res.json();
-      if (data.events) {
-        setEvents(data.events);
-        setTotalPages(data.pages);
-        setTotal(data.total);
+      const res = await fetch(apiPath('/api/admin/access-events'));
+      if (!res.ok) throw new Error('Failed to fetch access events');
+      const json = await res.json();
+      const data = unwrapApiData<AccessEventCardEvent[]>(json);
+      setEvents((data ?? []).slice(0, LIVE_MAX));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchLive();
+    const interval = setInterval(() => void fetchLive(true), LIVE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [fetchLive]);
+
+  const inCount = events.filter((e) => e.direction === 'IN').length;
+  const outCount = events.filter((e) => e.direction === 'OUT').length;
+  const expiredCount = events.filter(
+    (e) =>
+      e.decision === 'DENIED' &&
+      ['MEMBER_EXPIRED', 'QR_EXPIRED', 'MEMBER_INACTIVE'].includes(e.reasonCode ?? ''),
+  ).length;
+
+  return (
+    <Stack gap="md">
+      {/* Summary strip */}
+      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
+        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-blue-5)' }}>
+          <Group justify="space-between" wrap="nowrap">
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700} tt="uppercase">ทั้งหมด</Text>
+              <Text size="xl" fw={700}>{events.length}</Text>
+            </Stack>
+            <Badge size="lg" circle color="blue" variant="light">{events.length}</Badge>
+          </Group>
+        </Card>
+        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-green-6)' }}>
+          <Group justify="space-between" wrap="nowrap">
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700} tt="uppercase">เข้า</Text>
+              <Text size="xl" fw={700} c="green.6">{inCount}</Text>
+            </Stack>
+            <Badge size="lg" circle color="green" variant="light"><IconDoorEnter size={14} /></Badge>
+          </Group>
+        </Card>
+        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-orange-5)' }}>
+          <Group justify="space-between" wrap="nowrap">
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700} tt="uppercase">ออก</Text>
+              <Text size="xl" fw={700} c="orange.6">{outCount}</Text>
+            </Stack>
+            <Badge size="lg" circle color="orange" variant="light"><IconDoorExit size={14} /></Badge>
+          </Group>
+        </Card>
+        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-red-6)' }}>
+          <Group justify="space-between" wrap="nowrap">
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700} tt="uppercase">บัตรหมดอายุ</Text>
+              <Text size="xl" fw={700} c="red.6">{expiredCount}</Text>
+            </Stack>
+            <Badge size="lg" circle color="red" variant="light"><IconAlertTriangle size={14} /></Badge>
+          </Group>
+        </Card>
+      </SimpleGrid>
+
+      {/* Toolbar */}
+      <Group justify="space-between" align="center">
+        <Group gap="xs">
+          <Badge color="red" variant="filled" size="sm">● LIVE</Badge>
+          <Text size="xs" c="dimmed">อัปเดตทุก 10 วินาที · แสดงสูงสุด {LIVE_MAX} รายการ</Text>
+        </Group>
+        <Tooltip label="รีเฟรชข้อมูล">
+          <ActionIcon variant="light" color="blue" size="lg" onClick={() => void fetchLive()} loading={refreshing}>
+            <IconRefresh size={18} />
+          </ActionIcon>
+        </Tooltip>
+      </Group>
+
+      {/* Content */}
+      {loading ? (
+        <Group justify="center" py="xl">
+          <Loader size="md" />
+          <Text c="dimmed">กำลังโหลดข้อมูลรายการเข้า-ออก...</Text>
+        </Group>
+      ) : error ? (
+        <Alert color="red">{error}</Alert>
+      ) : events.length === 0 ? (
+        <Card withBorder p="xl" radius="md">
+          <Text ta="center" c="dimmed">ไม่พบรายการสแกนผ่านประตูทางเข้า-ออก</Text>
+        </Card>
+      ) : (
+        <Stack gap="sm">
+          {events.map((event, index) => (
+            <AccessEventCard key={event.id} event={event} isLatest={index === 0} />
+          ))}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
+// ─── History Mode ─────────────────────────────────────────────────────────────
+
+function HistoryMode() {
+  const t = useTranslations('History');
+  const tc = useTranslations('Common');
+
+  const defaults = defaultRange();
+  const [startDate, setStartDate] = useState<string | null>(defaults.startDate);
+  const [endDate, setEndDate] = useState<string | null>(defaults.endDate);
+  const [gateId, setGateId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [gates, setGates] = useState<ReportGateOption[]>([]);
+  const [result, setResult] = useState<PennuengGateHistoryResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [selectedRow, setSelectedRow] = useState<PennuengGateHistoryRow | null>(null);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [startDate, endDate, gateId, debouncedSearch]);
+
+  // Load gates
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(apiPath('/api/admin/reports/gates'));
+        const json = await res.json();
+        if (res.ok) {
+          const data = unwrapApiData<{ gates: ReportGateOption[] }>(json);
+          setGates(data.gates ?? []);
+        }
+      } catch {
+        setGates([]);
       }
-    } catch (error) {
-      console.error('Fetch events error:', error);
+    })();
+  }, []);
+
+  const gateOptions = useMemo(
+    () => [{ value: '', label: t('allGates') }, ...gates.map((g) => ({ value: g.id, label: g.label }))],
+    [gates, t],
+  );
+
+  const fetchHistory = useCallback(async () => {
+    if (!startDate || !endDate) return;
+    setLoading(true);
+    setUnavailable(null);
+    try {
+      const qs = new URLSearchParams({ startDate, endDate, page: String(page) });
+      if (gateId) qs.set('gateId', gateId);
+      if (debouncedSearch) qs.set('search', debouncedSearch);
+
+      const res = await fetch(apiPath(`/api/admin/history?${qs.toString()}`));
+      const json = await res.json();
+      if (res.status === 503) {
+        setUnavailable(getApiErrorMessage(json) || t('sqlUnavailable'));
+        setResult(null);
+        return;
+      }
+      if (!res.ok) throw new Error(getApiErrorMessage(json) || tc('error'));
+      setResult(unwrapApiData<PennuengGateHistoryResult>(json));
+    } catch (err) {
+      setResult(null);
+      setUnavailable(err instanceof Error ? err.message : tc('error'));
     } finally {
       setLoading(false);
     }
-  }, [search, page, initialGateId, startDate, endDate]);
+  }, [debouncedSearch, endDate, gateId, page, startDate, t, tc]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchEvents();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [fetchEvents]);
+  useEffect(() => { void fetchHistory(); }, [fetchHistory]);
 
-  const handleExport = async () => {
-    try {
-      const params = new URLSearchParams({
-        search,
-        gateId: initialGateId,
-        startDate,
-        endDate,
-        limit: '1000' // ดึงเยอะหน่อยเพื่อส่งออก
-      });
-      const res = await fetch(`/api/admin/events?${params.toString()}`);
-      const data = await res.json();
-      
-      if (data.events) {
-        const { exportToExcel } = await import('@/lib/export-utils');
-        const exportData = data.events.map((e: AccessEvent) => ({
-          'เวลา': new Date(e.scannedAt).toLocaleString('th-TH'),
-          'ชื่อ-นามสกุล': e.member ? `${e.member.firstNameTh} ${e.member.lastNameTh}` : 'ไม่ทราบชื่อ',
-          'รหัสสมาชิก': e.member?.memberNo || '-',
-          'ประเภท': e.member?.memberType || '-',
-          'ประตู': e.gate.nameTh,
-          'รหัสประตู': e.gate.gateCode,
-          'ทิศทาง': e.direction === 'IN' ? 'เข้า' : 'ออก',
-          'ผลการตรวจสอบ': e.decision === 'ALLOWED' ? 'ผ่าน' : 'ปฏิเสธ',
-          'เหตุผล': e.reasonCode || '-'
-        }));
-        exportToExcel(exportData, 'AccessLogs');
-      }
-    } catch (e) {
-      console.error('Export error:', e);
-    }
-  };
+  const rows = result?.rows ?? [];
 
   return (
-    <Stack gap="xl">
-      <Group justify="space-between" align="flex-start">
-        <Stack gap={4}>
-          <Title order={2} fw={800}>{t('title')}</Title>
-          <Text c="dimmed" size="sm">{t('subtitle')}</Text>
-        </Stack>
-        <Button variant="light" leftSection={<IconDownload size={16} />} onClick={handleExport}>{t('exportExcel')}</Button>
-      </Group>
+    <Stack gap="lg">
+      {unavailable && (
+        <Alert color="orange" title={t('sqlUnavailableTitle')}>{unavailable}</Alert>
+      )}
 
-      <Card withBorder p="md" radius="lg">
+      {/* Filters */}
+      <Card withBorder radius="md" p="md">
         <Stack gap="md">
-          <Group grow wrap="wrap">
-            <TextInput 
-              placeholder={t('searchPlaceholder')} 
-              leftSection={<IconSearch size={16} />} 
-              variant="filled"
-              value={search}
-              onChange={(e) => { setSearch(e.currentTarget.value); setPage(1); }}
-              style={{ minWidth: '300px' }}
+          <Group align="flex-end" wrap="wrap" gap="md">
+            <DatePickerInput
+              label={t('startDate')}
+              value={startDate}
+              onChange={setStartDate}
+              maxDate={endDate ?? undefined}
+              leftSection={<IconCalendar size={16} />}
+              w={170}
+              valueFormat="DD/MM/YYYY"
             />
+            <DatePickerInput
+              label={t('endDate')}
+              value={endDate}
+              onChange={setEndDate}
+              minDate={startDate ?? undefined}
+              maxDate={dayjs().format('YYYY-MM-DD')}
+              leftSection={<IconCalendar size={16} />}
+              w={170}
+              valueFormat="DD/MM/YYYY"
+            />
+            <Select
+              label={t('gateFilter')}
+              data={gateOptions}
+              value={gateId ?? ''}
+              onChange={(value) => setGateId(value || null)}
+              searchable
+              clearable
+              w={260}
+            />
+            <TextInput
+              label={t('search')}
+              placeholder={t('searchPlaceholder')}
+              leftSection={<IconSearch size={16} />}
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              rightSection={
+                search ? (
+                  <ActionIcon variant="transparent" color="gray" onClick={() => setSearch('')}>
+                    <IconX size={14} />
+                  </ActionIcon>
+                ) : null
+              }
+              style={{ flex: 1, minWidth: 240 }}
+            />
+          </Group>
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
+              {t('resultSummary', {
+                from: (page - 1) * HISTORY_PAGE_SIZE + (rows.length > 0 ? 1 : 0),
+                to: (page - 1) * HISTORY_PAGE_SIZE + rows.length,
+                total: result?.total ?? 0,
+              })}
+            </Text>
             <Group gap="xs">
-              <TextInput 
-                type="date"
-                placeholder={t('startDate')}
-                leftSection={<IconCalendar size={16} />}
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                w={160}
-              />
-              <TextInput 
-                type="date"
-                placeholder={t('endDate')}
-                leftSection={<IconCalendar size={16} />}
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                w={160}
-              />
-              {(search || startDate || endDate) && (
-                <ActionIcon variant="light" color="gray" size="lg" onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); }}>
-                  <IconX size={18} />
-                </ActionIcon>
-              )}
+              <Badge variant="light" color="navy">{t('pageSizeLabel', { size: HISTORY_PAGE_SIZE })}</Badge>
+              <Button variant="light" color="navy" size="xs" leftSection={<IconRefresh size={14} />} onClick={() => void fetchHistory()}>
+                {t('refresh')}
+              </Button>
             </Group>
           </Group>
         </Stack>
       </Card>
 
-      <Card withBorder radius="lg" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
-        <LoadingOverlay visible={loading} />
-        <Table.ScrollContainer minWidth={900}>
-          <Table verticalSpacing="md" horizontalSpacing="md" highlightOnHover>
-            <Table.Thead bg="var(--bg-secondary)">
+      {/* Table */}
+      <Card withBorder radius="md" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
+        <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ blur: 2 }} />
+        <Table.ScrollContainer minWidth={960}>
+          <Table verticalSpacing="sm" highlightOnHover>
+            <Table.Thead bg="var(--bg-tertiary)">
               <Table.Tr>
-                <Table.Th>{t('time')}</Table.Th>
                 <Table.Th>{t('member')}</Table.Th>
                 <Table.Th>{t('gate')}</Table.Th>
-                <Table.Th ta="center">{t('direction')}</Table.Th>
-                <Table.Th ta="center">{t('result')}</Table.Th>
-                <Table.Th />
+                <Table.Th>{t('scannedAt')}</Table.Th>
+                <Table.Th>{t('direction')}</Table.Th>
+                <Table.Th>{t('decision')}</Table.Th>
+                <Table.Th w={56} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {events.length > 0 ? (
-                events.map((event) => (
-                  <Table.Tr key={event.id}>
-                    <Table.Td>
-                      <Text size="sm" fw={600}>{new Date(event.scannedAt).toLocaleTimeString('th-TH')}</Text>
-                      <Text size="xs" c="dimmed">{new Date(event.scannedAt).toLocaleDateString('th-TH')}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      {event.member ? (
-                        <>
-                          <Text size="sm" fw={700}>{event.member.firstNameTh} {event.member.lastNameTh}</Text>
-                          <Text size="xs" c="dimmed">{event.member.memberNo}</Text>
-                        </>
-                      ) : <Text c="dimmed italic">{t('unknownMember')}</Text>}
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" fw={600}>{event.gate.nameTh}</Text>
-                      <Text size="xs" c="dimmed">{event.gate.gateCode}</Text>
-                    </Table.Td>
-                    <Table.Td ta="center">
-                      <Badge color={event.direction === 'IN' ? 'teal' : 'blue'} variant="light">
-                        {event.direction === 'IN' ? t('in') : t('out')}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td ta="center">
-                      <Badge color={event.decision === 'ALLOWED' ? 'green' : 'red'} variant="filled">
-                        {event.decision === 'ALLOWED' ? t('allowed') : t('denied')}
-                      </Badge>
-                      {event.reasonCode && <Text size="xs" c="red" mt={2}>{event.reasonCode}</Text>}
-                    </Table.Td>
-                    <Table.Td>
-                       <Group justify="flex-end">
-                        <Menu position="bottom-end">
-                          <Menu.Target>
-                            <ActionIcon variant="subtle" color="gray"><IconDotsVertical size={18} /></ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            <Menu.Item leftSection={<IconChevronRight size={14} />}>{t('details')}</Menu.Item>
-                          </Menu.Dropdown>
-                        </Menu>
-                       </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))
-              ) : (
-                <Table.Tr>
-                  <Table.Td colSpan={6} py={50}>
-                    <Center><Text c="dimmed">{t('noData')}</Text></Center>
+              {rows.map((item) => (
+                <Table.Tr key={item.id}>
+                  <Table.Td>
+                    <Group gap="sm">
+                      <Avatar size="sm" color="blue" radius="xl">{item.fullName.charAt(0)}</Avatar>
+                      <div>
+                        <Text size="sm" fw={500}>{item.fullName}</Text>
+                        <Text size="xs" c="dimmed" ff="monospace">
+                          {item.memberNo || item.personId || item.memberKey || '—'}
+                        </Text>
+                      </div>
+                    </Group>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{item.gateLabel}</Text>
+                    <Text size="xs" c="dimmed" ff="monospace">{item.gateName}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="xs" fw={500}>{item.scannedAtLabel}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={item.direction === 'IN' ? 'blue' : 'orange'}
+                      variant="light"
+                      leftSection={item.direction === 'IN' ? <IconArrowDownLeft size={10} /> : <IconArrowUpRight size={10} />}
+                      size="sm"
+                    >
+                      {item.direction === 'IN' ? t('directionIn') : t('directionOut')}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge color={item.decision === 'ALLOWED' ? 'green' : 'red'} variant="filled" size="sm">
+                      {item.decision === 'ALLOWED' ? t('allowed') : t('denied')}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Tooltip label={t('viewDetail')}>
+                      <ActionIcon variant="subtle" size="sm" onClick={() => setSelectedRow(item)}>
+                        <IconEye size={16} />
+                      </ActionIcon>
+                    </Tooltip>
                   </Table.Td>
                 </Table.Tr>
-              )}
+              ))}
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
 
-        <Box p="md" style={{ borderTop: '1px solid var(--border-color)' }}>
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">{t('totalItems', { total })}</Text>
-            <Pagination total={totalPages} value={page} onChange={setPage} color="skyBlue" radius="md" />
+        {rows.length === 0 && !loading && (
+          <Text ta="center" py="xl" c="dimmed">
+            {debouncedSearch ? t('noSearchResults') : tc('noData')}
+          </Text>
+        )}
+
+        {result && result.totalPages > 1 && (
+          <Group justify="center" p="md">
+            <Pagination total={result.totalPages} value={page} onChange={setPage} />
           </Group>
-        </Box>
+        )}
       </Card>
+
+      {/* Detail Modal */}
+      <Modal
+        opened={selectedRow !== null}
+        onClose={() => setSelectedRow(null)}
+        title={<Text fw={700}>{t('detailTitle')}</Text>}
+        centered
+        size="lg"
+        radius="md"
+      >
+        {selectedRow && (
+          <Stack gap="md">
+            <Grid gap="xs">
+              {[
+                { label: t('member'), value: selectedRow.fullName },
+                { label: t('memberNo'), value: selectedRow.memberNo ?? '—', mono: true },
+                { label: t('personId'), value: selectedRow.personId ?? '—', mono: true },
+                { label: t('memberKey'), value: selectedRow.memberKey ?? '—', mono: true },
+                { label: t('memberType'), value: selectedRow.memberTypeLabel ?? selectedRow.memberType ?? '—' },
+                { label: t('gate'), value: selectedRow.gateLabel },
+                { label: t('scannedAt'), value: selectedRow.scannedAtLabel },
+                {
+                  label: t('direction'),
+                  value: `${selectedRow.direction === 'IN' ? t('directionIn') : t('directionOut')} (${t('statusCode', { code: selectedRow.direction === 'IN' ? 1 : 0 })})`,
+                },
+              ].map(({ label, value, mono }) => (
+                <Grid.Col key={label} span={6}>
+                  <Paper p="sm" withBorder>
+                    <Text size="xs" c="dimmed">{label}</Text>
+                    <Text fw={600} ff={mono ? 'monospace' : undefined}>{value}</Text>
+                  </Paper>
+                </Grid.Col>
+              ))}
+              <Grid.Col span={12}>
+                <Paper p="sm" withBorder>
+                  <Text size="xs" c="dimmed">{t('remark')}</Text>
+                  <Text size="sm">{selectedRow.remark ?? '—'}</Text>
+                </Paper>
+              </Grid.Col>
+            </Grid>
+          </Stack>
+        )}
+      </Modal>
+    </Stack>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+export default function EventsPage() {
+  const [mode, setMode] = useState<'live' | 'history'>('live');
+
+  return (
+    <Stack gap="xl">
+      {/* Page header */}
+      <Group justify="space-between" align="flex-start" wrap="wrap">
+        <Stack gap={4}>
+          <Group gap="xs">
+            {mode === 'live'
+              ? <IconActivity size={26} color="var(--mantine-color-blue-6)" />
+              : <IconHistory size={26} color="var(--color-navy)" />}
+            <Title order={2} fw={800}>
+              {mode === 'live' ? 'Access Log (รายการเข้า-ออก)' : 'ประวัติการเข้าใช้งาน'}
+            </Title>
+          </Group>
+          <Text c="dimmed" size="sm">
+            {mode === 'live'
+              ? 'แสดงข้อมูลการสแกนผ่านประตูแบบเรียลไทม์ (อัปเดตทุก 10 วินาที)'
+              : 'ค้นหาและกรองประวัติการเข้าใช้งานจากฐานข้อมูล SQL Server'}
+          </Text>
+        </Stack>
+
+        <SegmentedControl
+          value={mode}
+          onChange={(v) => setMode(v as 'live' | 'history')}
+          data={[
+            { label: 'Live', value: 'live' },
+            { label: 'ประวัติ', value: 'history' },
+          ]}
+          radius="md"
+        />
+      </Group>
+
+      {/* Mode content */}
+      {mode === 'live' ? <LiveMode /> : <HistoryMode />}
     </Stack>
   );
 }
