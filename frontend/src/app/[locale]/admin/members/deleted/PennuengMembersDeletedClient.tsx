@@ -20,7 +20,7 @@ import {
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconSearch, IconArrowLeft, IconRestore, IconCheck, IconX, IconArchive } from '@tabler/icons-react';
+import { IconSearch, IconArrowLeft, IconRestore, IconCheck, IconX, IconArchive, IconTrash } from '@tabler/icons-react';
 
 import type { PennuengMemberSoftDeleteRow } from '@/types/pennueng-member';
 import { fetchPennuengDeletedApi, restorePennuengMemberApi } from '../lib/pennueng-member-api';
@@ -35,29 +35,35 @@ export default function PennuengMembersDeletedClient() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchPennuengDeletedApi({ search, page, limit: 20 });
-      setRows(data.rows);
-      setPages(data.pages);
-      setTotal(data.total);
-    } catch (e) {
-      notifications.show({
-        title: tc('error'),
-        message: e instanceof Error ? e.message : tc('error'),
-        color: 'red',
-        icon: <IconX size={16} />,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [search, page, tc]);
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    setLoading(true);
+    fetchPennuengDeletedApi({ search, page, limit: 20 })
+      .then((data) => {
+        if (cancelled) return;
+        setRows(data.rows);
+        setPages(data.pages);
+        setTotal(data.total);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        notifications.show({
+          title: tc('error'),
+          message: e instanceof Error ? e.message : tc('error'),
+          color: 'red',
+          icon: <IconX size={16} />,
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, page, refreshKey]);
 
   const requestRestore = (row: PennuengMemberSoftDeleteRow) => {
     const snap = row.snapshot;
@@ -83,7 +89,45 @@ export default function PennuengMembersDeletedClient() {
             color: 'teal',
             icon: <IconCheck size={16} />,
           });
-          await load();
+          refresh();
+        } catch (e) {
+          notifications.show({
+            title: tc('error'),
+            message: e instanceof Error ? e.message : tc('error'),
+            color: 'red',
+            icon: <IconX size={16} />,
+          });
+        }
+      },
+    });
+  };
+
+  const requestHardDelete = (row: PennuengMemberSoftDeleteRow) => {
+    const snap = row.snapshot;
+    modals.openConfirmModal({
+      title: t('hardDeleteConfirmTitle'),
+      centered: true,
+      children: (
+        <Text size="sm">
+          {t('hardDeleteConfirmMessage', {
+            name: `${snap.name} ${snap.surname}`.trim(),
+            memberNo: row.memberNo,
+          })}
+        </Text>
+      ),
+      labels: { confirm: t('hardDeleteConfirmButton'), cancel: tc('cancel') },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        try {
+          const { deletePennuengMemberPermanentlyApi } = await import('../lib/pennueng-member-api');
+          await deletePennuengMemberPermanentlyApi(row.memberNo);
+          notifications.show({
+            title: tc('success'),
+            message: t('hardDeleteSuccess'),
+            color: 'red',
+            icon: <IconCheck size={16} />,
+          });
+          refresh();
         } catch (e) {
           notifications.show({
             title: tc('error'),
@@ -139,7 +183,7 @@ export default function PennuengMembersDeletedClient() {
                 <Table.Th>{t('memberNo')}</Table.Th>
                 <Table.Th>{t('name')}</Table.Th>
                 <Table.Th>{t('deletedAt')}</Table.Th>
-                <Table.Th w={80} />
+                <Table.Th w={100} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -161,16 +205,28 @@ export default function PennuengMembersDeletedClient() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Tooltip label={t('restore')}>
-                      <ActionIcon
-                        variant="light"
-                        color="teal"
-                        onClick={() => requestRestore(row)}
-                        aria-label={t('restore')}
-                      >
-                        <IconRestore size={16} />
-                      </ActionIcon>
-                    </Tooltip>
+                    <Group gap={6} wrap="nowrap">
+                      <Tooltip label={t('restore')}>
+                        <ActionIcon
+                          variant="light"
+                          color="teal"
+                          onClick={() => requestRestore(row)}
+                          aria-label={t('restore')}
+                        >
+                          <IconRestore size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label={t('hardDelete')}>
+                        <ActionIcon
+                          variant="light"
+                          color="red"
+                          onClick={() => requestHardDelete(row)}
+                          aria-label={t('hardDelete')}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               ))}

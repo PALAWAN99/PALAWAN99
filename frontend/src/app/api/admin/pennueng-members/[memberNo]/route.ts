@@ -8,6 +8,7 @@ import {
   getPennuengMemberByNo,
   softDeletePennuengMember,
   updatePennuengMember,
+  hardDeletePennuengMember,
 } from '@/lib/pennueng-members';
 import { pennuengMemberUpdateSchema } from '@/validators/pennuengMemberValidator';
 import {
@@ -93,7 +94,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
   }
 }
 
-/** DELETE /api/admin/pennueng-members/[memberNo] — soft delete */
+/** DELETE /api/admin/pennueng-members/[memberNo] — soft delete or permanent delete */
 export async function DELETE(req: NextRequest, { params }: RouteCtx) {
   const rateLimitError = checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
@@ -110,19 +111,38 @@ export async function DELETE(req: NextRequest, { params }: RouteCtx) {
     const { memberNo: raw } = await params;
     const memberNo = decodeMemberNo(raw);
     const before = await getPennuengMemberByNo(memberNo);
-    if (!before) return ApiNotFound('ไม่พบสมาชิก');
 
-    await softDeletePennuengMember(memberNo, session.user.id);
+    const { searchParams } = new URL(req.url);
+    const permanent = searchParams.get('permanent') === 'true';
 
-    await logAction({
-      action: 'DELETE',
-      resource: 'MEMBER',
-      resourceId: memberNo,
-      before,
-      req,
-    });
+    if (permanent) {
+      await hardDeletePennuengMember(memberNo);
 
-    return ApiOk('ย้ายสมาชิกไปถังขยะ (soft delete) เรียบร้อยแล้ว');
+      await logAction({
+        action: 'DELETE',
+        resource: 'MEMBER',
+        resourceId: memberNo,
+        before: before || { memberNo },
+        metadata: { permanent: true },
+        req,
+      });
+
+      return ApiOk('ลบสมาชิกอย่างถาวรเรียบร้อยแล้ว');
+    } else {
+      if (!before) return ApiNotFound('ไม่พบสมาชิก');
+
+      await softDeletePennuengMember(memberNo, session.user.id);
+
+      await logAction({
+        action: 'DELETE',
+        resource: 'MEMBER',
+        resourceId: memberNo,
+        before,
+        req,
+      });
+
+      return ApiOk('ย้ายสมาชิกไปถังขยะ (soft delete) เรียบร้อยแล้ว');
+    }
   } catch (error) {
     return handleError(error);
   }

@@ -76,6 +76,17 @@ export async function softDeletePennuengMemberApi(memberNo: string): Promise<voi
   await assertOk(res, json);
 }
 
+export async function deletePennuengMemberPermanentlyApi(memberNo: string): Promise<void> {
+  const res = await fetch(
+    apiPath(`/api/admin/pennueng-members/${encodeURIComponent(memberNo)}?permanent=true`),
+    {
+      method: 'DELETE',
+    },
+  );
+  const json = await parseJson(res);
+  await assertOk(res, json);
+}
+
 export async function fetchPennuengDeletedApi(params: {
   search?: string;
   page?: number;

@@ -8,7 +8,6 @@ import {
   IconChartBar,
   IconShield,
   IconSettings,
-  IconHistory,
   IconUserShield,
   IconMapPin,
   IconUserCircle,
@@ -70,7 +69,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     labelKey: 'Common.navGroupAnalytics',
     icon: IconReportAnalytics,
     items: [
-      { labelKey: 'Common.history', icon: IconHistory, href: '/admin/history' },
       { labelKey: 'Common.events', icon: IconActivity, href: '/admin/events' },
       { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports' },
     ],

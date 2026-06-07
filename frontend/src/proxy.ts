@@ -66,13 +66,13 @@ export default auth((req) => {
     const isSuperAdminSettings = pathname.includes('/admin/settings');
     if (isSuperAdminSettings && userRole !== 'SUPER_ADMIN') {
       const prefix = localePathPrefix(pathname);
-      return Response.redirect(new URL(withBasePath(`${prefix}/admin`), nextUrl));
+      return Response.redirect(new URL(withBasePath(`${prefix}/admin/dashboard`), nextUrl));
     }
   }
 
   if (isLoginPath && isLoggedIn) {
     const prefix = localePathPrefix(pathname);
-    return Response.redirect(new URL(withBasePath(`${prefix}/admin`), nextUrl));
+    return Response.redirect(new URL(withBasePath(`${prefix}/admin/dashboard`), nextUrl));
   }
 
   return applyIntlMiddleware(req);
