@@ -18,7 +18,7 @@
     "agent:pack": "bash ../desktop-agent/build-all.sh",
     "extension:pack": "sh ../extension/build.sh && sh ../extension/easy-install/build-easy-install.sh && mkdir -p public/downloads && cp ../extension/dist/kku-smart-access-card-bridge.zip ../extension/dist/kku-card-bridge-easy-install-mac.zip ../extension/dist/kku-card-bridge-easy-install-windows.zip public/downloads/ && npm run agent:pack",
     "check-members": "tsx scratch/check-members.ts",
-    "test:sqlserver": "tsx scripts/test-sqlserver.ts"
+    "test:sqlserver": "tsx scripts/explore-sqlserver.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
