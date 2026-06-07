@@ -5,7 +5,7 @@ import { checkStandardRateLimit } from '@/lib/rate-limit';
 import { ApiSuccess, ApiUnauthorized, ApiBadRequest, handleError } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

@@ -103,7 +103,7 @@ export default function HomePage() {
               size="lg"
               color="blue"
               rightSection={<IconArrowRight size={18} />}
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/admin/dashboard')}
               style={{ fontWeight: 600 }}
             >
               {t('Common.dashboard')}
@@ -123,7 +123,7 @@ export default function HomePage() {
               variant="subtle"
               color="gray"
               style={{ color: '#94A3B8' }}
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/admin/access-log')}
             >
               {t('Dashboard.recentActivity')}
             </Button>
