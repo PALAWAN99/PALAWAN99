@@ -30,7 +30,7 @@ export async function fetchPennuengMembersApi(params: {
   page?: number;
   limit?: number;
   memberType?: string | null;
-}): Promise<PennuengMemberListResult> {
+}): Promise<PennuengMemberListResult & { isMock?: boolean }> {
   const q = new URLSearchParams();
   if (params.search) q.set('search', params.search);
   if (params.page) q.set('page', String(params.page));
@@ -40,7 +40,9 @@ export async function fetchPennuengMembersApi(params: {
   const res = await fetch(apiPath(`/api/admin/pennueng-members?${q}`));
   const json = await parseJson(res);
   await assertOk(res, json);
-  return unwrapApiData<PennuengMemberListResult>(json);
+  const isMock = !!(json && typeof json === 'object' && 'mock' in json && (json as { mock?: boolean }).mock);
+  const data = unwrapApiData<PennuengMemberListResult>(json);
+  return { ...data, isMock };
 }
 
 export async function createPennuengMemberApi(data: PennuengMemberInput): Promise<PennuengMember> {
