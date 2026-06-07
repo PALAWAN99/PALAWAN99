@@ -107,7 +107,7 @@ export async function rateLimit(
  * Helper สำหรับเช็ค Rate Limit ใน API Route
  * คืน NextResponse 429 ถ้าเกิน limit หรือ null ถ้าผ่าน
  */
-export async function checkRateLimit(req: Request, limit: number = 60): Promise<NextResponse | null> {
+export async function checkRateLimit(req: Request, limit: number = 60): Promise<NextResponse | undefined> {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
   const result = await rateLimit(ip, limit);
 
@@ -129,7 +129,7 @@ export async function checkRateLimit(req: Request, limit: number = 60): Promise<
     );
   }
 
-  return null; // ผ่าน
+  return undefined; // ผ่าน
 }
 
 // ============================================
@@ -137,21 +137,21 @@ export async function checkRateLimit(req: Request, limit: number = 60): Promise<
 // ============================================
 
 /** QR Validate / ID Card Register — เข้มงวดสุด (30 req/min) */
-export async function checkStrictRateLimit(req: Request): Promise<NextResponse | null> {
+export async function checkStrictRateLimit(req: Request): Promise<NextResponse | undefined> {
   return checkRateLimit(req, 30);
 }
 
 /** Admin API ทั่วไป (100 req/min) */
-export async function checkStandardRateLimit(req: Request): Promise<NextResponse | null> {
+export async function checkStandardRateLimit(req: Request): Promise<NextResponse | undefined> {
   return checkRateLimit(req, 100);
 }
 
 /** Device Heartbeat / Internal (200 req/min) */
-export async function checkRelaxedRateLimit(req: Request): Promise<NextResponse | null> {
+export async function checkRelaxedRateLimit(req: Request): Promise<NextResponse | undefined> {
   return checkRateLimit(req, 200);
 }
 
 /** Auth / Login — เข้มมาก กันเดา password (10 req/min) */
-export async function checkAuthRateLimit(req: Request): Promise<NextResponse | null> {
+export async function checkAuthRateLimit(req: Request): Promise<NextResponse | undefined> {
   return checkRateLimit(req, 10);
 }

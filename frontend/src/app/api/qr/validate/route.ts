@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { GateDirection } from '@prisma/client';
 import { validateQrToken } from '@/lib/qr-engine';
 import { validateQrSchema } from '@/lib/schemas/gate';
 import { checkStrictRateLimit } from '@/lib/rate-limit';
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       const deniedMemberId = validation.qrToken?.memberId;
       if (deniedMemberId) {
         // คำนวณทิศทางสำหรับ Log การปฏิเสธ
-        let deniedDirection = 'IN';
+        let deniedDirection: GateDirection = 'IN';
         try {
           const tempGate = await prisma.gate.findUnique({ where: { id: gateId } });
           if (tempGate) {

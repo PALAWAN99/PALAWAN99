@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { apiPath } from '@/lib/base-path';
 import { getApiErrorMessage } from '@/lib/parse-api-response';
 import type { PennuengDashboardPayload } from '@/types/pennueng-dashboard';
+import type { DatesRangeValue } from '@mantine/dates';
 
 export interface StatItem {
   titleKey: string;
@@ -62,7 +63,7 @@ function applyPennuengToDashboard(p: PennuengDashboardPayload) {
   };
 }
 
-export function useDashboard(dateRange: [Date | null, Date | null] = [null, null]) {
+export function useDashboard(dateRange: DatesRangeValue = [null, null]) {
   const [stats, setStats] = useState({
     members: { total: 0, active: 0 },
     gates: { total: 0, active: 0 },

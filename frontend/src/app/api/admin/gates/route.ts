@@ -9,7 +9,7 @@ import { ApiSuccess, ApiCreated, ApiNotFound, ApiConflict, handleError } from '@
  * รายการประตูทั้งหมด พร้อมข้อมูลสาขา
  */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {

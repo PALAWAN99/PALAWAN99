@@ -28,7 +28,7 @@ function parseBangkokDateLocal(value: string): Date {
 
 /** POST /api/admin/idcard/pennueng-register */
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

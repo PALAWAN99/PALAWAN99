@@ -18,7 +18,7 @@ import {
 
 /** GET /api/admin/idcard/pennueng-lookup?citizenId= */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

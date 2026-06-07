@@ -10,7 +10,7 @@ import { withLoggedApi } from '@/lib/route-log';
 
 // GET: ดึงรายการสมาชิก
 export const GET = withLoggedApi(async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -34,7 +34,7 @@ export const GET = withLoggedApi(async function GET(req: NextRequest) {
 
 // POST: เพิ่มสมาชิกใหม่
 export const POST = withLoggedApi(async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

@@ -37,7 +37,7 @@ function computeExpiresAt(duration: string | undefined): Date {
  * - temporary=false → token v1 ใน qr_tokens (สมาชิก ACTIVE เท่านั้น)
  */
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

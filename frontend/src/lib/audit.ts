@@ -7,6 +7,7 @@ interface AuditLogParams {
   resourceId?: string;
   before?: any;
   after?: any;
+  metadata?: any;
   req?: Request;
 }
 
@@ -20,6 +21,7 @@ export async function logAction({
   resourceId,
   before,
   after,
+  metadata,
   req
 }: AuditLogParams) {
   try {
@@ -30,6 +32,8 @@ export async function logAction({
     const ipAddress = req?.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = req?.headers.get('user-agent') || 'unknown';
 
+    const finalAfter = after || metadata || null;
+
     await prisma.auditLog.create({
       data: {
         userId: userId || null,
@@ -37,7 +41,7 @@ export async function logAction({
         resource,
         resourceId,
         dataBefore: before ? JSON.parse(JSON.stringify(before)) : null,
-        dataAfter: after ? JSON.parse(JSON.stringify(after)) : null,
+        dataAfter: finalAfter ? JSON.parse(JSON.stringify(finalAfter)) : null,
         ipAddress,
         userAgent,
       },

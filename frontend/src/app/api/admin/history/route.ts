@@ -29,7 +29,7 @@ const querySchema = z.object({
  * GET /api/admin/history?startDate=&endDate=&gateId=&search=&page=
  */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

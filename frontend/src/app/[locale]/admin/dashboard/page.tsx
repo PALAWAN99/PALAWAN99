@@ -12,7 +12,7 @@ import {
   Alert,
   Button,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
+import { DatePickerInput, type DatesRangeValue } from '@mantine/dates';
 import { IconLayoutDashboard, IconAlertCircle, IconPlugOff, IconRefresh } from '@tabler/icons-react';
 
 import { useDashboard } from '../dashboard/hooks/useDashboard';
@@ -27,7 +27,7 @@ import { DashboardStudentsCurriculumHeader } from '../dashboard/_components/Dash
 export default function AdminDashboardPage() {
   const t = useTranslations();
   const locale = useLocale();
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [dateRange, setDateRange] = useState<DatesRangeValue>([null, null]);
 
   const {
     stats,
@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
             type="range"
             placeholder="เลือกช่วงเวลา"
             value={dateRange}
-            onChange={setDateRange}
+            onChange={(val: DatesRangeValue) => setDateRange(val)}
             clearable
             size="sm"
             maxDate={new Date()}

@@ -8,7 +8,7 @@ import { fetchReportGateOptions } from '@/lib/reports-analytics';
  * GET /api/admin/reports/gates
  */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

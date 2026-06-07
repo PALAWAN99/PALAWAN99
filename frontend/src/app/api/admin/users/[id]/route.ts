@@ -19,7 +19,7 @@ type RouteCtx = { params: Promise<{ id: string }> };
 
 /** GET /api/admin/users/[id] */
 export async function GET(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, { params }: RouteCtx) {
 
 /** PATCH /api/admin/users/[id] — แก้ไข / ระงับ / รีเซ็ตรหัสผ่าน */
 export async function PATCH(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
 
 /** DELETE /api/admin/users/[id] */
 export async function DELETE(req: NextRequest, { params }: RouteCtx) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

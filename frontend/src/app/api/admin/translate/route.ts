@@ -16,7 +16,7 @@ import {
  * Body: { text: string } — แปลจากไทย → อังกฤษ + จีน (สำหรับฟอร์มสาขา/ชื่อ)
  */
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();

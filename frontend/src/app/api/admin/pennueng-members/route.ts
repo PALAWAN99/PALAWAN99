@@ -71,7 +71,7 @@ const MOCK_MEMBERS: PennuengMemberListResult['members'] = [
 
 /** GET /api/admin/pennueng-members — รายชื่อจาก Pennueng SQL Server */
 export async function GET(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
 
 /** POST /api/admin/pennueng-members — สร้างสมาชิกใน mbmembmaster */
 export async function POST(req: NextRequest) {
-  const rateLimitError = checkStandardRateLimit(req);
+  const rateLimitError = await checkStandardRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   const session = await auth();
