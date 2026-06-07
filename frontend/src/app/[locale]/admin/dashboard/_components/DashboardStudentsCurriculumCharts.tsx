@@ -124,8 +124,8 @@ export function DashboardStudentsCurriculumCharts({
           topCurricula.length > 0 ? (
             <PennuengHorizontalBarChart
               data={topCurricula}
-              yAxisMinWidth={260}
-              yAxisMaxWidth={420}
+              yAxisMinWidth={130}
+              yAxisMaxWidth={220}
             />
           ) : (
             <EmptyState label={t('Common.noData')} />
@@ -135,8 +135,8 @@ export function DashboardStudentsCurriculumCharts({
             data={MOCK_STUDENT_STATUS_SHARE}
             barColor="#3B82F6"
             dense
-            yAxisMinWidth={200}
-            yAxisMaxWidth={300}
+            yAxisMinWidth={130}
+            yAxisMaxWidth={220}
           />
         ) : (
           <Alert variant="light" color="blue" mt="xs">

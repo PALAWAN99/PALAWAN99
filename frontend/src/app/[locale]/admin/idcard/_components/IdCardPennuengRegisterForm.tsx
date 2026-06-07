@@ -13,9 +13,10 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconCash, IconQrcode, IconUserPlus } from '@tabler/icons-react';
+import { IconCash, IconQrcode, IconUserPlus, IconSend } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { apiPath } from '@/lib/base-path';
 import type { ThaiIdData } from '@/lib/idcard/reader';
 import {
   groupDetailForMemberType,
@@ -203,6 +204,72 @@ export function IdCardPennuengRegisterForm({
     }
   };
 
+  const [emailSending, setEmailSending] = useState(false);
+
+  const handleSendEmail = async () => {
+    const email = form.values.email.trim();
+    if (!email) {
+      notifications.show({
+        title: 'คำเตือน',
+        message: t('sendEmailRequired'),
+        color: 'orange',
+      });
+      return;
+    }
+    if (!qr) return;
+
+    setEmailSending(true);
+    try {
+      const canvas = document.getElementById('register-qr-canvas') as HTMLCanvasElement;
+      if (!canvas) {
+        notifications.show({
+          title: 'ข้อผิดพลาด',
+          message: t('sendEmailCanvasError'),
+          color: 'red',
+        });
+        return;
+      }
+      const qrImageDataUrl = canvas.toDataURL('image/png');
+
+      const res = await fetch(apiPath('/api/admin/qr/send-email'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          memberName: `${form.values.name} ${form.values.surname}`.trim(),
+          qrImageDataUrl,
+          expiresAt: qr.expiresAt,
+          isTemporary: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        notifications.show({
+          title: 'ข้อผิดพลาด',
+          message: json.error || t('sendEmailFailed'),
+          color: 'red',
+        });
+        return;
+      }
+
+      notifications.show({
+        title: 'สำเร็จ',
+        message: t('sendEmailSuccess'),
+        color: 'green',
+      });
+    } catch (error) {
+      console.error(error);
+      notifications.show({
+        title: 'ข้อผิดพลาด',
+        message: t('sendEmailFailed'),
+        color: 'red',
+      });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   return (
     <Paper withBorder p="md" radius="md">
       <Stack gap="sm">
@@ -290,10 +357,22 @@ export function IdCardPennuengRegisterForm({
 
         {qr ? (
           <Stack align="center" gap="xs" py="sm">
-            <QRCodeSVG value={qr.qrContent} size={140} includeMargin level="H" />
+            <QRCodeCanvas id="register-qr-canvas" value={qr.qrContent} size={140} includeMargin level="H" />
             <Text size="xs" c="green">
               {t('pennQrUntil', { date: new Date(qr.expiresAt).toLocaleString('th-TH') })}
             </Text>
+            <Button
+              size="xs"
+              color="blue"
+              leftSection={<IconSend size={12} />}
+              loading={emailSending}
+              onClick={handleSendEmail}
+              w="100%"
+              maw={240}
+              mt="xs"
+            >
+              {t('sendEmailButton')}
+            </Button>
           </Stack>
         ) : null}
       </Stack>

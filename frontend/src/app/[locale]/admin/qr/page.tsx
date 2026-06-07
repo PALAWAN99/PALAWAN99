@@ -31,20 +31,22 @@ import {
   IconSettings,
   IconPlus,
   IconEdit,
+  IconTrash,
   IconUserCheck,
   IconClock,
   IconRepeat,
+  IconMail,
 } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { apiPath } from '@/lib/base-path';
 import { getApiErrorMessage, unwrapApiData } from '@/lib/parse-api-response';
 import {
-  formatTtlHours,
-  MIN_TTL_HOURS,
-  ttlHoursToSeconds,
-  ttlSecondsToHours,
+  formatTtl,
+  decodeTtlSeconds,
+  encodeTtlToSeconds,
+  TtlUnit,
 } from '@/lib/qr-policy-ttl';
 
 type QrMemberRow = {
@@ -54,6 +56,7 @@ type QrMemberRow = {
   lastNameTh: string;
   status: string;
   memberTypeLabel?: string | null;
+  email?: string | null;
 };
 
 type AutocompleteOption = { value: string; label: string };
@@ -85,11 +88,16 @@ export default function QRManagementPage() {
 
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<Record<string, unknown> | null>(null);
+  const [deletingPolicy, setDeletingPolicy] = useState<Record<string, unknown> | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
 
   const policyForm = useForm({
     initialValues: {
       name: '',
-      ttlHours: 24,
+      ttlValue: 24,
+      ttlUnit: 'hour' as TtlUnit,
       oneTimeUse: false,
       maxUsesPerDay: 10,
       isDefault: false,
@@ -146,6 +154,7 @@ export default function QRManagementPage() {
       const data = unwrapApiData<{ member: QrMemberRow }>(json);
       setMemberData(data.member);
       setSearchValue(data.member.memberNo);
+      setEmailValue(data.member.email ?? '');
     } catch {
       notifications.show({ title: 'Error', message: t('Qr.searchFailed'), color: 'red' });
     } finally {
@@ -247,10 +256,10 @@ export default function QRManagementPage() {
 
   const handleSavePolicy = async (values: typeof policyForm.values) => {
     const method = editingPolicy ? 'PATCH' : 'POST';
-    const { ttlHours, ...rest } = values;
+    const { ttlValue, ttlUnit, ...rest } = values;
     const payload = {
       ...rest,
-      ttlSeconds: ttlHoursToSeconds(ttlHours),
+      ttlSeconds: encodeTtlToSeconds(ttlValue, ttlUnit),
     };
     try {
       const res = await fetch(apiPath('/api/admin/qr-policies'), {
@@ -267,6 +276,94 @@ export default function QRManagementPage() {
       }
     } catch {
       notifications.show({ title: 'Error', message: 'Save failed', color: 'red' });
+    }
+  };
+
+  const handleDeletePolicy = async () => {
+    if (!deletingPolicy) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(apiPath(`/api/admin/qr-policies?id=${deletingPolicy.id}`), {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        notifications.show({
+          title: t('Common.error'),
+          message: getApiErrorMessage(json) || t('Qr.deletePolicyFailed'),
+          color: 'red',
+        });
+        return;
+      }
+      notifications.show({ title: t('Common.success'), message: t('Qr.deletePolicySuccess'), color: 'green' });
+      setDeletingPolicy(null);
+      fetchPolicies();
+    } catch {
+      notifications.show({ title: t('Common.error'), message: t('Qr.deletePolicyFailed'), color: 'red' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailValue.trim()) {
+      notifications.show({
+        message: t('Qr.emailRequired'),
+        color: 'orange',
+      });
+      return;
+    }
+    if (!generatedQR || !memberData) return;
+
+    setEmailSending(true);
+    try {
+      const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
+      if (!canvas) {
+        notifications.show({
+          title: t('Common.error'),
+          message: 'QR Code canvas not found',
+          color: 'red',
+        });
+        return;
+      }
+      const qrImageDataUrl = canvas.toDataURL('image/png');
+
+      const res = await fetch(apiPath('/api/admin/qr/send-email'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailValue.trim(),
+          memberName: `${memberData.firstNameTh} ${memberData.lastNameTh}`,
+          qrImageDataUrl,
+          expiresAt: generatedQR.expiresAt,
+          isTemporary: generatedQR.temporary,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        notifications.show({
+          title: t('Common.error'),
+          message: getApiErrorMessage(json) || t('Qr.sendEmailFailed'),
+          color: 'red',
+        });
+        return;
+      }
+
+      notifications.show({
+        title: t('Common.success'),
+        message: t('Qr.sendEmailSuccess'),
+        color: 'green',
+      });
+    } catch (error) {
+      console.error(error);
+      notifications.show({
+        title: t('Common.error'),
+        message: t('Qr.sendEmailFailed'),
+        color: 'red',
+      });
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -307,6 +404,7 @@ export default function QRManagementPage() {
                     if (!value) {
                       setMemberData(null);
                       setGeneratedQR(null);
+                      setEmailValue('');
                     }
                   }}
                   data={autocompleteOptions}
@@ -335,7 +433,7 @@ export default function QRManagementPage() {
                       description={t('Qr.policySelectHint')}
                       data={policies.map((p) => ({
                         value: String(p.id),
-                        label: `${String(p.name)} (${formatTtlHours(Number(p.ttlSeconds) || 0)} ${t('Qr.policyTtlHoursUnit')})`,
+                        label: `${String(p.name)} (${formatTtl(Number(p.ttlSeconds) || 0, t)})`,
                       }))}
                       value={selectedPolicyId}
                       onChange={(val) => setSelectedPolicyId(val)}
@@ -394,8 +492,9 @@ export default function QRManagementPage() {
               </Title>
               <Center mih={280}>
                 {generatedQR ? (
-                  <Stack align="center" gap="md">
-                    <QRCodeSVG
+                  <Stack align="center" gap="md" style={{ width: '100%', maxWidth: 320 }}>
+                    <QRCodeCanvas
+                      id="qr-code-canvas"
                       value={generatedQR.qrContent}
                       size={200}
                       includeMargin
@@ -416,6 +515,27 @@ export default function QRManagementPage() {
                         {t('Qr.tempBadge')}
                       </Badge>
                     ) : null}
+
+                    <Divider my="xs" style={{ width: '100%' }} />
+
+                    <Stack gap="xs" style={{ width: '100%' }}>
+                      <TextInput
+                        label={t('Qr.sendEmailLabel')}
+                        placeholder="example@kku.ac.th"
+                        value={emailValue}
+                        onChange={(e) => setEmailValue(e.currentTarget.value)}
+                        leftSection={<IconMail size={16} />}
+                      />
+                      <Button
+                        loading={emailSending}
+                        onClick={handleSendEmail}
+                        variant="light"
+                        fullWidth
+                      >
+                        {t('Qr.sendButton')}
+                      </Button>
+                    </Stack>
+
                     <Button variant="subtle" size="xs" onClick={() => window.print()}>
                       {t('Qr.printButton')}
                     </Button>
@@ -473,7 +593,7 @@ export default function QRManagementPage() {
                         <Text fw={500}>{String(p.name)}</Text>
                       </Table.Td>
                       <Table.Td>
-                        {formatTtlHours(Number(p.ttlSeconds) || 0)} {t('Qr.policyTtlHoursUnit')}
+                        {formatTtl(Number(p.ttlSeconds) || 0, t)}
                       </Table.Td>
                       <Table.Td>{p.oneTimeUse ? t('Qr.yes') : t('Qr.no')}</Table.Td>
                       <Table.Td>
@@ -487,22 +607,35 @@ export default function QRManagementPage() {
                         ) : null}
                       </Table.Td>
                       <Table.Td ta="right">
-                        <ActionIcon
-                          variant="subtle"
-                          onClick={() => {
-                            setEditingPolicy(p);
-                            policyForm.setValues({
-                              name: String(p.name ?? ''),
-                              ttlHours: ttlSecondsToHours(Number(p.ttlSeconds) || 86400),
-                              oneTimeUse: Boolean(p.oneTimeUse),
-                              maxUsesPerDay: Number(p.maxUsesPerDay) || 10,
-                              isDefault: Boolean(p.isDefault),
-                            });
-                            setPolicyModalOpen(true);
-                          }}
-                        >
-                          <IconEdit size={16} />
-                        </ActionIcon>
+                        <Group gap={4} justify="flex-end">
+                          <ActionIcon
+                            variant="subtle"
+                            onClick={() => {
+                              setEditingPolicy(p);
+                              const { value, unit } = decodeTtlSeconds(Number(p.ttlSeconds) || 86400);
+                              policyForm.setValues({
+                                name: String(p.name ?? ''),
+                                ttlValue: value,
+                                ttlUnit: unit,
+                                oneTimeUse: Boolean(p.oneTimeUse),
+                                maxUsesPerDay: Number(p.maxUsesPerDay) || 10,
+                                isDefault: Boolean(p.isDefault),
+                              });
+                              setPolicyModalOpen(true);
+                            }}
+                          >
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            disabled={Boolean(p.isDefault)}
+                            title={p.isDefault ? t('Qr.cannotDeleteDefault') : t('Qr.deletePolicy')}
+                            onClick={() => setDeletingPolicy(p)}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Group>
                       </Table.Td>
                     </Table.Tr>
                   ))}
@@ -513,6 +646,29 @@ export default function QRManagementPage() {
         </Tabs.Panel>
       </Tabs>
 
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={!!deletingPolicy}
+        onClose={() => setDeletingPolicy(null)}
+        title={t('Qr.deletePolicyConfirmTitle')}
+        radius="md"
+        size="sm"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            {t('Qr.deletePolicyConfirmBody', { name: String(deletingPolicy?.name ?? '') })}
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="default" onClick={() => setDeletingPolicy(null)} disabled={deleteLoading}>
+              {t('Common.cancel')}
+            </Button>
+            <Button color="red" loading={deleteLoading} onClick={handleDeletePolicy}>
+              {t('Qr.deletePolicy')}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       <Modal
         opened={policyModalOpen}
         onClose={() => setPolicyModalOpen(false)}
@@ -522,16 +678,30 @@ export default function QRManagementPage() {
         <form onSubmit={policyForm.onSubmit(handleSavePolicy)}>
           <Stack gap="md">
             <TextInput label={t('Qr.policyName')} required {...policyForm.getInputProps('name')} />
-            <NumberInput
-              label={t('Qr.policyTtlHours')}
-              description={t('Qr.policyTtlHoursHint')}
+            <Select
+              label={t('Qr.policyTtlUnitLabel')}
+              data={[
+                { value: 'hour', label: t('Qr.ttlUnitHour') },
+                { value: 'day', label: t('Qr.ttlUnitDay') },
+                { value: 'month', label: t('Qr.ttlUnitMonth') },
+                { value: 'year', label: t('Qr.ttlUnitYear') },
+                { value: 'lifetime', label: t('Qr.ttlUnitLifetime') },
+              ]}
               required
-              min={MIN_TTL_HOURS}
-              step={1}
-              decimalScale={1}
-              leftSection={<IconClock size={16} />}
-              {...policyForm.getInputProps('ttlHours')}
+              {...policyForm.getInputProps('ttlUnit')}
             />
+            {policyForm.values.ttlUnit !== 'lifetime' && (
+              <NumberInput
+                label={t('Qr.policyTtlValue')}
+                description={t('Qr.policyTtlHint')}
+                required
+                min={1}
+                step={1}
+                decimalScale={0}
+                leftSection={<IconClock size={16} />}
+                {...policyForm.getInputProps('ttlValue')}
+              />
+            )}
             <NumberInput
               label={t('Qr.policyDailyLimit')}
               required

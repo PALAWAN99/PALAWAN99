@@ -40,27 +40,35 @@ function StepPill({
 }) {
   const bg =
     state === 'done'
-      ? 'var(--mantine-color-green-0)'
+      ? 'var(--mantine-color-green-light)'
       : state === 'active'
-        ? 'var(--mantine-color-skyBlue-0)'
-        : 'var(--mantine-color-gray-0)';
-  const ring =
+        ? 'var(--mantine-color-sky-light)'
+        : 'var(--mantine-color-default-hover)';
+        
+  const border =
     state === 'active'
-      ? '1px solid var(--mantine-color-skyBlue-4)'
-      : '1px solid transparent';
+      ? '1px solid var(--mantine-color-sky-light-hover)'
+      : '1px solid var(--mantine-color-default-border)';
+      
+  const textColor =
+    state === 'done'
+      ? 'var(--mantine-color-green-light-color)'
+      : state === 'active'
+        ? 'var(--mantine-color-sky-light-color)'
+        : 'var(--mantine-color-text)';
 
   return (
     <Paper
       flex={1}
       p="sm"
       radius="md"
-      style={{ background: bg, boxShadow: ring, minWidth: 72 }}
+      style={{ background: bg, border, minWidth: 72, color: textColor }}
     >
       <Stack gap={6} align="center">
         <ThemeIcon
           size={28}
           radius="xl"
-          color={state === 'done' ? 'green' : state === 'active' ? 'skyBlue' : 'gray'}
+          color={state === 'done' ? 'green' : state === 'active' ? 'sky' : 'gray'}
           variant={state === 'idle' ? 'light' : 'filled'}
         >
           {state === 'done' ? <IconCheck size={16} /> : <Text size="xs" fw={700}>{n}</Text>}

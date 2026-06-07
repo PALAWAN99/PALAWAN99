@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "winusb-dismissed";
 
 export function WinUsbGuide() {
+  const t = useTranslations("IdCard");
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -38,29 +40,26 @@ export function WinUsbGuide() {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">ติดตั้ง WinUSB Driver</h2>
-              <p className="text-sm text-muted-foreground">จำเป็นสำหรับ Windows เพื่อใช้งาน DE-620</p>
+              <h2 className="text-lg font-bold text-slate-800">{t("winUsbTitle")}</h2>
+              <p className="text-sm text-muted-foreground">{t("winUsbSubtitle")}</p>
             </div>
           </div>
 
           {/* Explanation */}
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-            <p className="font-medium mb-1">ทำไมต้องติดตั้ง?</p>
-            <p>
-              DUALi DE-620 ใช้ Vendor Protocol ในการสื่อสาร ซึ่ง Windows ไม่มี driver มาให้ในตัว
-              ต้องติดตั้ง WinUSB driver ผ่านโปรแกรม Zadig ก่อนจึงจะใช้งานเครื่องอ่านได้
-            </p>
+            <p className="font-medium mb-1">{t("winUsbWhyTitle")}</p>
+            <p>{t("winUsbWhyBody")}</p>
           </div>
 
           {/* Steps */}
           <div className="space-y-3">
-            <h3 className="font-semibold text-slate-700 text-sm">ขั้นตอนการติดตั้ง</h3>
+            <h3 className="font-semibold text-slate-700 text-sm">{t("winUsbStepsTitle")}</h3>
 
             <div className="space-y-2">
               <div className="flex gap-3 items-start">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
                 <div className="text-sm">
-                  <p className="font-medium text-slate-700">ดาวน์โหลด Zadig</p>
+                  <p className="font-medium text-slate-700">{t("winUsbStep1Title")}</p>
                   <a
                     href="https://zadig.akeo.ie/"
                     target="_blank"
@@ -78,30 +77,24 @@ export function WinUsbGuide() {
               <div className="flex gap-3 items-start">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
                 <div className="text-sm">
-                  <p className="font-medium text-slate-700">เปิด Zadig และเลือกอุปกรณ์ DE-620</p>
-                  <p className="text-muted-foreground">
-                    เสียบเครื่องอ่าน → Options → List All Devices → เลือก &quot;DUALi DE-620&quot;
-                  </p>
+                  <p className="font-medium text-slate-700">{t("winUsbStep2Title")}</p>
+                  <p className="text-muted-foreground">{t("winUsbStep2Desc")}</p>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
                 <div className="text-sm">
-                  <p className="font-medium text-slate-700">เลือก WinUSB แล้วกด Install Driver</p>
-                  <p className="text-muted-foreground">
-                    ตรวจสอบให้ Driver เป็น &quot;WinUSB&quot; แล้วกดปุ่ม &quot;Install Driver&quot; หรือ &quot;Replace Driver&quot;
-                  </p>
+                  <p className="font-medium text-slate-700">{t("winUsbStep3Title")}</p>
+                  <p className="text-muted-foreground">{t("winUsbStep3Desc")}</p>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start">
                 <span className="w-6 h-6 rounded-full bg-green-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
                 <div className="text-sm">
-                  <p className="font-medium text-slate-700">เสร็จสิ้น — Refresh หน้านี้</p>
-                  <p className="text-muted-foreground">
-                    เมื่อติดตั้งเสร็จ กดปุ่ม &quot;ติดตั้งแล้ว&quot; ด้านล่าง
-                  </p>
+                  <p className="font-medium text-slate-700">{t("winUsbStep4Title")}</p>
+                  <p className="text-muted-foreground">{t("winUsbStep4Desc")}</p>
                 </div>
               </div>
             </div>
@@ -110,10 +103,10 @@ export function WinUsbGuide() {
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button onClick={handleDismissPermanent} className="flex-1">
-              ติดตั้งแล้ว
+              {t("winUsbInstalledBtn")}
             </Button>
             <Button onClick={handleDismissSession} variant="outline" className="flex-1">
-              เตือนภายหลัง
+              {t("winUsbRemindLaterBtn")}
             </Button>
           </div>
         </div>

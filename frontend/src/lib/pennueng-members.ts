@@ -423,11 +423,46 @@ export async function restorePennuengMember(memberNo: string): Promise<PennuengM
   return restored;
 }
 
+export async function autoCleanSoftDeletedMembers(): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+
+  const oldDeleted = await prisma.pennuengMemberSoftDelete.findMany({
+    where: {
+      restoredAt: null,
+      deletedAt: {
+        lt: cutoff,
+      },
+    },
+    select: {
+      memberNo: true,
+    },
+  });
+
+  if (oldDeleted.length === 0) return 0;
+
+  let count = 0;
+  for (const item of oldDeleted) {
+    try {
+      await hardDeletePennuengMember(item.memberNo);
+      count++;
+    } catch (err) {
+      console.error(`Failed to auto hard-delete member ${item.memberNo}:`, err);
+    }
+  }
+  return count;
+}
+
 export async function listPennuengSoftDeleted(options: {
   search?: string;
   page?: number;
   limit?: number;
 }): Promise<{ rows: PennuengMemberSoftDeleteRow[]; total: number; pages: number; page: number }> {
+  // Auto clean up soft deleted members older than 30 days
+  await autoCleanSoftDeletedMembers().catch((err) => {
+    console.error('[AUTO_CLEAN_SOFT_DELETED_ERROR]', err);
+  });
+
   const page = Math.max(1, options.page ?? 1);
   const limit = Math.min(100, Math.max(1, options.limit ?? 20));
   const skip = (page - 1) * limit;

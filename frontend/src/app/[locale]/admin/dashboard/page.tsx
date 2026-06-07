@@ -13,7 +13,7 @@ import {
   Button,
 } from '@mantine/core';
 import { DatePickerInput, type DatesRangeValue } from '@mantine/dates';
-import { IconLayoutDashboard, IconAlertCircle, IconPlugOff, IconRefresh } from '@tabler/icons-react';
+import { IconLayoutDashboard, IconAlertCircle, IconPlugOff, IconRefresh, IconSearch } from '@tabler/icons-react';
 
 import { useDashboard } from '../dashboard/hooks/useDashboard';
 import { DashboardStats } from '../dashboard/_components/DashboardStats';
@@ -28,6 +28,7 @@ export default function AdminDashboardPage() {
   const t = useTranslations();
   const locale = useLocale();
   const [dateRange, setDateRange] = useState<DatesRangeValue>([null, null]);
+  const [searchRange, setSearchRange] = useState<DatesRangeValue>([null, null]);
 
   const {
     stats,
@@ -43,7 +44,7 @@ export default function AdminDashboardPage() {
     loading,
     error,
     refetchPennueng,
-  } = useDashboard(dateRange);
+  } = useDashboard(searchRange);
 
   const formattedDate = new Date().toLocaleDateString(
     locale === 'th' ? 'th-TH' : 'en-US',
@@ -76,12 +77,25 @@ export default function AdminDashboardPage() {
             type="range"
             placeholder="เลือกช่วงเวลา"
             value={dateRange}
-            onChange={(val: DatesRangeValue) => setDateRange(val)}
+            onChange={(val: DatesRangeValue) => {
+              setDateRange(val);
+              if (val[0] === null && val[1] === null) {
+                setSearchRange([null, null]);
+              }
+            }}
             clearable
             size="sm"
             maxDate={new Date()}
             w={220}
           />
+          <Button
+            size="sm"
+            variant="filled"
+            leftSection={<IconSearch size={16} />}
+            onClick={() => setSearchRange(dateRange)}
+          >
+            ค้นหา
+          </Button>
           {dataSource === 'pennueng' ? (
             <Badge color="navy" variant="light" size="lg">
               Pennueng DB

@@ -318,49 +318,53 @@ export default function IdCardClient() {
                                 </>
                               ) : null}
 
-                              <Text fw={600} size="sm">
-                                {t('additionalInfo')}
-                              </Text>
-                              <Grid gap="xs">
-                                <Grid.Col span={6}>
-                                  <TextInput
-                                    label={t('phone')}
-                                    placeholder="08X-XXX-XXXX"
-                                    value={additionalData.phone}
-                                    onChange={(e) => {
-                                      const raw = e.target.value.replace(/-/g, '');
-                                      const d = raw.slice(0, 10);
-                                      let fmt = d;
-                                      if (d.length > 3) fmt = `${d.slice(0, 3)}-${d.slice(3)}`;
-                                      if (d.length > 6) {
-                                        fmt = `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-                                      }
-                                      setAdditionalData({ ...additionalData, phone: fmt });
-                                    }}
-                                    maxLength={12}
-                                  />
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                  <TextInput
-                                    label={t('email')}
-                                    placeholder="example@mail.com"
-                                    value={additionalData.email}
-                                    onChange={(e) =>
-                                      setAdditionalData({ ...additionalData, email: e.target.value })
-                                    }
-                                  />
-                                </Grid.Col>
-                                <Grid.Col span={12}>
-                                  <TextInput
-                                    label={t('school')}
-                                    placeholder="Enter school name..."
-                                    value={additionalData.school}
-                                    onChange={(e) =>
-                                      setAdditionalData({ ...additionalData, school: e.target.value })
-                                    }
-                                  />
-                                </Grid.Col>
-                              </Grid>
+                              {!pennMember && (
+                                <>
+                                  <Text fw={600} size="sm">
+                                    {t('additionalInfo')}
+                                  </Text>
+                                  <Grid gap="xs">
+                                    <Grid.Col span={6}>
+                                      <TextInput
+                                        label={t('phone')}
+                                        placeholder="08X-XXX-XXXX"
+                                        value={additionalData.phone}
+                                        onChange={(e) => {
+                                          const raw = e.target.value.replace(/-/g, '');
+                                          const d = raw.slice(0, 10);
+                                          let fmt = d;
+                                          if (d.length > 3) fmt = `${d.slice(0, 3)}-${d.slice(3)}`;
+                                          if (d.length > 6) {
+                                            fmt = `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+                                          }
+                                          setAdditionalData({ ...additionalData, phone: fmt });
+                                        }}
+                                        maxLength={12}
+                                      />
+                                    </Grid.Col>
+                                    <Grid.Col span={6}>
+                                      <TextInput
+                                        label={t('email')}
+                                        placeholder="example@mail.com"
+                                        value={additionalData.email}
+                                        onChange={(e) =>
+                                          setAdditionalData({ ...additionalData, email: e.target.value })
+                                        }
+                                      />
+                                    </Grid.Col>
+                                    <Grid.Col span={12}>
+                                      <TextInput
+                                        label={t('school')}
+                                        placeholder="Enter school name..."
+                                        value={additionalData.school}
+                                        onChange={(e) =>
+                                          setAdditionalData({ ...additionalData, school: e.target.value })
+                                        }
+                                      />
+                                    </Grid.Col>
+                                  </Grid>
+                                </>
+                              )}
                             </>
                           ) : null}
                         </Stack>

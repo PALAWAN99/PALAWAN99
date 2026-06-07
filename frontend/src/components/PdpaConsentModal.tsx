@@ -17,6 +17,7 @@ import {
 } from '@mantine/core';
 import { IconChevronDown, IconExternalLink, IconShieldCheck } from '@tabler/icons-react';
 import { publicAssetPath } from '@/lib/base-path';
+import { useTranslations } from 'next-intl';
 
 const PDPA_PDF_PATH = publicAssetPath(
   process.env.NEXT_PUBLIC_PDPA_KKU_PDF_URL ?? '/pdpa-kku-2565.pdf',
@@ -38,21 +39,21 @@ function Section({
   variant?: 'default' | 'law' | 'consent';
 }) {
   const bg =
-    variant === 'law'
-      ? 'var(--mantine-color-skyBlue-0)'
-      : variant === 'consent'
-        ? 'var(--mantine-color-yellow-0)'
-        : undefined;
+    variant === 'default'
+      ? 'var(--mantine-color-default-hover)'
+      : `var(--mantine-color-${variant === 'law' ? 'sky' : 'yellow'}-light)`;
   const border =
-    variant === 'law'
-      ? '1px solid var(--mantine-color-skyBlue-2)'
-      : variant === 'consent'
-        ? '1px solid var(--mantine-color-yellow-3)'
-        : undefined;
+    variant === 'default'
+      ? '1px solid var(--mantine-color-default-border)'
+      : `1px solid var(--mantine-color-${variant === 'law' ? 'sky' : 'yellow'}-light-hover)`;
+  const titleColor =
+    variant === 'default'
+      ? undefined
+      : `var(--mantine-color-${variant === 'law' ? 'sky' : 'yellow'}-light-color)`;
 
   return (
     <Paper p="md" radius="md" bg={bg} style={{ border }}>
-      <Text fw={700} size="sm" mb="xs" c="navy.8">
+      <Text fw={700} size="sm" mb="xs" c={titleColor}>
         {title}
       </Text>
       {children}
@@ -61,6 +62,7 @@ function Section({
 }
 
 function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProps, 'open'>) {
+  const t = useTranslations("IdCard");
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [pdfAvailable, setPdfAvailable] = useState<boolean | null>(null);
@@ -128,9 +130,9 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
         <Box>
           <Group justify="space-between" mb={6}>
             <Text size="xs" c="dimmed">
-              ความคืบหน้าการอ่าน
+              {t("pdpaProgress")}
             </Text>
-            <Text size="xs" fw={600} c={scrolledToBottom ? 'green.7' : 'navy.6'}>
+            <Text size="xs" fw={600} c={scrolledToBottom ? 'green' : 'sky'}>
               {scrollProgress}%
             </Text>
           </Group>
@@ -139,7 +141,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
             size="sm"
             radius="xl"
             color={scrolledToBottom ? 'green' : 'skyBlue'}
-            aria-label="ความคืบหน้าการอ่านข้อตกลง"
+            aria-label={t("pdpaProgress")}
           />
         </Box>
 
@@ -152,12 +154,12 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
           onScrollPositionChange={handleScrollPositionChange}
         >
             <Stack gap="md" pr="sm" pb="md">
-              <Text fw={700} size="md" c="navy.9">
+              <Text fw={700} size="md">
                 พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
               </Text>
 
               <Section title="วัตถุประสงค์ในการเก็บรวบรวมข้อมูล">
-                <Text size="sm" c="gray.8" lh={1.65}>
+                <Text size="sm" c="dimmed" lh={1.65}>
                   ระบบนี้ทำการอ่านข้อมูลจากบัตรประจำตัวประชาชนของท่านผ่านเครื่องอ่านบัตรอัจฉริยะ
                   DUALi DE-620 เพื่อวัตถุประสงค์ในการยืนยันตัวตนและบันทึกข้อมูลตามที่ท่านร้องขอเท่านั้น
                 </Text>
@@ -174,7 +176,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
                     'วันที่ออกบัตรและวันหมดอายุ',
                     'รูปถ่าย (เฉพาะเมื่อท่านเลือกดึงรูป)',
                   ].map((item) => (
-                    <Text key={item} component="li" size="sm" c="gray.8">
+                    <Text key={item} component="li" size="sm" c="dimmed">
                       {item}
                     </Text>
                   ))}
@@ -182,28 +184,28 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
               </Section>
 
               <Section title="มาตรา 19 — หลักความยินยอม" variant="law">
-                <Text size="sm" c="gray.7" fs="italic" lh={1.65}>
+                <Text size="sm" c="dimmed" fs="italic" lh={1.65}>
                   ผู้ควบคุมข้อมูลส่วนบุคคลจะกระทำการเก็บรวบรวม ใช้ หรือเปิดเผยข้อมูลส่วนบุคคลไม่ได้
                   หากเจ้าของข้อมูลส่วนบุคคลไม่ได้ให้ความยินยอมไว้ก่อนหรือในขณะนั้น
                 </Text>
               </Section>
 
               <Section title="มาตรา 21 — การใช้ตามวัตถุประสงค์" variant="law">
-                <Text size="sm" c="gray.7" fs="italic" lh={1.65}>
+                <Text size="sm" c="dimmed" fs="italic" lh={1.65}>
                   ผู้ควบคุมข้อมูลส่วนบุคคลต้องทำการเก็บรวบรวม ใช้ หรือเปิดเผยข้อมูลส่วนบุคคล
                   ตามวัตถุประสงค์ที่ได้แจ้งเจ้าของข้อมูลส่วนบุคคลไว้ก่อนหรือในขณะที่เก็บรวบรวม
                 </Text>
               </Section>
 
               <Section title="มาตรา 22 — หลักความจำเป็น" variant="law">
-                <Text size="sm" c="gray.7" fs="italic" lh={1.65}>
+                <Text size="sm" c="dimmed" fs="italic" lh={1.65}>
                   การเก็บรวบรวมข้อมูลส่วนบุคคล ให้เก็บรวบรวมได้เท่าที่จำเป็น
                   ภายใต้วัตถุประสงค์อันชอบด้วยกฎหมายของผู้ควบคุมข้อมูลส่วนบุคคล
                 </Text>
               </Section>
 
               <Section title="มาตรา 23 — การแจ้งรายละเอียด" variant="law">
-                <Text size="sm" c="gray.7" fs="italic" lh={1.65}>
+                <Text size="sm" c="dimmed" fs="italic" lh={1.65}>
                   ในการเก็บรวบรวมข้อมูลส่วนบุคคล ผู้ควบคุมข้อมูลส่วนบุคคลจะต้องแจ้งให้เจ้าของข้อมูลทราบ
                   ถึงวัตถุประสงค์ ข้อมูลที่เก็บ ระยะเวลา ผู้รับข้อมูล ข้อมูลผู้ควบคุม และสิทธิของเจ้าของข้อมูล
                 </Text>
@@ -219,7 +221,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
                     'สิทธิในการระงับการใช้และแก้ไขข้อมูล',
                     'สิทธิในการถอนความยินยอมได้ทุกเมื่อ',
                   ].map((item) => (
-                    <Text key={item} size="sm" c="gray.8">
+                    <Text key={item} size="sm" c="dimmed">
                       • {item}
                     </Text>
                   ))}
@@ -227,7 +229,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
               </Section>
 
               <Section title="การรักษาความปลอดภัยของข้อมูล">
-                <Text size="sm" c="gray.8" lh={1.65}>
+                <Text size="sm" c="dimmed" lh={1.65}>
                   ข้อมูลที่อ่านจากบัตรจะถูกประมวลผลภายในเครื่องของท่าน (Local Processing)
                   ไม่ส่งออกภายนอกโดยอัตโนมัติ เว้นแต่ท่านจะส่งออกด้วยตนเองผ่าน Export
                 </Text>
@@ -255,7 +257,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
                       <Text size="xs" c="dimmed">
                         ประกาศ ณ วันที่ 1 มิถุนายน พ.ศ. 2565 โดยนายกสภามหาวิทยาลัยขอนแก่น
                       </Text>
-                      <Text size="sm" c="gray.8" lh={1.65}>
+                      <Text size="sm" c="dimmed" lh={1.65}>
                         ระเบียบนี้กำหนดหลักการคุ้มครองข้อมูลส่วนบุคคลภายในมหาวิทยาลัยขอนแก่น
                         ให้สอดคล้องกับ พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
                         รวมถึงสิทธิ หน้าที่ และแนวปฏิบัติของหน่วยงานและบุคลากร
@@ -272,25 +274,17 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
                           leftSection={<IconExternalLink size={16} />}
                           w="fit-content"
                         >
-                          เปิดเอกสาร PDF ฉบับเต็ม
+                          {t("pdpaOpenPdf")}
                         </Button>
                       ) : pdfAvailable === false ? (
-                        <Alert color="yellow" variant="light" radius="md" title="ไม่พบไฟล์ PDF ในระบบ">
+                        <Alert color="yellow" variant="light" radius="md" title={t("pdpaPdfNotFoundTitle")}>
                           <Text size="xs">
-                            วางไฟล์ที่{' '}
-                            <Text span ff="monospace" size="xs">
-                              frontend/public/pdpa-kku-2565.pdf
-                            </Text>{' '}
-                            หรือตั้งค่า{' '}
-                            <Text span ff="monospace" size="xs">
-                              NEXT_PUBLIC_PDPA_KKU_PDF_URL
-                            </Text>{' '}
-                            ใน .env
+                            {t("pdpaPdfNotFoundBody", { path: "frontend/public/pdpa-kku-2565.pdf" })}
                           </Text>
                         </Alert>
                       ) : (
                         <Text size="xs" c="dimmed">
-                          เปิดหัวข้อนี้เพื่อตรวจสอบลิงก์เอกสาร PDF
+                          {t("pdpaCheckPdfLinkHint")}
                         </Text>
                       )}
                     </Stack>
@@ -299,7 +293,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
               </Accordion>
 
               <Section title="คำให้ความยินยอม" variant="consent">
-                <Text size="sm" c="gray.8" lh={1.65}>
+                <Text size="sm" c="dimmed" lh={1.65}>
                   ข้าพเจ้าได้อ่านและเข้าใจข้อมูลข้างต้นแล้ว และให้ความยินยอมโดยสมัครใจ
                   ในการเก็บรวบรวมข้อมูลส่วนบุคคลจากบัตรประจำตัวประชาชน
                   ข้าพเจ้าทราบดีว่าสามารถถอนความยินยอมได้ทุกเมื่อโดยปิดระบบหรือรีเฟรชหน้าเว็บ
@@ -312,17 +306,17 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
           {!scrolledToBottom ? (
             <Group gap={6} c="dimmed">
               <IconChevronDown size={16} style={{ animation: 'pdpaHintBounce 1.2s ease-in-out infinite' }} />
-              <Text size="xs">เลื่อนลงให้ถึงท้ายเอกสารก่อนกดยินยอม</Text>
+              <Text size="xs">{t("pdpaScrollHint")}</Text>
             </Group>
           ) : (
             <Text size="xs" c="green.7" fw={500}>
-              อ่านครบแล้ว — กดยินยอมได้
+              {t("pdpaReadCompleteHint")}
             </Text>
           )}
 
           <Group gap="sm" ml="auto">
             <Button variant="default" color="gray" onClick={onCancel}>
-              ไม่ยินยอม
+              {t("pdpaCancelBtn")}
             </Button>
             <Button
               variant="filled"
@@ -331,7 +325,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
               onClick={onConsent}
               style={{ minWidth: 120 }}
             >
-              ยินยอม
+              {t("pdpaConsentBtn")}
             </Button>
           </Group>
         </Group>
@@ -340,6 +334,7 @@ function PdpaConsentModalBody({ onConsent, onCancel }: Omit<PdpaConsentModalProp
 }
 
 export function PdpaConsentModal({ open, onConsent, onCancel }: PdpaConsentModalProps) {
+  const t = useTranslations("IdCard");
   return (
     <Modal
       opened={open}
@@ -350,11 +345,11 @@ export function PdpaConsentModal({ open, onConsent, onCancel }: PdpaConsentModal
             <IconShieldCheck size={20} />
           </ThemeIcon>
           <Stack gap={2}>
-            <Text fw={700} size="lg" c="navy.9" lh={1.3}>
-              ข้อตกลงความยินยอมตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
+            <Text fw={700} size="lg" lh={1.3}>
+              {t("pdpaModalTitle")}
             </Text>
             <Text size="sm" c="dimmed">
-              กรุณาเลื่อนอ่านให้ครบก่อนกดยินยอม
+              {t("pdpaModalSubtitle")}
             </Text>
           </Stack>
         </Group>

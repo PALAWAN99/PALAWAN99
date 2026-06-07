@@ -10,8 +10,9 @@ import {
   SimpleGrid,
   Card,
   ActionIcon,
+  Menu,
 } from '@mantine/core';
-import { IconChartBar, IconDoor, IconDownload } from '@tabler/icons-react';
+import { IconChartBar, IconDoor, IconDownload, IconFileSpreadsheet, IconPhoto } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 import {
   Area,
@@ -39,14 +40,17 @@ const CHART_HEIGHT = 300;
 function ChartShell({
   title,
   children,
+  onDownloadExcel,
 }: {
   title: string;
   children: React.ReactNode;
+  onDownloadExcel?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const handleDownload = () => {
-    const svg = containerRef.current?.querySelector('svg');
+    const svg = chartContainerRef.current?.querySelector('svg');
     if (!svg) return;
     const serializer = new XMLSerializer();
     const svgStr = serializer.serializeToString(svg);
@@ -74,19 +78,40 @@ function ChartShell({
 
   return (
     <Paper withBorder p="lg" radius="md" h="100%" pos="relative" ref={containerRef}>
-      <ActionIcon
-        variant="subtle"
-        color="gray"
-        onClick={handleDownload}
-        style={{ position: 'absolute', top: 8, right: 8 }}
-        title="Download PNG"
-      >
-        <IconDownload size={16} />
-      </ActionIcon>
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+        {onDownloadExcel ? (
+          <Menu shadow="md" width={180} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" title="Download options">
+                <IconDownload size={16} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<IconPhoto size={14} />} onClick={handleDownload}>
+                ดาวน์โหลดรูปภาพ (PNG)
+              </Menu.Item>
+              <Menu.Item leftSection={<IconFileSpreadsheet size={14} />} onClick={onDownloadExcel}>
+                ดาวน์โหลดข้อมูล (Excel)
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        ) : (
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            onClick={handleDownload}
+            title="Download PNG"
+          >
+            <IconDownload size={16} />
+          </ActionIcon>
+        )}
+      </div>
       <Text fw={700} mb="md" size="md">
         {title}
       </Text>
-      <ChartBox>{children}</ChartBox>
+      <div ref={chartContainerRef}>
+        <ChartBox>{children}</ChartBox>
+      </div>
     </Paper>
   );
 }
@@ -163,6 +188,17 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
   const tc = useTranslations('Common');
   const hasData = data.summary.totalScans > 0;
 
+  const handleDownloadExcelDailyTrend = async () => {
+    const { exportToExcel } = await import('@/lib/export-utils');
+    const excelData = data.dailyTrend.map((row) => ({
+      'วันที่ (Date)': row.date,
+      'จำนวนผู้เข้า (Check-in)': row.in,
+      'จำนวนผู้ออก (Check-out)': row.out,
+      'รวมการใช้งานทั้งหมด (Total)': row.total,
+    }));
+    exportToExcel(excelData, 'Daily_Access_Summary');
+  };
+
   if (!hasData) {
     return <EmptyChart label={tc('noData')} />;
   }
@@ -172,7 +208,7 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
       {/* 2-column grid for the first 4 charts */}
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         {/* 1. BarChart — daily total access */}
-        <ChartShell title={t('chartDailyTotal')}>
+        <ChartShell title={t('chartDailyTotal')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <BarChart data={data.dailyTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -185,7 +221,7 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
         </ChartShell>
 
         {/* 2. AreaChart — stacked in/out area */}
-        <ChartShell title={t('chartInOutArea')}>
+        <ChartShell title={t('chartInOutArea')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <AreaChart data={data.dailyTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />

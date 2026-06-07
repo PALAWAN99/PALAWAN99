@@ -45,6 +45,19 @@ const navy: MantineColorsTuple = [
   '#0a1628',  // 9
 ];
 
+const darkSlate: MantineColorsTuple = [
+  '#f8fafc',  // 0: text in dark mode
+  '#cbd5e1',  // 1
+  '#94a3b8',  // 2
+  '#64748b',  // 3
+  '#475569',  // 4
+  '#334155',  // 5
+  '#1e293b',  // 6: Card / Panel background
+  '#0f172a',  // 7: Body background
+  '#0b1329',  // 8
+  '#020617',  // 9: Deep background
+];
+
 export const theme = createTheme({
   primaryColor: 'navy',
   colors: {
@@ -52,6 +65,7 @@ export const theme = createTheme({
     skyBlue,
     emerald,
     navy,
+    dark: darkSlate,
   },
   // ใช้ฟอนต์ Outfit สำหรับ Eng และ Noto Sans Thai สำหรับไทย เพื่อความพรีเมียม
   fontFamily: '"Outfit", "Noto Sans Thai", "Noto Sans SC", sans-serif',

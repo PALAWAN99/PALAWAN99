@@ -69,3 +69,27 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    const policy = await prisma.qrPolicy.findUnique({ where: { id } });
+    if (!policy) return NextResponse.json({ error: 'Policy not found' }, { status: 404 });
+
+    if (policy.isDefault) {
+      return NextResponse.json(
+        { error: 'Cannot delete the default policy. Set another policy as default first.' },
+        { status: 400 },
+      );
+    }
+
+    await prisma.qrPolicy.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[QR_POLICY_DELETE]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

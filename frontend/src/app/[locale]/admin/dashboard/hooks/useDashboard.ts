@@ -95,7 +95,12 @@ export function useDashboard(dateRange: DatesRangeValue = [null, null]) {
     setPennuengUnavailable(false);
     setPennuengError(null);
     try {
-      const res = await fetch(apiPath('/api/admin/dashboard/pennueng'));
+      const qParams = new URLSearchParams();
+      if (dateRange[0]) qParams.set('startDate', dayjs(dateRange[0]).format('YYYY-MM-DD'));
+      if (dateRange[1]) qParams.set('endDate', dayjs(dateRange[1]).format('YYYY-MM-DD'));
+      const qStr = qParams.toString() ? `?${qParams.toString()}` : '';
+
+      const res = await fetch(apiPath(`/api/admin/dashboard/pennueng${qStr}`));
       if (res.status === 503) {
         setPennuengUnavailable(true);
       } else if (res.ok) {
@@ -116,7 +121,7 @@ export function useDashboard(dateRange: DatesRangeValue = [null, null]) {
     } finally {
       setPennuengLoading(false);
     }
-  }, [applyPennueng]);
+  }, [applyPennueng, dateRange]);
 
   const refetchPennueng = useCallback(() => {
     void fetchPennueng();
@@ -137,7 +142,7 @@ export function useDashboard(dateRange: DatesRangeValue = [null, null]) {
           fetch(apiPath(`/api/admin/dashboard/stats${qStr}`), { signal }),
           fetch(apiPath('/api/admin/events?limit=8'), { signal }),
           fetch(apiPath(`/api/admin/dashboard/details${qStr}`), { signal }),
-          fetch(apiPath('/api/admin/dashboard/pennueng'), { signal }),
+          fetch(apiPath(`/api/admin/dashboard/pennueng${qStr}`), { signal }),
         ]);
 
         let pennuengData: PennuengDashboardPayload | null = null;

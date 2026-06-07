@@ -24,6 +24,7 @@ export type QrMemberForIssue = {
   lastNameTh: string;
   status: MemberStatus;
   memberTypeLabel: string | null;
+  email: string | null;
 };
 
 const AUTOCOMPLETE_MIN_CHARS = 3;
@@ -83,6 +84,7 @@ export async function resolveQrMemberByMemberNo(
     lastNameTh: member.lastNameTh,
     status: member.status,
     memberTypeLabel: penn.memberTypeLabel,
+    email: member.email,
   };
 }
 

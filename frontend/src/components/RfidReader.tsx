@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { readRfid, type RfidResult } from "@/lib/api";
@@ -18,6 +19,7 @@ function formatUidHex(hex: string): string {
 const POLL_INTERVAL_MS = 1500;
 
 export function RfidReader() {
+  const t = useTranslations("IdCard");
   const [isScanning, setIsScanning] = useState(false);
   const [lastResult, setLastResult] = useState<RfidResult | null>(null);
   const [history, setHistory] = useState<ScanRecord[]>([]);
@@ -133,16 +135,16 @@ export function RfidReader() {
 
               <div className="text-center space-y-1">
                 {isScanning ? (
-                  <p className="text-lg font-semibold text-emerald-700">กำลังสแกน...</p>
+                  <p className="text-lg font-semibold text-emerald-700">{t("rfidScanning")}</p>
                 ) : lastResult?.success ? (
-                  <p className="text-lg font-semibold text-emerald-700">พบบัตร RFID</p>
-                ) : lastResult && !lastResult.success && lastResult.error?.includes("เครื่องอ่านหลุด") ? (
-                  <p className="text-lg font-semibold text-amber-600">เครื่องอ่านหลุดการเชื่อมต่อ</p>
+                  <p className="text-lg font-semibold text-emerald-700">{t("rfidFound")}</p>
+                ) : lastResult && !lastResult.success && (lastResult.error?.includes("เครื่องอ่านหลุด") || lastResult.error?.toLowerCase().includes("lost") || lastResult.error?.toLowerCase().includes("disconnected")) ? (
+                  <p className="text-lg font-semibold text-amber-600">{t("rfidReaderLost")}</p>
                 ) : (
-                  <p className="text-lg font-semibold text-slate-700">วางบัตร RFID บนเครื่องอ่าน</p>
+                  <p className="text-lg font-semibold text-slate-700">{t("rfidPlaceCard")}</p>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  {autoScan ? "ระบบสแกนอัตโนมัติ — วางบัตรเพื่ออ่านค่า" : "กดพื้นที่นี้เพื่อสแกน"}
+                  {autoScan ? t("rfidAutoHint") : t("rfidManualHint")}
                 </p>
               </div>
             </div>
@@ -153,7 +155,7 @@ export function RfidReader() {
                 isScanning ? "bg-amber-400 animate-pulse" : autoScan ? "bg-emerald-400" : "bg-slate-300"
               }`} />
               <span className="text-xs text-slate-500">
-                {isScanning ? "สแกน" : autoScan ? "อัตโนมัติ" : "หยุด"}
+                {isScanning ? t("rfidStatusScan") : autoScan ? t("rfidStatusAuto") : t("rfidStatusPaused")}
               </span>
             </div>
           </div>
@@ -173,14 +175,14 @@ export function RfidReader() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
               </svg>
-              หยุดสแกนอัตโนมัติ
+              {t("rfidStopAuto")}
             </>
           ) : (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
               </svg>
-              เริ่มสแกนอัตโนมัติ
+              {t("rfidStartAuto")}
             </>
           )}
         </Button>
@@ -188,7 +190,7 @@ export function RfidReader() {
           onClick={() => window.location.reload()}
           variant="outline"
           size="sm"
-          title="รีเฟรชหน้า"
+          title={t("btnRefreshPage")}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -197,7 +199,10 @@ export function RfidReader() {
       </div>
 
       {/* Error — only show critical errors, not "no card" during auto-scan */}
-      {lastResult && !lastResult.success && lastResult.error && !lastResult.error.includes("ไม่พบบัตร") && (
+      {lastResult && !lastResult.success && lastResult.error && 
+        !lastResult.error.includes("ไม่พบบัตร") && 
+        !lastResult.error.toLowerCase().includes("no card") && 
+        !lastResult.error.toLowerCase().includes("empty") && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
           {lastResult.error}
         </div>
@@ -211,12 +216,12 @@ export function RfidReader() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
-              อ่านสำเร็จ — {lastResult.card_type}
+              {t("rfidSuccess")} — {lastResult.card_type}
             </div>
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">UID (Hex)</label>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t("rfidUidHex")}</label>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 bg-slate-50 rounded-lg px-3 py-2 text-lg font-mono font-bold text-slate-800 border">
                     {formatUidHex(lastResult.uid_hex!)}
@@ -227,13 +232,13 @@ export function RfidReader() {
                     onClick={() => handleCopy(lastResult.uid_hex!, "hex")}
                     className="shrink-0"
                   >
-                    {copied === "hex" ? "คัดลอกแล้ว" : "คัดลอก"}
+                    {copied === "hex" ? t("rfidCopied") : t("rfidCopy")}
                   </Button>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">UID (ฐาน 10 / Decimal)</label>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t("rfidUidDecimal")}</label>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 bg-slate-50 rounded-lg px-3 py-2 text-xl font-mono font-bold text-indigo-700 border">
                     {lastResult.uid_decimal}
@@ -244,13 +249,13 @@ export function RfidReader() {
                     onClick={() => handleCopy(lastResult.uid_decimal!, "dec")}
                     className="shrink-0"
                   >
-                    {copied === "dec" ? "คัดลอกแล้ว" : "คัดลอก"}
+                    {copied === "dec" ? t("rfidCopied") : t("rfidCopy")}
                   </Button>
                 </div>
               </div>
 
               <div className="flex gap-4 text-xs text-slate-500">
-                <span>ความยาว: {lastResult.uid_length} bytes</span>
+                <span>{t("rfidLength", { length: lastResult.uid_length ?? 0 })}</span>
                 <span>Bytes: [{lastResult.uid_bytes?.map(b => `0x${b.toString(16).toUpperCase().padStart(2, "0")}`).join(", ")}]</span>
               </div>
             </div>
@@ -262,7 +267,7 @@ export function RfidReader() {
       {history.length > 0 && (
         <Card>
           <CardContent className="py-4">
-            <h3 className="font-semibold text-sm text-slate-700 mb-3">ประวัติการสแกน</h3>
+            <h3 className="font-semibold text-sm text-slate-700 mb-3">{t("rfidHistory")}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {history.map((record) => (
                 <div

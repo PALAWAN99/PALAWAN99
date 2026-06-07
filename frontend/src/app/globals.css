@@ -52,6 +52,20 @@
   /* Premium Glassmorphism Dark */
   --glass-bg: rgba(15, 23, 42, 0.7);
   --glass-border: rgba(255, 255, 255, 0.05);
+
+  /* Set dark body color explicitly */
+  --mantine-color-body: #0F172A !important;
+  --mantine-color-default-border: #1E293B;
+}
+
+[data-mantine-color-scheme='dark'] .admin-sidebar-glass {
+  background: linear-gradient(
+    165deg,
+    rgba(15, 23, 42, 0.95) 0%,
+    rgba(10, 15, 30, 0.97) 45%,
+    rgba(2, 6, 23, 0.98) 100%
+  ) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 * {
