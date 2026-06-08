@@ -269,7 +269,7 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 fill="#38BDF8"
                 fillOpacity={0.35}
                 name={t('directionIn')}
-                activeDot={{ r: 5 }}
+                activeDot={{ r: 7, cursor: 'pointer' }}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(areaData: any) => {
                   if (!onDrillDown) return;
@@ -292,7 +292,7 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 fill="#10B981"
                 fillOpacity={0.35}
                 name={t('directionOut')}
-                activeDot={{ r: 5 }}
+                activeDot={{ r: 7, cursor: 'pointer' }}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(areaData: any) => {
                   if (!onDrillDown) return;
@@ -358,6 +358,8 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 stroke="#10B981"
                 strokeWidth={2}
                 name={t('allowedAccess')}
+                dot={{ r: 4, stroke: '#10B981', strokeWidth: 2, fill: '#FFF', cursor: 'pointer' }}
+                activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2, fill: '#10B981', cursor: 'pointer' }}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(pointData: any) => {
                   if (!onDrillDown) return;
@@ -377,6 +379,8 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 stroke="#EF4444"
                 strokeWidth={2}
                 name={t('deniedAccess')}
+                dot={{ r: 4, stroke: '#EF4444', strokeWidth: 2, fill: '#FFF', cursor: 'pointer' }}
+                activeDot={{ r: 6, stroke: '#EF4444', strokeWidth: 2, fill: '#EF4444', cursor: 'pointer' }}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(pointData: any) => {
                   if (!onDrillDown) return;
@@ -430,6 +434,8 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
               stroke="#EF4444"
               strokeWidth={2}
               name={t('denyRate')}
+              dot={{ r: 5, stroke: '#EF4444', strokeWidth: 2, fill: '#FFF', cursor: 'pointer' }}
+              activeDot={{ r: 7, stroke: '#EF4444', strokeWidth: 2, fill: '#EF4444', cursor: 'pointer' }}
               style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
               onClick={(pointData: any) => {
                 if (!onDrillDown) return;
