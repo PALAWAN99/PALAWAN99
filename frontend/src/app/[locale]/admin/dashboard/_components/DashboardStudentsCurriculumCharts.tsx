@@ -21,6 +21,7 @@ import {
 } from './PennuengHorizontalBarChart';
 
 import type { PennuengMemberTypeSlice } from '@/types/pennueng-dashboard';
+import { DrillDownFilters } from './DashboardDrillDownModal';
 
 type ChartCardProps = {
   title: string;
@@ -65,12 +66,7 @@ type DashboardStudentsCurriculumChartsProps = {
   topCurricula: PennuengMemberTypeSlice[];
   todayOutcome: PennuengMemberTypeSlice[];
   loading: boolean;
-  onDrillDown?: (filter: {
-    title: string;
-    memberType?: string;
-    decision?: string;
-    search?: string;
-  }) => void;
+  onDrillDown?: (filter: DrillDownFilters) => void;
   t: (key: string) => string;
 };
 
@@ -111,6 +107,7 @@ export function DashboardStudentsCurriculumCharts({
                 onDrillDown?.({
                   title: `รายชื่อกลุ่มประเภทสมาชิก: ${name}`,
                   memberType: name,
+                  source: 'pennueng',
                 });
               }}
             />
@@ -132,6 +129,7 @@ export function DashboardStudentsCurriculumCharts({
               onDrillDown?.({
                 title: `รายชื่อสแกนวันนี้สถานะ: ${name}`,
                 decision,
+                source: 'pennueng',
               });
             }}
           />
@@ -163,6 +161,7 @@ export function DashboardStudentsCurriculumCharts({
                 onDrillDown?.({
                   title: `รายชื่อผู้ใช้สังกัดหลักสูตร: ${name}`,
                   search: name,
+                  source: 'pennueng',
                 });
               }}
             />
@@ -180,6 +179,7 @@ export function DashboardStudentsCurriculumCharts({
               onDrillDown?.({
                 title: `รายชื่อผู้ใช้สถานะนักศึกษา: ${name}`,
                 search: name,
+                source: 'pennueng',
               });
             }}
           />

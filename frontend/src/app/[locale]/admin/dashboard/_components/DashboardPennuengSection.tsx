@@ -38,6 +38,7 @@ import { PennuengDonutChart } from './PennuengDonutChart';
 import { PennuengHorizontalBarChart } from './PennuengHorizontalBarChart';
 import { PennuengVerticalBarChart } from './PennuengVerticalBarChart';
 import { DashboardStudentsCurriculumCharts } from './DashboardStudentsCurriculumCharts';
+import { DrillDownFilters } from './DashboardDrillDownModal';
 
 import type {
   PennuengDashboardStats,
@@ -59,12 +60,7 @@ interface DashboardPennuengSectionProps {
   unavailable: boolean;
   /** แสดงเฉพาะกราฟประเภทสมาชิก (ข้อมูลหลักอยู่ในแดชบอร์ดด้านบนแล้ว) */
   compact?: boolean;
-  onDrillDown?: (filter: {
-    title: string;
-    memberType?: string;
-    decision?: string;
-    search?: string;
-  }) => void;
+  onDrillDown?: (filter: DrillDownFilters) => void;
   t: (key: string) => string;
 }
 
@@ -290,6 +286,7 @@ export function DashboardPennuengSection({
                         onDrillDown?.({
                           title: `รายชื่อผู้ผ่านเข้าออกช่วงเวลา ${label}`,
                           search: label.includes(':') ? label : undefined,
+                          source: 'pennueng',
                         });
                       }
                     }}
@@ -357,6 +354,7 @@ export function DashboardPennuengSection({
                           onDrillDown?.({
                             title: `รายชื่อผู้ผ่านประตู: ${barData.name || ''}`,
                             search: barData.name || undefined,
+                            source: 'pennueng',
                           });
                         }
                       }}

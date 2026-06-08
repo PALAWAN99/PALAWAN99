@@ -34,6 +34,9 @@ export interface DrillDownFilters {
   startDate?: string;
   endDate?: string;
   search?: string;
+  source?: 'pennueng' | 'postgres';
+  hourStr?: string;
+  dateStr?: string;
 }
 
 interface DashboardDrillDownModalProps {
@@ -60,7 +63,6 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
     try {
       const queryParams = new URLSearchParams({
         page: String(page),
-        limit: '10',
       });
 
       if (filters.gateId) queryParams.set('gateId', filters.gateId);
@@ -71,7 +73,14 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
       if (filters.endDate) queryParams.set('endDate', filters.endDate);
       if (filters.search) queryParams.set('search', filters.search);
 
-      const res = await fetch(apiPath(`/api/admin/events?${queryParams.toString()}`));
+      const endpoint = filters.source === 'pennueng' ? '/api/admin/history' : '/api/admin/events';
+      if (filters.source === 'pennueng') {
+        queryParams.set('pageSize', '10');
+      } else {
+        queryParams.set('limit', '10');
+      }
+
+      const res = await fetch(apiPath(`${endpoint}?${queryParams.toString()}`));
       const json = await res.json();
 
       if (!res.ok) {
@@ -79,9 +88,13 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
       }
 
       if (json.success && json.data) {
-        setEvents(json.data.events || []);
-        setTotalPages(json.data.pages || 1);
-        setTotalRecords(json.data.total || 0);
+        const list = json.data.events || json.data.rows || [];
+        const pages = json.data.pages || json.data.totalPages || 1;
+        const total = json.data.total !== undefined ? json.data.total : 0;
+
+        setEvents(list);
+        setTotalPages(pages);
+        setTotalRecords(total);
       }
     } catch (err: any) {
       console.error('Failed to fetch drilldown events:', err);
@@ -162,13 +175,15 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
                 </Table.Thead>
                 <Table.Tbody>
                   {events.map((item: any) => {
-                    const memberName = item.member
-                      ? `${item.member.firstNameTh} ${item.member.lastNameTh}`
+                    const memberName = item.fullName
+                      ? item.fullName
+                      : item.member
+                      ? `${item.member.firstNameTh} ${item.member.lastNameTh}`.trim()
                       : 'ไม่ทราบชื่อ';
-                    const memberNo = item.member?.memberNo || '—';
-                    const memberType = item.member?.memberType || '—';
-                    const gateName = item.gate?.nameTh || '—';
-                    const gateCode = item.gate?.gateCode || '—';
+                    const memberNo = item.memberNo || item.member?.memberNo || '—';
+                    const memberType = item.memberTypeLabel || item.member?.memberType || '—';
+                    const gateName = item.gateLabel || item.gate?.nameTh || '—';
+                    const gateCode = item.gateName || item.gate?.gateCode || '—';
                     const timeLabel = new Date(item.scannedAt).toLocaleString('th-TH');
 
                     return (

@@ -50,6 +50,23 @@ function buildWhereClause(
     parts.push('RTRIM(gs.gate_id) = @gateId');
   }
 
+  if (query.memberType?.trim()) {
+    request.input('memberType', sql.NVarChar(100), query.memberType.trim());
+    parts.push('(RTRIM(gs.member_type) = @memberType OR RTRIM(mt.description) = @memberType)');
+  }
+
+  if (query.decision?.trim()) {
+    const successVal = query.decision.toUpperCase() === 'ALLOWED' ? 1 : 0;
+    request.input('successVal', sql.Int, successVal);
+    parts.push('gs.success = @successVal');
+  }
+
+  if (query.direction?.trim()) {
+    const statusVal = query.direction.toUpperCase() === 'IN' ? 1 : 0;
+    request.input('statusVal', sql.Int, statusVal);
+    parts.push('gs.status = @statusVal');
+  }
+
   const search = query.search?.trim();
   if (search) {
     request.input('searchPattern', sql.NVarChar(200), `%${search}%`);

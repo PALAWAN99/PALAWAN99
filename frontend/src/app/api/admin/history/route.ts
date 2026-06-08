@@ -22,7 +22,11 @@ const querySchema = z.object({
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   gateId: z.string().trim().optional(),
   search: z.string().trim().optional(),
+  memberType: z.string().trim().optional(),
+  decision: z.string().trim().optional(),
+  direction: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 /**
@@ -47,14 +51,18 @@ export async function GET(req: NextRequest) {
       endDate: searchParams.get('endDate') ?? dayjs().format('YYYY-MM-DD'),
       gateId: searchParams.get('gateId') ?? undefined,
       search: searchParams.get('search') ?? undefined,
+      memberType: searchParams.get('memberType') ?? undefined,
+      decision: searchParams.get('decision') ?? undefined,
+      direction: searchParams.get('direction') ?? undefined,
       page: searchParams.get('page') ?? '1',
+      pageSize: searchParams.get('pageSize') ?? undefined,
     });
 
     if (!parsed.success) {
       return ApiBadRequest('พารามิเตอร์ startDate/endDate ไม่ถูกต้อง (YYYY-MM-DD)');
     }
 
-    let { startDate, endDate, gateId, search, page } = parsed.data;
+    let { startDate, endDate, gateId, search, memberType, decision, direction, page, pageSize } = parsed.data;
     if (dayjs(endDate).isBefore(dayjs(startDate))) {
       [startDate, endDate] = [endDate, startDate];
     }
@@ -64,8 +72,11 @@ export async function GET(req: NextRequest) {
       endDate,
       gateId: gateId || undefined,
       search: search || undefined,
+      memberType: memberType || undefined,
+      decision: decision || undefined,
+      direction: direction || undefined,
       page,
-      pageSize: PAGE_SIZE,
+      pageSize: pageSize || PAGE_SIZE,
     });
 
     return ApiSuccess(data);

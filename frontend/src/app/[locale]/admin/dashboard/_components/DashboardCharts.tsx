@@ -4,19 +4,13 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, 
 import { useRouter } from '@/i18n/routing';
 
 import { ChartDataItem, GateTrafficItem } from '../hooks/useDashboard';
+import { DrillDownFilters } from './DashboardDrillDownModal';
 
 interface DashboardChartsProps {
   chartData: ChartDataItem[];
   gateTraffic: GateTrafficItem[];
   loading?: boolean;
-  onDrillDown?: (filter: {
-    title: string;
-    gateId?: string;
-    direction?: string;
-    hourStr?: string;
-    dateStr?: string;
-    search?: string;
-  }) => void;
+  onDrillDown?: (filter: DrillDownFilters) => void;
   t: (key: string) => string;
 }
 
