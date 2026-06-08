@@ -1,6 +1,9 @@
 import 'server-only';
 
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
+
 import sql from 'mssql';
 import { loadGateDisplayRegistry } from '@/lib/gate-display-registry';
 import { getSqlServerPool } from '@/lib/sqlserver';
@@ -18,9 +21,9 @@ const GATE_COLORS = ['#38BDF8', '#10B981', '#1E3A5F', '#0EA5E9', '#F59E0B', '#8B
 const WEEKDAY_LABELS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
 
 function parseQueryDates(query: ReportsAnalyticsQuery) {
-  const start = dayjs(query.startDate).startOf('day').toDate();
-  const endExclusive = dayjs(query.endDate).add(1, 'day').startOf('day').toDate();
-  const dayCount = Math.max(1, dayjs(query.endDate).diff(dayjs(query.startDate), 'day') + 1);
+  const start = dayjs.utc(query.startDate).startOf('day').toDate();
+  const endExclusive = dayjs.utc(query.endDate).add(1, 'day').startOf('day').toDate();
+  const dayCount = Math.max(1, dayjs.utc(query.endDate).diff(dayjs.utc(query.startDate), 'day') + 1);
   return { start, endExclusive, dayCount };
 }
 

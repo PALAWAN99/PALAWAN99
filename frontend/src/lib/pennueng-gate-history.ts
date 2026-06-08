@@ -1,6 +1,9 @@
 import 'server-only';
 
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
+
 import sql from 'mssql';
 import { loadGateDisplayRegistry } from '@/lib/gate-display-registry';
 import { formatPennuengBangkok, pennuengSqlDateToIso } from '@/lib/pennueng-datetime';
@@ -38,8 +41,8 @@ function buildWhereClause(
   request: sql.Request,
   query: PennuengGateHistoryQuery,
 ): string {
-  const start = dayjs(query.startDate).startOf('day').toDate();
-  const endExclusive = dayjs(query.endDate).add(1, 'day').startOf('day').toDate();
+  const start = dayjs.utc(query.startDate).startOf('day').toDate();
+  const endExclusive = dayjs.utc(query.endDate).add(1, 'day').startOf('day').toDate();
   request.input('startDate', sql.DateTime, start);
   request.input('endDate', sql.DateTime, endExclusive);
 
