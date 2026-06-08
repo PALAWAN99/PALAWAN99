@@ -41,6 +41,7 @@ export function DashboardCharts({
                 <AreaChart
                   data={chartData}
                   onClick={(data) => {
+                    console.log('AreaChart click data:', data);
                     if (data && data.activeLabel) {
                       const label = String(data.activeLabel);
                       onDrillDown?.({
@@ -88,6 +89,7 @@ export function DashboardCharts({
                       radius={[0, 4, 4, 0]}
                       barSize={20}
                       onClick={(data: any) => {
+                        console.log('Top Gates bar click data:', data);
                         if (data) {
                           if (onDrillDown) {
                             onDrillDown({

@@ -225,6 +225,7 @@ export function PennuengHorizontalBarChart({
             radius={[0, 4, 4, 0]}
             barSize={isDense ? 14 : 18}
             onClick={(data) => {
+              console.log('HorizontalBar click data:', data);
               if (data && data.name && onClickBar) {
                 onClickBar(String(data.name));
               }

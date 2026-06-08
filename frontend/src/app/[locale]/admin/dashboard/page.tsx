@@ -34,6 +34,7 @@ export default function AdminDashboardPage() {
   const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
 
   const handleDrillDown = (filter: Omit<DrillDownFilters, 'startDate' | 'endDate'> & { dateStr?: string; hourStr?: string }) => {
+    console.log('handleDrillDown invoked with filter:', filter);
     let start: string | undefined;
     let end: string | undefined;
 
@@ -52,7 +53,7 @@ export default function AdminDashboardPage() {
       if (searchRange[1]) end = dayjs(searchRange[1]).endOf('day').toISOString();
     }
 
-    setDrillDown({
+    const nextDrillDown = {
       title: filter.title,
       gateId: filter.gateId,
       decision: filter.decision,
@@ -61,7 +62,9 @@ export default function AdminDashboardPage() {
       startDate: start,
       endDate: end,
       search: filter.search,
-    });
+    };
+    console.log('Setting drillDown state to:', nextDrillDown);
+    setDrillDown(nextDrillDown);
   };
 
   const {

@@ -114,6 +114,7 @@ export function PennuengDonutChart({
               stroke="none"
               isAnimationActive={false}
               onClick={(data) => {
+                console.log('Pie slice click data:', data);
                 if (data && data.name && onClickSlice) {
                   onClickSlice(String(data.name));
                 }
