@@ -50,21 +50,24 @@ export default function ReportsPage() {
 
   const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
 
-  const handleDrillDown = useCallback((filter: Omit<DrillDownFilters, 'startDate' | 'endDate'> & { dateStr?: string; hourStr?: string }) => {
-    let start: string | undefined;
-    let end: string | undefined;
+  const handleDrillDown = useCallback((filter: DrillDownFilters & { dateStr?: string; hourStr?: string }) => {
+    let start: string | undefined = filter.startDate;
+    let end: string | undefined = filter.endDate;
 
-    if (filter.dateStr) {
-      start = dayjs(filter.dateStr).startOf('day').toISOString();
-      end = dayjs(filter.dateStr).endOf('day').toISOString();
-    } else if (filter.hourStr) {
-      const baseDate = startDate ? dayjs(startDate) : dayjs();
-      const hour = parseInt(filter.hourStr.split(':')[0]);
-      start = baseDate.hour(hour).minute(0).second(0).millisecond(0).toISOString();
-      end = baseDate.hour(hour).minute(59).second(59).millisecond(999).toISOString();
-    } else {
-      if (startDate) start = dayjs(startDate).startOf('day').toISOString();
-      if (endDate) end = dayjs(endDate).endOf('day').toISOString();
+    // ถ้า filter ไม่ได้ส่ง startDate/endDate มา ให้ derive จาก dateStr/hourStr หรือ state
+    if (!start && !end) {
+      if (filter.dateStr) {
+        start = dayjs(filter.dateStr).startOf('day').toISOString();
+        end = dayjs(filter.dateStr).endOf('day').toISOString();
+      } else if (filter.hourStr) {
+        const baseDate = startDate ? dayjs(startDate) : dayjs();
+        const hour = parseInt(filter.hourStr.split(':')[0]);
+        start = baseDate.hour(hour).minute(0).second(0).millisecond(0).toISOString();
+        end = baseDate.hour(hour).minute(59).second(59).millisecond(999).toISOString();
+      } else {
+        if (startDate) start = dayjs(startDate).startOf('day').toISOString();
+        if (endDate) end = dayjs(endDate).endOf('day').toISOString();
+      }
     }
 
     setDrillDown({
@@ -76,8 +79,9 @@ export default function ReportsPage() {
       startDate: start,
       endDate: end,
       search: filter.search,
+      source: filter.source ?? (data?.source === 'pennueng' ? 'pennueng' : 'postgres'),
     });
-  }, [startDate, endDate]);
+  }, [startDate, endDate, data?.source]);
 
   const loadReport = useCallback(async () => {
     if (!startDate || !endDate) return;
@@ -217,7 +221,12 @@ export default function ReportsPage() {
           ) : (
             <ReportsChartsGrid data={data} onDrillDown={handleDrillDown} />
           )}
-          <ReportsDetailTable data={data} />
+          <ReportsDetailTable
+            data={data}
+            onDrillDown={handleDrillDown}
+            startDate={startDate ?? undefined}
+            endDate={endDate ?? undefined}
+          />
         </Stack>
       ) : null}
 

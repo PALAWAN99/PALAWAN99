@@ -61,6 +61,8 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
     setError(null);
 
     try {
+      const endpoint = filters.source === 'pennueng' ? '/api/admin/history' : '/api/admin/events';
+
       const queryParams = new URLSearchParams({
         page: String(page),
       });
@@ -69,16 +71,30 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
       if (filters.decision) queryParams.set('decision', filters.decision);
       if (filters.direction) queryParams.set('direction', filters.direction);
       if (filters.memberType) queryParams.set('memberType', filters.memberType);
-      if (filters.startDate) queryParams.set('startDate', filters.startDate);
-      if (filters.endDate) queryParams.set('endDate', filters.endDate);
       if (filters.search) queryParams.set('search', filters.search);
 
-      const endpoint = filters.source === 'pennueng' ? '/api/admin/history' : '/api/admin/events';
       if (filters.source === 'pennueng') {
+        // /api/admin/history ต้องการ YYYY-MM-DD เท่านั้น (zod regex)
+        if (filters.startDate) {
+          const sd = filters.startDate.includes('T')
+            ? filters.startDate.slice(0, 10)
+            : filters.startDate;
+          queryParams.set('startDate', sd);
+        }
+        if (filters.endDate) {
+          const ed = filters.endDate.includes('T')
+            ? filters.endDate.slice(0, 10)
+            : filters.endDate;
+          queryParams.set('endDate', ed);
+        }
         queryParams.set('pageSize', '10');
       } else {
+        if (filters.startDate) queryParams.set('startDate', filters.startDate);
+        if (filters.endDate) queryParams.set('endDate', filters.endDate);
         queryParams.set('limit', '10');
       }
+
+      console.log('[DrillDown] endpoint:', endpoint, 'params:', queryParams.toString());
 
       const res = await fetch(apiPath(`${endpoint}?${queryParams.toString()}`));
       const json = await res.json();
