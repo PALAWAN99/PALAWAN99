@@ -49,7 +49,39 @@ export class AccessEventService {
     if (memberId) where.AND.push({ memberId });
     if (decision) where.AND.push({ decision: decision as any });
     if (direction) where.AND.push({ direction: direction as any });
-    if (memberType) where.AND.push({ member: { memberType: memberType as any } });
+    
+    if (memberType) {
+      const mappedTypes: any[] = [];
+      const label = memberType.trim().toUpperCase();
+      
+      if (label.includes('STUDENT') || label.includes('นักศึกษา')) {
+        mappedTypes.push('STUDENT');
+      } else if (
+        label.includes('STAFF') ||
+        label.includes('FACULTY') ||
+        label.includes('อาจารย์') ||
+        label.includes('บุคลากร') ||
+        label.includes('เจ้าหน้าที่')
+      ) {
+        mappedTypes.push('STAFF', 'FACULTY');
+      } else if (label.includes('EXTERNAL') || label.includes('บุคคลภายนอก') || label.includes('ภายนอก')) {
+        mappedTypes.push('EXTERNAL');
+      } else if (label.includes('GUEST') || label.includes('ผู้มาติดต่อ') || label.includes('ผู้มาเยือน')) {
+        mappedTypes.push('GUEST');
+      } else if (['STUDENT', 'STAFF', 'FACULTY', 'EXTERNAL', 'GUEST'].includes(label)) {
+        mappedTypes.push(label);
+      }
+      
+      if (mappedTypes.length > 0) {
+        where.AND.push({
+          member: {
+            memberType: {
+              in: mappedTypes,
+            },
+          },
+        });
+      }
+    }
     
     if (startDate || endDate) {
       where.AND.push({
