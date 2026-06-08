@@ -1,5 +1,5 @@
 /** Current application release (semver, without "v" prefix). */
-export const APP_VERSION = '1.0.89';
+export const APP_VERSION = '1.0.92';
 
 export const APP_VERSION_LABEL = `v${APP_VERSION}`;
 

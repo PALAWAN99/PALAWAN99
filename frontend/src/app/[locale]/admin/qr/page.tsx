@@ -535,10 +535,6 @@ export default function QRManagementPage() {
                         {t('Qr.sendButton')}
                       </Button>
                     </Stack>
-
-                    <Button variant="subtle" size="xs" onClick={() => window.print()}>
-                      {t('Qr.printButton')}
-                    </Button>
                   </Stack>
                 ) : (
                   <Stack align="center" gap="xs" c="dimmed">

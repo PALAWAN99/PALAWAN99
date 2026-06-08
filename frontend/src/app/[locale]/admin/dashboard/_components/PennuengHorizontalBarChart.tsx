@@ -143,6 +143,7 @@ type PennuengHorizontalBarChartProps = {
   yAxisMaxWidth?: number;
   /** จำนวนหมวดมาก — ลดระยะห่างแถบเล็กน้อย */
   dense?: boolean;
+  onClickBar?: (name: string) => void;
 };
 
 export function PennuengHorizontalBarChart({
@@ -152,6 +153,7 @@ export function PennuengHorizontalBarChart({
   yAxisMinWidth = 200,
   yAxisMaxWidth = 320,
   dense,
+  onClickBar,
 }: PennuengHorizontalBarChartProps) {
   const chartRows = useMemo(
     () =>
@@ -217,7 +219,18 @@ export function PennuengHorizontalBarChart({
               return row?.name ?? '';
             }}
           />
-          <Bar dataKey="value" fill={barColor} radius={[0, 4, 4, 0]} barSize={isDense ? 14 : 18} />
+          <Bar
+            dataKey="value"
+            fill={barColor}
+            radius={[0, 4, 4, 0]}
+            barSize={isDense ? 14 : 18}
+            onClick={(data) => {
+              if (data && data.name && onClickBar) {
+                onClickBar(String(data.name));
+              }
+            }}
+            style={{ cursor: onClickBar ? 'pointer' : 'default' }}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -67,6 +67,7 @@ type PennuengDonutChartProps = {
   height?: number;
   mergeSmall?: boolean;
   otherLabel?: string;
+  onClickSlice?: (name: string) => void;
 };
 
 export function PennuengDonutChart({
@@ -74,6 +75,7 @@ export function PennuengDonutChart({
   height = 200,
   mergeSmall = true,
   otherLabel = OTHER_LABEL,
+  onClickSlice,
 }: PennuengDonutChartProps) {
   const chartData = mergeSmall ? mergeSmallPieSlices(data) : data;
   const total = chartData.reduce((sum, s) => sum + s.value, 0);
@@ -111,6 +113,12 @@ export function PennuengDonutChart({
               paddingAngle={1}
               stroke="none"
               isAnimationActive={false}
+              onClick={(data) => {
+                if (data && data.name && onClickSlice) {
+                  onClickSlice(String(data.name));
+                }
+              }}
+              style={{ cursor: onClickSlice ? 'pointer' : 'default' }}
             >
               {chartData.map((_, i) => (
                 <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />

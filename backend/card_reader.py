@@ -746,6 +746,54 @@ def read_photo_only(reader_name: Optional[str] = None) -> Optional[str]:
             finally:
                 connection.disconnect()
 
+def read_rfid_pcsc() -> Optional[dict]:
+    """Read RFID card UID via PC/SC (pyscard) as fallback/primary."""
+    if not PYSCARD_AVAILABLE or MOCK_MODE:
+        return None
+
+    available = pcsc_readers_fn()
+    if not available:
+        return None
+
+    # Try to connect to any reader that responds to the GET UID command
+    # Preference given to readers with "contactless" or "cl" in their names
+    sorted_readers = sorted(
+        available,
+        key=lambda r: any(kw in str(r).lower() for kw in ["contactless", "cl", "rfid", "pn532", "acr122"]),
+        reverse=True
+    )
+
+    for r in sorted_readers:
+        # Skip reader names that explicitly indicate contact interface if contactless is available
+        reader_name = str(r).lower()
+        if "contact reader" in reader_name or "contact 0" in reader_name:
+            # Only use contact reader if no other contactless readers are present
+            if len(sorted_readers) > 1 and any("contactless" in str(sr).lower() for sr in sorted_readers):
+                continue
+
+        try:
+            connection = r.createConnection()
+            connection.connect()
+            # GET DATA command: FF CA 00 00 00 (Gets UID of Mifare/ISO 14443-A cards)
+            cmd = [0xFF, 0xCA, 0x00, 0x00, 0x00]
+            data, sw1, sw2 = connection.transmit(cmd)
+            connection.disconnect()
+
+            if sw1 == 0x90 and sw2 == 0x00:
+                uid_bytes = bytes(data)
+                uid_hex = uid_bytes.hex().upper()
+                uid_int = int.from_bytes(uid_bytes, byteorder="big")
+                return {
+                    "success": True,
+                    "uid_hex": uid_hex,
+                    "uid_decimal": str(uid_int),
+                    "uid_bytes": list(uid_bytes),
+                    "uid_length": len(uid_bytes),
+                    "card_type": "ISO 14443-A (PC/SC)",
+                }
+        except Exception as e:
+            logger.debug("Failed to read RFID via PC/SC reader %s: %s", r, e)
+
     return None
 
 

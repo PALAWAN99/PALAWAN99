@@ -65,6 +65,12 @@ type DashboardStudentsCurriculumChartsProps = {
   topCurricula: PennuengMemberTypeSlice[];
   todayOutcome: PennuengMemberTypeSlice[];
   loading: boolean;
+  onDrillDown?: (filter: {
+    title: string;
+    memberType?: string;
+    decision?: string;
+    search?: string;
+  }) => void;
   t: (key: string) => string;
 };
 
@@ -74,6 +80,7 @@ export function DashboardStudentsCurriculumCharts({
   topCurricula,
   todayOutcome,
   loading,
+  onDrillDown,
   t,
 }: DashboardStudentsCurriculumChartsProps) {
   const [memberTab, setMemberTab] = useState('type');
@@ -96,12 +103,38 @@ export function DashboardStudentsCurriculumCharts({
         />
         {memberTab === 'type' ? (
           memberTypes.length > 0 ? (
-            <PennuengDonutChart data={memberTypes} height={200} mergeSmall />
+            <PennuengDonutChart
+              data={memberTypes}
+              height={200}
+              mergeSmall
+              onClickSlice={(name) => {
+                onDrillDown?.({
+                  title: `รายชื่อกลุ่มประเภทสมาชิก: ${name}`,
+                  memberType: name,
+                });
+              }}
+            />
           ) : (
             <EmptyState label={t('Common.noData')} />
           )
         ) : todayOutcome.length > 0 ? (
-          <PennuengDonutChart data={todayOutcome} height={200} mergeSmall={false} />
+          <PennuengDonutChart
+            data={todayOutcome}
+            height={200}
+            mergeSmall={false}
+            onClickSlice={(name) => {
+              const decision =
+                name.toLowerCase().includes('ปฏิเสธ') ||
+                name.toLowerCase().includes('denied') ||
+                name.toLowerCase().includes('fail')
+                  ? 'DENIED'
+                  : 'ALLOWED';
+              onDrillDown?.({
+                title: `รายชื่อสแกนวันนี้สถานะ: ${name}`,
+                decision,
+              });
+            }}
+          />
         ) : (
           <EmptyState label={t('Common.noData')} />
         )}
@@ -126,6 +159,12 @@ export function DashboardStudentsCurriculumCharts({
               data={topCurricula}
               yAxisMinWidth={130}
               yAxisMaxWidth={220}
+              onClickBar={(name) => {
+                onDrillDown?.({
+                  title: `รายชื่อผู้ใช้สังกัดหลักสูตร: ${name}`,
+                  search: name,
+                });
+              }}
             />
           ) : (
             <EmptyState label={t('Common.noData')} />
@@ -137,6 +176,12 @@ export function DashboardStudentsCurriculumCharts({
             dense
             yAxisMinWidth={130}
             yAxisMaxWidth={220}
+            onClickBar={(name) => {
+              onDrillDown?.({
+                title: `รายชื่อผู้ใช้สถานะนักศึกษา: ${name}`,
+                search: name,
+              });
+            }}
           />
         ) : (
           <Alert variant="light" color="blue" mt="xs">

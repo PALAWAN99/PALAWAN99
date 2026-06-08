@@ -14,6 +14,7 @@ import {
 } from '@mantine/core';
 import { DatePickerInput, type DatesRangeValue } from '@mantine/dates';
 import { IconLayoutDashboard, IconAlertCircle, IconPlugOff, IconRefresh, IconSearch } from '@tabler/icons-react';
+import dayjs from 'dayjs';
 
 import { useDashboard } from '../dashboard/hooks/useDashboard';
 import { DashboardStats } from '../dashboard/_components/DashboardStats';
@@ -22,6 +23,7 @@ import { DashboardActivity } from '../dashboard/_components/DashboardActivity';
 import { DashboardGateSummary } from '../dashboard/_components/DashboardGateSummary';
 import { DashboardPennuengSection } from '../dashboard/_components/DashboardPennuengSection';
 import { DashboardStudentsCurriculumHeader } from '../dashboard/_components/DashboardStudentsCurriculumHeader';
+import { DashboardDrillDownModal, type DrillDownFilters } from '../dashboard/_components/DashboardDrillDownModal';
 
 /** แดชบอร์ดภาพรวมระบบ — ย้ายจาก /admin */
 export default function AdminDashboardPage() {
@@ -29,6 +31,38 @@ export default function AdminDashboardPage() {
   const locale = useLocale();
   const [dateRange, setDateRange] = useState<DatesRangeValue>([null, null]);
   const [searchRange, setSearchRange] = useState<DatesRangeValue>([null, null]);
+  const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
+
+  const handleDrillDown = (filter: Omit<DrillDownFilters, 'startDate' | 'endDate'> & { dateStr?: string; hourStr?: string }) => {
+    let start: string | undefined;
+    let end: string | undefined;
+
+    if (filter.dateStr) {
+      start = dayjs(filter.dateStr).startOf('day').toISOString();
+      end = dayjs(filter.dateStr).endOf('day').toISOString();
+    } else if (filter.hourStr) {
+      // If hour is e.g. "08:00", get search range start date or today
+      const baseDate = searchRange[0] ? dayjs(searchRange[0]) : dayjs();
+      const hour = parseInt(filter.hourStr.split(':')[0]);
+      start = baseDate.hour(hour).minute(0).second(0).millisecond(0).toISOString();
+      end = baseDate.hour(hour).minute(59).second(59).millisecond(999).toISOString();
+    } else {
+      // Use general search range
+      if (searchRange[0]) start = dayjs(searchRange[0]).startOf('day').toISOString();
+      if (searchRange[1]) end = dayjs(searchRange[1]).endOf('day').toISOString();
+    }
+
+    setDrillDown({
+      title: filter.title,
+      gateId: filter.gateId,
+      decision: filter.decision,
+      direction: filter.direction,
+      memberType: filter.memberType,
+      startDate: start,
+      endDate: end,
+      search: filter.search,
+    });
+  };
 
   const {
     stats,
@@ -114,24 +148,25 @@ export default function AdminDashboardPage() {
       </Group>
 
       <DashboardStats stats={stats} loading={loading} t={t} />
-      <DashboardCharts chartData={chartData} gateTraffic={gateTraffic} loading={loading} t={t} />
+      <DashboardCharts chartData={chartData} gateTraffic={gateTraffic} loading={loading} onDrillDown={handleDrillDown} t={t} />
 
       {!pennuengUnavailable ? (
         <Stack gap="md">
           <DashboardStudentsCurriculumHeader title={t('Dashboard.studentsCurriculumSection')} />
           <DashboardPennuengSection
-          stats={pennueng?.stats ?? null}
-          chartData={[]}
-          gateTraffic={[]}
-          gateStatus={[]}
-          memberTypes={pennueng?.memberTypes ?? []}
-          topCurricula={pennueng?.topCurricula ?? []}
-          loading={pennuengLoading}
-          error={pennuengError}
-          unavailable={pennuengUnavailable}
-          compact
-          t={t}
-        />
+            stats={pennueng?.stats ?? null}
+            chartData={[]}
+            gateTraffic={[]}
+            gateStatus={[]}
+            memberTypes={pennueng?.memberTypes ?? []}
+            topCurricula={pennueng?.topCurricula ?? []}
+            loading={pennuengLoading}
+            error={pennuengError}
+            unavailable={pennuengUnavailable}
+            compact
+            onDrillDown={handleDrillDown}
+            t={t}
+          />
         </Stack>
       ) : (
         <Alert
@@ -158,6 +193,8 @@ export default function AdminDashboardPage() {
 
       <DashboardGateSummary gates={gateStatus} loading={loading} t={t} />
       <DashboardActivity recentEvents={recentEvents} loading={loading} t={t} />
+
+      <DashboardDrillDownModal filters={drillDown} onClose={() => setDrillDown(null)} />
     </Stack>
   );
 }

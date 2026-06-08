@@ -12,6 +12,9 @@ export class AccessEventService {
     limit = 20,
     startDate,
     endDate,
+    decision,
+    direction,
+    memberType,
   }: {
     search?: string;
     gateId?: string;
@@ -20,6 +23,9 @@ export class AccessEventService {
     limit?: number;
     startDate?: string;
     endDate?: string;
+    decision?: string;
+    direction?: string;
+    memberType?: string;
   }) {
     const skip = (page - 1) * limit;
 
@@ -41,6 +47,9 @@ export class AccessEventService {
 
     if (gateId) where.AND.push({ gateId });
     if (memberId) where.AND.push({ memberId });
+    if (decision) where.AND.push({ decision: decision as any });
+    if (direction) where.AND.push({ direction: direction as any });
+    if (memberType) where.AND.push({ member: { memberType: memberType as any } });
     
     if (startDate || endDate) {
       where.AND.push({

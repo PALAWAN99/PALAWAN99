@@ -9,10 +9,24 @@ interface DashboardChartsProps {
   chartData: ChartDataItem[];
   gateTraffic: GateTrafficItem[];
   loading?: boolean;
+  onDrillDown?: (filter: {
+    title: string;
+    gateId?: string;
+    direction?: string;
+    hourStr?: string;
+    dateStr?: string;
+    search?: string;
+  }) => void;
   t: (key: string) => string;
 }
 
-export function DashboardCharts({ chartData, gateTraffic, loading, t }: DashboardChartsProps) {
+export function DashboardCharts({
+  chartData,
+  gateTraffic,
+  loading,
+  onDrillDown,
+  t,
+}: DashboardChartsProps) {
   const router = useRouter();
 
   return (
@@ -24,7 +38,20 @@ export function DashboardCharts({ chartData, gateTraffic, loading, t }: Dashboar
           {!loading ? (
             <div style={{ height: 300, width: '100%', minWidth: 0, minHeight: 300 }}>
               <ResponsiveContainer width="100%" height={300} minWidth={0}>
-                <AreaChart data={chartData}>
+                <AreaChart
+                  data={chartData}
+                  onClick={(data) => {
+                    if (data && data.activeLabel) {
+                      const label = String(data.activeLabel);
+                      onDrillDown?.({
+                        title: `รายชื่อผู้ผ่านเข้าออกช่วงเวลา ${label}`,
+                        hourStr: label.includes(':') ? label : undefined,
+                        dateStr: !label.includes(':') ? label : undefined,
+                      });
+                    }
+                  }}
+                  style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                >
                   <defs>
                     <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#38BDF8" stopOpacity={0.3}/>
@@ -60,9 +87,19 @@ export function DashboardCharts({ chartData, gateTraffic, loading, t }: Dashboar
                       dataKey="value"
                       radius={[0, 4, 4, 0]}
                       barSize={20}
-                      onClick={(data: { code?: string; name?: string }) =>
-                        data && router.push(`/admin/events?gate=${encodeURIComponent(data.code ?? data.name ?? '')}`)
-                      }
+                      onClick={(data: any) => {
+                        if (data) {
+                          if (onDrillDown) {
+                            onDrillDown({
+                              title: `รายชื่อผู้ผ่านประตู: ${data.name || data.code || ''}`,
+                              search: data.code || data.name || undefined,
+                            });
+                          } else {
+                            router.push(`/admin/events?gate=${encodeURIComponent(data.code ?? data.name ?? '')}`);
+                          }
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
                     >
                       {gateTraffic.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />

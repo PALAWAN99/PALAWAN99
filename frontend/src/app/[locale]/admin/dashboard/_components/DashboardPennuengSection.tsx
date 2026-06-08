@@ -59,6 +59,12 @@ interface DashboardPennuengSectionProps {
   unavailable: boolean;
   /** แสดงเฉพาะกราฟประเภทสมาชิก (ข้อมูลหลักอยู่ในแดชบอร์ดด้านบนแล้ว) */
   compact?: boolean;
+  onDrillDown?: (filter: {
+    title: string;
+    memberType?: string;
+    decision?: string;
+    search?: string;
+  }) => void;
   t: (key: string) => string;
 }
 
@@ -158,6 +164,7 @@ export function DashboardPennuengSection({
   error,
   unavailable,
   compact = false,
+  onDrillDown,
   t,
 }: DashboardPennuengSectionProps) {
   if (unavailable) {
@@ -190,6 +197,7 @@ export function DashboardPennuengSection({
         topCurricula={topCurricula}
         todayOutcome={todayOutcome}
         loading={loading}
+        onDrillDown={onDrillDown}
         t={t}
       />
     );

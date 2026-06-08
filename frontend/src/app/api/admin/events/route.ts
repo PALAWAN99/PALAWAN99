@@ -18,6 +18,9 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '20');
   const startDate = searchParams.get('startDate') || undefined;
   const endDate = searchParams.get('endDate') || undefined;
+  const decision = searchParams.get('decision') || undefined;
+  const direction = searchParams.get('direction') || undefined;
+  const memberType = searchParams.get('memberType') || undefined;
 
   try {
     const result = await AccessEventService.getEvents({
@@ -26,7 +29,10 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       startDate,
-      endDate
+      endDate,
+      decision,
+      direction,
+      memberType,
     });
     return ApiSuccess(result);
   } catch (error) {
