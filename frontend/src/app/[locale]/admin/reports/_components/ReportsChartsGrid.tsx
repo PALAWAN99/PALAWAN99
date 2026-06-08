@@ -183,7 +183,21 @@ function GroupLikeSummary({
   );
 }
 
-export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
+interface ReportsChartsGridProps {
+  data: ReportsAnalyticsPayload;
+  onDrillDown?: (filter: {
+    title: string;
+    gateId?: string;
+    decision?: 'ALLOWED' | 'DENIED';
+    direction?: 'IN' | 'OUT';
+    memberType?: string;
+    search?: string;
+    dateStr?: string;
+    hourStr?: string;
+  }) => void;
+}
+
+export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps) {
   const t = useTranslations('Report');
   const tc = useTranslations('Common');
   const hasData = data.summary.totalScans > 0;
@@ -210,7 +224,23 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
         {/* 1. BarChart — daily total access */}
         <ChartShell title={t('chartDailyTotal')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <BarChart data={data.dailyTrend}>
+            <BarChart
+              data={data.dailyTrend}
+              onClick={(clickData) => {
+                console.log('Reports DailyTotal chart clicked:', clickData);
+                const idx = clickData?.activeTooltipIndex;
+                if (typeof idx === 'number') {
+                  const row = data.dailyTrend[idx];
+                  if (row) {
+                    onDrillDown?.({
+                      title: `รายชื่อผู้ใช้ที่สแกนวันที่ ${row.label}`,
+                      dateStr: row.date,
+                    });
+                  }
+                }
+              }}
+              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+            >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
@@ -223,7 +253,23 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
         {/* 2. AreaChart — stacked in/out area */}
         <ChartShell title={t('chartInOutArea')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <AreaChart data={data.dailyTrend}>
+            <AreaChart
+              data={data.dailyTrend}
+              onClick={(clickData) => {
+                console.log('Reports InOut Area chart clicked:', clickData);
+                const idx = clickData?.activeTooltipIndex;
+                if (typeof idx === 'number') {
+                  const row = data.dailyTrend[idx];
+                  if (row) {
+                    onDrillDown?.({
+                      title: `รายชื่อผู้ใช้ที่ผ่านเข้าออกวันที่ ${row.label}`,
+                      dateStr: row.date,
+                    });
+                  }
+                }
+              }}
+              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+            >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
@@ -239,7 +285,24 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
         <ChartShell title={t('chartGateShare')}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <PieChart>
-              <Pie data={data.gateShare} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
+              <Pie
+                data={data.gateShare}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={3}
+                onClick={(sliceData) => {
+                  console.log('Reports Gate Share slice clicked:', sliceData);
+                  if (sliceData && sliceData.name) {
+                    onDrillDown?.({
+                      title: `รายชื่อผู้ใช้งานประตู: ${sliceData.name}`,
+                      search: String(sliceData.name),
+                    });
+                  }
+                }}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+              >
                 {data.gateShare.map((entry, index) => (
                   <Cell key={entry.name} fill={entry.color ?? COLORS[index % COLORS.length]} />
                 ))}
@@ -253,7 +316,23 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
         {/* 4. LineChart — allowed vs denied trend */}
         <ChartShell title={t('chartAllowedDenied')}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <LineChart data={data.dailyTrend}>
+            <LineChart
+              data={data.dailyTrend}
+              onClick={(clickData) => {
+                console.log('Reports AllowedDenied chart clicked:', clickData);
+                const idx = clickData?.activeTooltipIndex;
+                if (typeof idx === 'number') {
+                  const row = data.dailyTrend[idx];
+                  if (row) {
+                    onDrillDown?.({
+                      title: `รายชื่อผู้ผ่านเข้าออกวันที่ ${row.label}`,
+                      dateStr: row.date,
+                    });
+                  }
+                }
+              }}
+              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+            >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
@@ -269,7 +348,23 @@ export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
       {/* 5. ComposedChart — deny rate (full width) */}
       <ChartShell title={t('chartDenyRateComposed')}>
         <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <ComposedChart data={data.denyRateTrend}>
+          <ComposedChart
+            data={data.denyRateTrend}
+            onClick={(clickData) => {
+              console.log('Reports DenyRateComposed chart clicked:', clickData);
+              const idx = clickData?.activeTooltipIndex;
+              if (typeof idx === 'number') {
+                const row = data.denyRateTrend[idx];
+                if (row) {
+                  onDrillDown?.({
+                    title: `รายชื่อผู้ใช้ที่ผ่านเข้าออกวันที่ ${row.label}`,
+                    dateStr: row.date,
+                  });
+                }
+              }
+            }}
+            style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+          >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
             <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} />

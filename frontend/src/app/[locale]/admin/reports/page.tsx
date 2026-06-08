@@ -32,6 +32,8 @@ import {
   fetchReportGatesApi,
   fetchReportsAnalyticsApi,
 } from './lib/reports-api';
+import { DashboardDrillDownModal } from '../dashboard/_components/DashboardDrillDownModal';
+import type { DrillDownFilters } from '../dashboard/_components/DashboardDrillDownModal';
 
 export default function ReportsPage() {
   const t = useTranslations('Report');
@@ -45,6 +47,37 @@ export default function ReportsPage() {
   const [data, setData] = useState<ReportsAnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [gatesLoading, setGatesLoading] = useState(true);
+
+  const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
+
+  const handleDrillDown = useCallback((filter: Omit<DrillDownFilters, 'startDate' | 'endDate'> & { dateStr?: string; hourStr?: string }) => {
+    let start: string | undefined;
+    let end: string | undefined;
+
+    if (filter.dateStr) {
+      start = dayjs(filter.dateStr).startOf('day').toISOString();
+      end = dayjs(filter.dateStr).endOf('day').toISOString();
+    } else if (filter.hourStr) {
+      const baseDate = startDate ? dayjs(startDate) : dayjs();
+      const hour = parseInt(filter.hourStr.split(':')[0]);
+      start = baseDate.hour(hour).minute(0).second(0).millisecond(0).toISOString();
+      end = baseDate.hour(hour).minute(59).second(59).millisecond(999).toISOString();
+    } else {
+      if (startDate) start = dayjs(startDate).startOf('day').toISOString();
+      if (endDate) end = dayjs(endDate).endOf('day').toISOString();
+    }
+
+    setDrillDown({
+      title: filter.title,
+      gateId: filter.gateId,
+      decision: filter.decision,
+      direction: filter.direction,
+      memberType: filter.memberType,
+      startDate: start,
+      endDate: end,
+      search: filter.search,
+    });
+  }, [startDate, endDate]);
 
   const loadReport = useCallback(async () => {
     if (!startDate || !endDate) return;
@@ -182,11 +215,13 @@ export default function ReportsPage() {
               {t('noDataInRange')}
             </Alert>
           ) : (
-            <ReportsChartsGrid data={data} />
+            <ReportsChartsGrid data={data} onDrillDown={handleDrillDown} />
           )}
           <ReportsDetailTable data={data} />
         </Stack>
       ) : null}
+
+      <DashboardDrillDownModal filters={drillDown} onClose={() => setDrillDown(null)} />
     </Stack>
   );
 }
