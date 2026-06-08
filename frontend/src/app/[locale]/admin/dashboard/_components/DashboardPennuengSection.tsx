@@ -281,7 +281,20 @@ export function DashboardPennuengSection({
             {!loading ? (
               <div style={{ height: 280, width: '100%', minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={chartData}>
+                  <AreaChart
+                    data={chartData}
+                    onClick={(clickData) => {
+                      console.log('Pennueng Traffic click data:', clickData);
+                      if (clickData && clickData.activeLabel) {
+                        const label = String(clickData.activeLabel);
+                        onDrillDown?.({
+                          title: `รายชื่อผู้ผ่านเข้าออกช่วงเวลา ${label}`,
+                          search: label.includes(':') ? label : undefined,
+                        });
+                      }
+                    }}
+                    style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                  >
                     <defs>
                       <linearGradient id="penIn" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#1E3A5F" stopOpacity={0.35} />
@@ -334,7 +347,21 @@ export function DashboardPennuengSection({
                       axisLine={false}
                     />
                     <ChartTooltip />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18}>
+                    <Bar
+                      dataKey="value"
+                      radius={[0, 4, 4, 0]}
+                      barSize={18}
+                      onClick={(barData) => {
+                        console.log('Pennueng Top Gates click data:', barData);
+                        if (barData) {
+                          onDrillDown?.({
+                            title: `รายชื่อผู้ผ่านประตู: ${barData.name || ''}`,
+                            search: barData.name || undefined,
+                          });
+                        }
+                      }}
+                      style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                    >
                       {gateTraffic.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
@@ -363,6 +390,7 @@ export function DashboardPennuengSection({
           t('Common.other'),
         )}
         loading={loading}
+        onDrillDown={onDrillDown}
         t={t}
       />
 
