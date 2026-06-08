@@ -237,10 +237,12 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 name={t('totalAccess')}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(barData: any) => {
-                  if (barData && onDrillDown) {
+                  if (!onDrillDown) return;
+                  const d = barData?.payload || barData;
+                  if (d && d.date) {
                     onDrillDown({
-                      title: `รายชื่อผู้ใช้วันที่ ${barData.label ?? barData.date}`,
-                      dateStr: barData.date,
+                      title: `รายชื่อผู้ใช้วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
                     });
                   }
                 }}
@@ -357,10 +359,12 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 name={t('allowedAccess')}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(pointData: any) => {
-                  if (pointData?.date && onDrillDown) {
+                  if (!onDrillDown) return;
+                  const d = pointData?.payload || pointData;
+                  if (d && d.date) {
                     onDrillDown({
-                      title: `อนุญาต วันที่ ${pointData.label ?? pointData.date}`,
-                      dateStr: pointData.date,
+                      title: `อนุญาต วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
                       decision: 'ALLOWED',
                     });
                   }
@@ -374,10 +378,12 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 name={t('deniedAccess')}
                 style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
                 onClick={(pointData: any) => {
-                  if (pointData?.date && onDrillDown) {
+                  if (!onDrillDown) return;
+                  const d = pointData?.payload || pointData;
+                  if (d && d.date) {
                     onDrillDown({
-                      title: `ปฏิเสธ วันที่ ${pointData.label ?? pointData.date}`,
-                      dateStr: pointData.date,
+                      title: `ปฏิเสธ วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
                       decision: 'DENIED',
                     });
                   }
@@ -406,10 +412,12 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
               radius={[4, 4, 0, 0]}
               style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
               onClick={(barData: any) => {
-                if (barData && onDrillDown) {
+                if (!onDrillDown) return;
+                const d = barData?.payload || barData;
+                if (d && d.date) {
                   onDrillDown({
-                    title: `รายชื่อผู้ใช้วันที่ ${barData.label ?? barData.date}`,
-                    dateStr: barData.date,
+                    title: `รายชื่อผู้ใช้วันที่ ${d.label ?? d.date}`,
+                    dateStr: d.date,
                   });
                 }
               }}
@@ -423,10 +431,12 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
               name={t('denyRate')}
               style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
               onClick={(pointData: any) => {
-                if (pointData?.date && onDrillDown) {
+                if (!onDrillDown) return;
+                const d = pointData?.payload || pointData;
+                if (d && d.date) {
                   onDrillDown({
-                    title: `ปฏิเสธ วันที่ ${pointData.label ?? pointData.date}`,
-                    dateStr: pointData.date,
+                    title: `ปฏิเสธ วันที่ ${d.label ?? d.date}`,
+                    dateStr: d.date,
                     decision: 'DENIED',
                   });
                 }
