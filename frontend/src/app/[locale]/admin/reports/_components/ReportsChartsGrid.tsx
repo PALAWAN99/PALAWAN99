@@ -224,28 +224,26 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
         {/* 1. BarChart — daily total access */}
         <ChartShell title={t('chartDailyTotal')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <BarChart
-              data={data.dailyTrend}
-              onClick={(clickData) => {
-                console.log('Reports DailyTotal chart clicked:', clickData);
-                const idx = clickData?.activeTooltipIndex;
-                if (typeof idx === 'number') {
-                  const row = data.dailyTrend[idx];
-                  if (row) {
-                    onDrillDown?.({
-                      title: `รายชื่อผู้ใช้ที่สแกนวันที่ ${row.label}`,
-                      dateStr: row.date,
-                    });
-                  }
-                }
-              }}
-              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-            >
+            <BarChart data={data.dailyTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip />
-              <Bar dataKey="total" fill="#38BDF8" radius={[4, 4, 0, 0]} name={t('totalAccess')} />
+              <Bar
+                dataKey="total"
+                fill="#38BDF8"
+                radius={[4, 4, 0, 0]}
+                name={t('totalAccess')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(barData: any) => {
+                  if (barData && onDrillDown) {
+                    onDrillDown({
+                      title: `รายชื่อผู้ใช้วันที่ ${barData.label ?? barData.date}`,
+                      dateStr: barData.date,
+                    });
+                  }
+                }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartShell>
@@ -253,30 +251,52 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
         {/* 2. AreaChart — stacked in/out area */}
         <ChartShell title={t('chartInOutArea')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <AreaChart
-              data={data.dailyTrend}
-              onClick={(clickData) => {
-                console.log('Reports InOut Area chart clicked:', clickData);
-                const idx = clickData?.activeTooltipIndex;
-                if (typeof idx === 'number') {
-                  const row = data.dailyTrend[idx];
-                  if (row) {
-                    onDrillDown?.({
-                      title: `รายชื่อผู้ใช้ที่ผ่านเข้าออกวันที่ ${row.label}`,
-                      dateStr: row.date,
-                    });
-                  }
-                }
-              }}
-              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-            >
+            <AreaChart data={data.dailyTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip />
               <Legend />
-              <Area type="monotone" dataKey="in" stackId="1" stroke="#38BDF8" fill="#38BDF8" fillOpacity={0.35} name={t('directionIn')} />
-              <Area type="monotone" dataKey="out" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.35} name={t('directionOut')} />
+              <Area
+                type="monotone"
+                dataKey="in"
+                stackId="1"
+                stroke="#38BDF8"
+                fill="#38BDF8"
+                fillOpacity={0.35}
+                name={t('directionIn')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(_: any, payload: any) => {
+                  const d = payload?.activePayload?.[0]?.payload ?? payload;
+                  if (d?.date && onDrillDown) {
+                    onDrillDown({
+                      title: `ผู้เข้า (IN) วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      direction: 'IN',
+                    });
+                  }
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="out"
+                stackId="1"
+                stroke="#10B981"
+                fill="#10B981"
+                fillOpacity={0.35}
+                name={t('directionOut')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(_: any, payload: any) => {
+                  const d = payload?.activePayload?.[0]?.payload ?? payload;
+                  if (d?.date && onDrillDown) {
+                    onDrillDown({
+                      title: `ผู้ออก (OUT) วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      direction: 'OUT',
+                    });
+                  }
+                }}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </ChartShell>
@@ -316,30 +336,46 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
         {/* 4. LineChart — allowed vs denied trend */}
         <ChartShell title={t('chartAllowedDenied')}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <LineChart
-              data={data.dailyTrend}
-              onClick={(clickData) => {
-                console.log('Reports AllowedDenied chart clicked:', clickData);
-                const idx = clickData?.activeTooltipIndex;
-                if (typeof idx === 'number') {
-                  const row = data.dailyTrend[idx];
-                  if (row) {
-                    onDrillDown?.({
-                      title: `รายชื่อผู้ผ่านเข้าออกวันที่ ${row.label}`,
-                      dateStr: row.date,
-                    });
-                  }
-                }
-              }}
-              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-            >
+            <LineChart data={data.dailyTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="allowed" stroke="#10B981" strokeWidth={2} name={t('allowedAccess')} />
-              <Line type="monotone" dataKey="denied" stroke="#EF4444" strokeWidth={2} name={t('deniedAccess')} />
+              <Line
+                type="monotone"
+                dataKey="allowed"
+                stroke="#10B981"
+                strokeWidth={2}
+                name={t('allowedAccess')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(pointData: any) => {
+                  if (pointData?.date && onDrillDown) {
+                    onDrillDown({
+                      title: `อนุญาต วันที่ ${pointData.label ?? pointData.date}`,
+                      dateStr: pointData.date,
+                      decision: 'ALLOWED',
+                    });
+                  }
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="denied"
+                stroke="#EF4444"
+                strokeWidth={2}
+                name={t('deniedAccess')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(pointData: any) => {
+                  if (pointData?.date && onDrillDown) {
+                    onDrillDown({
+                      title: `ปฏิเสธ วันที่ ${pointData.label ?? pointData.date}`,
+                      dateStr: pointData.date,
+                      decision: 'DENIED',
+                    });
+                  }
+                }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartShell>
@@ -348,31 +384,47 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
       {/* 5. ComposedChart — deny rate (full width) */}
       <ChartShell title={t('chartDenyRateComposed')}>
         <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <ComposedChart
-            data={data.denyRateTrend}
-            onClick={(clickData) => {
-              console.log('Reports DenyRateComposed chart clicked:', clickData);
-              const idx = clickData?.activeTooltipIndex;
-              if (typeof idx === 'number') {
-                const row = data.denyRateTrend[idx];
-                if (row) {
-                  onDrillDown?.({
-                    title: `รายชื่อผู้ใช้ที่ผ่านเข้าออกวันที่ ${row.label}`,
-                    dateStr: row.date,
-                  });
-                }
-              }
-            }}
-            style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-          >
+          <ComposedChart data={data.denyRateTrend}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
             <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} />
             <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip />
             <Legend />
-            <Bar yAxisId="left" dataKey="total" fill="#38BDF8" name={t('totalAccess')} radius={[4, 4, 0, 0]} />
-            <Line yAxisId="right" type="monotone" dataKey="denyRate" stroke="#EF4444" strokeWidth={2} name={t('denyRate')} />
+            <Bar
+              yAxisId="left"
+              dataKey="total"
+              fill="#38BDF8"
+              name={t('totalAccess')}
+              radius={[4, 4, 0, 0]}
+              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+              onClick={(barData: any) => {
+                if (barData && onDrillDown) {
+                  onDrillDown({
+                    title: `รายชื่อผู้ใช้วันที่ ${barData.label ?? barData.date}`,
+                    dateStr: barData.date,
+                  });
+                }
+              }}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="denyRate"
+              stroke="#EF4444"
+              strokeWidth={2}
+              name={t('denyRate')}
+              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+              onClick={(pointData: any) => {
+                if (pointData?.date && onDrillDown) {
+                  onDrillDown({
+                    title: `ปฏิเสธ วันที่ ${pointData.label ?? pointData.date}`,
+                    dateStr: pointData.date,
+                    decision: 'DENIED',
+                  });
+                }
+              }}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartShell>
