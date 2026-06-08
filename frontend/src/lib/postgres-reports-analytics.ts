@@ -190,6 +190,7 @@ export async function fetchPostgresReportsAnalytics(
     name: row.gateName,
     value: row.total,
     color: GATE_COLORS[index % GATE_COLORS.length],
+    gateId: row.gateId,
   }));
 
   const gateInOut = detailTable.slice(0, 10).map((row) => ({

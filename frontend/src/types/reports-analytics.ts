@@ -31,6 +31,7 @@ export type ReportsNamedValue = {
   name: string;
   value: number;
   color?: string;
+  gateId?: string;
 };
 
 export type ReportsInOutPoint = {

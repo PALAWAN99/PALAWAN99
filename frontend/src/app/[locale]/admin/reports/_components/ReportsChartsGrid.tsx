@@ -321,12 +321,13 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 innerRadius={55}
                 outerRadius={90}
                 paddingAngle={3}
-                onClick={(sliceData) => {
+                onClick={(sliceData: any) => {
                   console.log('Reports Gate Share slice clicked:', sliceData);
-                  if (sliceData && sliceData.name) {
+                  const d = sliceData?.payload || sliceData;
+                  if (d && d.gateId) {
                     onDrillDown?.({
-                      title: `รายชื่อผู้ใช้งานประตู: ${sliceData.name}`,
-                      search: String(sliceData.name),
+                      title: `รายชื่อผู้ใช้งานประตู: ${d.name}`,
+                      gateId: d.gateId,
                     });
                   }
                 }}
