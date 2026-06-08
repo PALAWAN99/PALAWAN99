@@ -39,18 +39,18 @@ export default function AdminDashboardPage() {
     let end: string | undefined;
 
     if (filter.dateStr) {
-      start = dayjs(filter.dateStr).startOf('day').toISOString();
-      end = dayjs(filter.dateStr).endOf('day').toISOString();
+      start = dayjs(filter.dateStr).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      end = dayjs(filter.dateStr).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
     } else if (filter.hourStr) {
       // If hour is e.g. "08:00", get search range start date or today
       const baseDate = searchRange[0] ? dayjs(searchRange[0]) : dayjs();
       const hour = parseInt(filter.hourStr.split(':')[0]);
-      start = baseDate.hour(hour).minute(0).second(0).millisecond(0).toISOString();
-      end = baseDate.hour(hour).minute(59).second(59).millisecond(999).toISOString();
+      start = baseDate.hour(hour).minute(0).second(0).millisecond(0).format('YYYY-MM-DDTHH:mm:ss');
+      end = baseDate.hour(hour).minute(59).second(59).millisecond(999).format('YYYY-MM-DDTHH:mm:ss');
     } else {
       // Use general search range
-      if (searchRange[0]) start = dayjs(searchRange[0]).startOf('day').toISOString();
-      if (searchRange[1]) end = dayjs(searchRange[1]).endOf('day').toISOString();
+      if (searchRange[0]) start = dayjs(searchRange[0]).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      if (searchRange[1]) end = dayjs(searchRange[1]).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
     }
 
     const nextDrillDown = {

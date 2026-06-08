@@ -57,16 +57,16 @@ export default function ReportsPage() {
     // ถ้า filter ไม่ได้ส่ง startDate/endDate มา ให้ derive จาก dateStr/hourStr หรือ state
     if (!start && !end) {
       if (filter.dateStr) {
-        start = dayjs(filter.dateStr).startOf('day').toISOString();
-        end = dayjs(filter.dateStr).endOf('day').toISOString();
+        start = dayjs(filter.dateStr).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+        end = dayjs(filter.dateStr).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
       } else if (filter.hourStr) {
         const baseDate = startDate ? dayjs(startDate) : dayjs();
         const hour = parseInt(filter.hourStr.split(':')[0]);
-        start = baseDate.hour(hour).minute(0).second(0).millisecond(0).toISOString();
-        end = baseDate.hour(hour).minute(59).second(59).millisecond(999).toISOString();
+        start = baseDate.hour(hour).minute(0).second(0).millisecond(0).format('YYYY-MM-DDTHH:mm:ss');
+        end = baseDate.hour(hour).minute(59).second(59).millisecond(999).format('YYYY-MM-DDTHH:mm:ss');
       } else {
-        if (startDate) start = dayjs(startDate).startOf('day').toISOString();
-        if (endDate) end = dayjs(endDate).endOf('day').toISOString();
+        if (startDate) start = dayjs(startDate).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+        if (endDate) end = dayjs(endDate).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
       }
     }
 
