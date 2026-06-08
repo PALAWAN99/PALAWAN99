@@ -213,7 +213,6 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
     exportToExcel(excelData, 'Daily_Access_Summary');
   };
 
-  const hoveredAreaRef = useRef<'IN' | 'OUT' | null>(null);
 
   if (!hasData) {
     return <EmptyChart label={tc('noData')} />;
@@ -253,38 +252,7 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
         {/* 2. AreaChart — stacked in/out area (คลิกสีเขียว=ออก สีน้ำเงิน=เข้า) */}
         <ChartShell title={t('chartInOutArea')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <AreaChart
-              data={data.dailyTrend}
-              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-              onClick={(clickData) => {
-                if (!onDrillDown) return;
-                const idx = clickData?.activeTooltipIndex;
-                if (typeof idx === 'number') {
-                  const row = data.dailyTrend[idx];
-                  if (!row) return;
-                  const dir = hoveredAreaRef.current;
-                  if (dir === 'IN') {
-                    onDrillDown({
-                      title: `ผู้เข้า วันที่ ${row.label}`,
-                      dateStr: row.date,
-                      direction: 'IN',
-                    });
-                  } else if (dir === 'OUT') {
-                    onDrillDown({
-                      title: `ผู้ออก วันที่ ${row.label}`,
-                      dateStr: row.date,
-                      direction: 'OUT',
-                    });
-                  } else {
-                    // คลิกที่ขอบหรือพื้นที่ว่าง — แสดงทั้งหมดของวัน
-                    onDrillDown({
-                      title: `เข้า-ออก วันที่ ${row.label}`,
-                      dateStr: row.date,
-                    });
-                  }
-                }
-              }}
-            >
+            <AreaChart data={data.dailyTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
@@ -299,9 +267,19 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 fill="#38BDF8"
                 fillOpacity={0.35}
                 name={t('directionIn')}
-                activeDot={{ r: 5, cursor: 'pointer' }}
-                onMouseEnter={() => { hoveredAreaRef.current = 'IN'; }}
-                onMouseLeave={() => { hoveredAreaRef.current = null; }}
+                activeDot={{ r: 5 }}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(areaData: any) => {
+                  if (!onDrillDown) return;
+                  const d = areaData?.payload || areaData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ผู้เข้า วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      direction: 'IN',
+                    });
+                  }
+                }}
               />
               {/* ออก = สีเขียว */}
               <Area
@@ -312,9 +290,19 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
                 fill="#10B981"
                 fillOpacity={0.35}
                 name={t('directionOut')}
-                activeDot={{ r: 5, cursor: 'pointer' }}
-                onMouseEnter={() => { hoveredAreaRef.current = 'OUT'; }}
-                onMouseLeave={() => { hoveredAreaRef.current = null; }}
+                activeDot={{ r: 5 }}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(areaData: any) => {
+                  if (!onDrillDown) return;
+                  const d = areaData?.payload || areaData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ผู้ออก วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      direction: 'OUT',
+                    });
+                  }
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
