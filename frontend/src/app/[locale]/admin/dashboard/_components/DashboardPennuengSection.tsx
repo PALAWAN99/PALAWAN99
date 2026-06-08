@@ -348,12 +348,13 @@ export function DashboardPennuengSection({
                       dataKey="value"
                       radius={[0, 4, 4, 0]}
                       barSize={18}
-                      onClick={(barData) => {
+                      onClick={(barData: any) => {
                         console.log('Pennueng Top Gates click data:', barData);
-                        if (barData) {
+                        const d = barData?.payload || barData;
+                        if (d) {
                           onDrillDown?.({
-                            title: `รายชื่อผู้ผ่านประตู: ${barData.name || ''}`,
-                            search: barData.name || undefined,
+                            title: `รายชื่อผู้ผ่านประตู: ${d.name || ''}`,
+                            gateId: d.code,
                             source: 'pennueng',
                           });
                         }

@@ -82,16 +82,17 @@ export function DashboardCharts({
                       dataKey="value"
                       radius={[0, 4, 4, 0]}
                       barSize={20}
-                      onClick={(data: any) => {
-                        console.log('Top Gates bar click data:', data);
-                        if (data) {
+                      onClick={(barData: any) => {
+                        console.log('Top Gates bar click data:', barData);
+                        const d = barData?.payload || barData;
+                        if (d) {
                           if (onDrillDown) {
                             onDrillDown({
-                              title: `รายชื่อผู้ผ่านประตู: ${data.name || data.code || ''}`,
-                              search: data.code || data.name || undefined,
+                              title: `รายชื่อผู้ผ่านประตู: ${d.name || d.code || ''}`,
+                              gateId: d.code,
                             });
                           } else {
-                            router.push(`/admin/events?gate=${encodeURIComponent(data.code ?? data.name ?? '')}`);
+                            router.push(`/admin/events?gate=${encodeURIComponent(d.code ?? d.name ?? '')}`);
                           }
                         }
                       }}
