@@ -62,6 +62,7 @@ export default function AdminDashboardPage() {
       startDate: start,
       endDate: end,
       search: filter.search,
+      source: filter.source ?? (dataSource === 'pennueng' ? 'pennueng' : 'postgres'),
     };
     console.log('Setting drillDown state to:', nextDrillDown);
     setDrillDown(nextDrillDown);
