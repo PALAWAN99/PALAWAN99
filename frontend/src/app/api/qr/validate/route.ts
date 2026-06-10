@@ -5,6 +5,7 @@ import { validateQrToken } from '@/lib/qr-engine';
 import { validateQrSchema } from '@/lib/schemas/gate';
 import { checkStrictRateLimit } from '@/lib/rate-limit';
 import { ApiSuccess, handleError } from '@/lib/api-response';
+import { emitAccessEvent } from '@/lib/event-emitter';
 
 /**
  * POST /api/qr/validate
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
           }
         } catch (_) {}
 
-        await prisma.accessEvent.create({
+        const event = await prisma.accessEvent.create({
           data: {
             gateId,
             memberId: deniedMemberId,
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
             },
           },
         });
+        void emitAccessEvent(event.id);
       }
 
       return ApiSuccess({
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (!transactionResult) {
       // บันทึกประวัติการปฏิเสธการเข้า-ออก เนื่องจากสแกนซ้ำซ้อน (Race Condition)
-      await prisma.accessEvent.create({
+      const event = await prisma.accessEvent.create({
         data: {
           gateId: gate.id,
           memberId: member.id,
@@ -106,6 +108,7 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+      void emitAccessEvent(event.id);
 
       return ApiSuccess({
         decision: 'DENIED',
@@ -132,6 +135,7 @@ export async function POST(req: NextRequest) {
         }
       }
     });
+    void emitAccessEvent(event.id);
 
     // 5. สั่งเปิดประตู (อยู่นอก transaction ได้เนื่องจากไม่ใช่ส่วน critical)
     await prisma.gate.update({

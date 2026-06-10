@@ -39,13 +39,7 @@ export const ADMIN_NAV_PRIMARY: AdminNavItem[] = [
 ];
 
 /** เมนูหลักด้านล่าง sidebar (แยกจากกลุ่มเมนู) */
-export const ADMIN_NAV_FOOTER: AdminNavItem[] = [
-  {
-    labelKey: 'PennuengMember.deletedMenu',
-    icon: IconTrash,
-    href: '/admin/members/deleted',
-  },
-];
+export const ADMIN_NAV_FOOTER: AdminNavItem[] = [];
 
 /** @deprecated ใช้ ADMIN_NAV_PRIMARY[0] แทน */
 export const ADMIN_NAV_DASHBOARD = ADMIN_NAV_PRIMARY[0];

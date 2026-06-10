@@ -14,6 +14,7 @@
     "settings": "设置",
     "members": "成员",
     "idcard": "身份证阅读器",
+    "rfidcard": "学生证 (RFID)",
     "logout": "登出",
     "logoutConfirmTitle": "确认登出",
     "logoutConfirmMessage": "确定要退出登录吗？",
@@ -651,6 +652,8 @@
   "IdCard": {
     "title": "身份证读取系统",
     "subtitle": "通过智能卡读卡器注册会员",
+    "rfidTitle": "学生证系统 (RFID)",
+    "rfidSubtitle": "通过 RFID/非接触式读卡器管理和验证学生卡",
     "tabRead": "从卡片读取",
     "tabRfid": "读取 RFID",
     "readModeTitle": "选择读取模式",

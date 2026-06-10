@@ -54,8 +54,16 @@ function buildWhereClause(
   }
 
   if (query.memberType?.trim()) {
-    request.input('memberType', sql.NVarChar(100), query.memberType.trim());
-    parts.push('(RTRIM(gs.member_type) = @memberType OR RTRIM(mt.description) = @memberType)');
+    const mType = query.memberType.trim();
+    if (mType === 'อื่นๆ' || mType.toLowerCase() === 'other' || mType.toLowerCase() === 'others') {
+      parts.push(`(
+        COALESCE(RTRIM(mt.description), N'') NOT IN (N'นักศึกษาป.ตรี', N'นักศึกษาป.โท', N'นักศึกษาป.เอก')
+        AND COALESCE(RTRIM(gs.member_type), '') NOT IN ('004', '005', '006', '007')
+      )`);
+    } else {
+      request.input('memberType', sql.NVarChar(100), mType);
+      parts.push('(RTRIM(gs.member_type) = @memberType OR RTRIM(mt.description) = @memberType)');
+    }
   }
 
   if (query.decision?.trim()) {

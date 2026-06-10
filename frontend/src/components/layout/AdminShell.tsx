@@ -45,6 +45,71 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [isPending, startTransition] = useTransition();
   const mounted = useIsClient();
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenHeader, setShowFullscreenHeader] = useState(false);
+  const [showFullscreenSidebar, setShowFullscreenSidebar] = useState(false);
+
+  useEffect(() => {
+    const checkIsFullscreen = () => {
+      if (typeof window === 'undefined') return false;
+      // 1. Standard HTML Fullscreen API check
+      if (document.fullscreenElement) return true;
+      // 2. Native F11 Fullscreen detection: innerHeight is equal/close to screen height
+      return window.innerHeight >= window.screen.height - 15;
+    };
+
+    const updateFullscreenState = () => {
+      const active = checkIsFullscreen();
+      setIsFullscreen(active);
+      if (active) {
+        document.documentElement.classList.add('fullscreen-mode');
+      } else {
+        document.documentElement.classList.remove('fullscreen-mode');
+      }
+    };
+
+    // Detect immediately on mount (handles F11 toggled on previous pages)
+    updateFullscreenState();
+
+    window.addEventListener('resize', updateFullscreenState);
+    document.addEventListener('fullscreenchange', updateFullscreenState);
+
+    return () => {
+      window.removeEventListener('resize', updateFullscreenState);
+      document.removeEventListener('fullscreenchange', updateFullscreenState);
+      document.documentElement.classList.remove('fullscreen-mode');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      setShowFullscreenHeader(false);
+      setShowFullscreenSidebar(false);
+      return;
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Reveal header if mouse is at the top edge (<= 15px) or keep it open if inside header area
+      if (e.clientY <= 15) {
+        setShowFullscreenHeader(true);
+      } else if (e.clientY > 60) {
+        setShowFullscreenHeader(false);
+      }
+
+      // Reveal sidebar if mouse is at the left edge (<= 15px) or keep it open if inside sidebar area
+      if (e.clientX <= 15) {
+        setShowFullscreenSidebar(true);
+      } else if (e.clientX > (opened ? 252 : 68)) {
+        setShowFullscreenSidebar(false);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isFullscreen, opened]);
+
   const handleLocaleChange = (value: string | null) => {
     if (!value) return;
     startTransition(() => {
@@ -81,11 +146,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AppShell
-      header={{ height: 60 }}
+      header={{
+        height: 60,
+        collapsed: isFullscreen && !showFullscreenHeader,
+      }}
       navbar={{
         width: opened ? 252 : 68,
         breakpoint: 'sm',
-        collapsed: { mobile: !opened },
+        collapsed: {
+          mobile: !opened,
+          desktop: isFullscreen && !showFullscreenSidebar,
+        },
       }}
       padding="md"
     >

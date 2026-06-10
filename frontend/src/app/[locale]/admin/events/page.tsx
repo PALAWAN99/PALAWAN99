@@ -26,6 +26,7 @@ import {
   SimpleGrid,
   Loader,
   SegmentedControl,
+  ThemeIcon,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import {
@@ -41,6 +42,7 @@ import {
   IconArrowDownLeft,
   IconArrowUpRight,
   IconEye,
+  IconListCheck,
 } from '@tabler/icons-react';
 import { apiPath } from '@/lib/base-path';
 import { getApiErrorMessage, unwrapApiData } from '@/lib/parse-api-response';
@@ -48,6 +50,7 @@ import { AccessEventCard } from '../access-log/_components/AccessEventCard';
 import type { AccessEventCardEvent } from '../access-log/_components/AccessEventCard';
 import type { PennuengGateHistoryRow, PennuengGateHistoryResult } from '@/types/pennueng-gate-history';
 import type { ReportGateOption } from '@/types/reports-analytics';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -69,6 +72,7 @@ function LiveMode() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
 
   const fetchLive = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -88,9 +92,39 @@ function LiveMode() {
   }, []);
 
   useEffect(() => {
+    let firstConnect = true;
     void fetchLive();
-    const interval = setInterval(() => void fetchLive(true), LIVE_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    const eventSource = new EventSource(apiPath('/api/admin/access-events/stream'));
+
+    eventSource.onopen = () => {
+      setIsLiveConnected(true);
+      if (!firstConnect) {
+        void fetchLive(true);
+      }
+      firstConnect = false;
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const newEvent = JSON.parse(event.data) as AccessEventCardEvent;
+        setEvents((prev) => {
+          if (prev.some((e) => e.id === newEvent.id)) return prev;
+          return [newEvent, ...prev].slice(0, LIVE_MAX);
+        });
+      } catch (err) {
+        console.error('Error parsing SSE event data:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('SSE connection error:', err);
+      setIsLiveConnected(false);
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [fetchLive]);
 
   const inCount = events.filter((e) => e.direction === 'IN').length;
@@ -103,42 +137,50 @@ function LiveMode() {
 
   return (
     <Stack gap="md">
-      {/* Summary strip */}
+      {/* Summary strip — uses shared summary-card CSS classes */}
       <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
-        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-blue-5)' }}>
+        <Card withBorder radius="md" p="md" className="summary-card summary-card--blue">
           <Group justify="space-between" wrap="nowrap">
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700} tt="uppercase">ทั้งหมด</Text>
-              <Text size="xl" fw={700}>{events.length}</Text>
+              <Text size="xl" fw={800}>{events.length}</Text>
             </Stack>
-            <Badge size="lg" circle color="blue" variant="light">{events.length}</Badge>
+            <ThemeIcon color="blue" variant="light" size="lg" radius="md">
+              <IconListCheck size={18} />
+            </ThemeIcon>
           </Group>
         </Card>
-        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-green-6)' }}>
+        <Card withBorder radius="md" p="md" className="summary-card summary-card--green">
           <Group justify="space-between" wrap="nowrap">
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700} tt="uppercase">เข้า</Text>
-              <Text size="xl" fw={700} c="green.6">{inCount}</Text>
+              <Text size="xl" fw={800} c="green.6">{inCount}</Text>
             </Stack>
-            <Badge size="lg" circle color="green" variant="light"><IconDoorEnter size={14} /></Badge>
+            <ThemeIcon color="green" variant="light" size="lg" radius="md">
+              <IconDoorEnter size={18} />
+            </ThemeIcon>
           </Group>
         </Card>
-        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-orange-5)' }}>
+        <Card withBorder radius="md" p="md" className="summary-card summary-card--orange">
           <Group justify="space-between" wrap="nowrap">
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700} tt="uppercase">ออก</Text>
-              <Text size="xl" fw={700} c="orange.6">{outCount}</Text>
+              <Text size="xl" fw={800} c="orange.6">{outCount}</Text>
             </Stack>
-            <Badge size="lg" circle color="orange" variant="light"><IconDoorExit size={14} /></Badge>
+            <ThemeIcon color="orange" variant="light" size="lg" radius="md">
+              <IconDoorExit size={18} />
+            </ThemeIcon>
           </Group>
         </Card>
-        <Card withBorder radius="md" p="md" style={{ borderLeft: '4px solid var(--mantine-color-red-6)' }}>
+        <Card withBorder radius="md" p="md" className="summary-card summary-card--red">
           <Group justify="space-between" wrap="nowrap">
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700} tt="uppercase">บัตรหมดอายุ</Text>
-              <Text size="xl" fw={700} c="red.6">{expiredCount}</Text>
+              <Text size="xl" fw={800} c="red.6">{expiredCount}</Text>
             </Stack>
-            <Badge size="lg" circle color="red" variant="light"><IconAlertTriangle size={14} /></Badge>
+            <ThemeIcon color="red" variant="light" size="lg" radius="md">
+              <IconAlertTriangle size={18} />
+            </ThemeIcon>
           </Group>
         </Card>
       </SimpleGrid>
@@ -146,11 +188,22 @@ function LiveMode() {
       {/* Toolbar */}
       <Group justify="space-between" align="center">
         <Group gap="xs">
-          <Badge color="red" variant="filled" size="sm">● LIVE</Badge>
-          <Text size="xs" c="dimmed">อัปเดตทุก 10 วินาที · แสดงสูงสุด {LIVE_MAX} รายการ</Text>
+          <Badge 
+            color={isLiveConnected ? 'red' : 'gray'} 
+            variant="filled" 
+            size="sm"
+            style={{ transition: 'background-color 0.3s ease' }}
+          >
+            ● {isLiveConnected ? 'LIVE' : 'OFFLINE'}
+          </Badge>
+          <Text size="xs" c="dimmed">
+            {isLiveConnected 
+              ? `อัปเดตแบบเรียลไทม์ · แสดงสูงสุด ${LIVE_MAX} รายการ`
+              : 'ขาดการเชื่อมต่อเรียลไทม์ (กำลังเชื่อมต่อใหม่...) · รีเฟรชเพื่อดึงข้อมูลล่าสุด'}
+          </Text>
         </Group>
         <Tooltip label="รีเฟรชข้อมูล">
-          <ActionIcon variant="light" color="blue" size="lg" onClick={() => void fetchLive()} loading={refreshing}>
+          <ActionIcon variant="light" color="navy" size="lg" onClick={() => void fetchLive()} loading={refreshing}>
             <IconRefresh size={18} />
           </ActionIcon>
         </Tooltip>
@@ -265,7 +318,7 @@ function HistoryMode() {
       )}
 
       {/* Filters */}
-      <Card withBorder radius="md" p="md">
+      <Card withBorder radius="md" p="md" className="filter-bar">
         <Stack gap="md">
           <Group align="flex-end" wrap="wrap" gap="md">
             <DatePickerInput
@@ -335,7 +388,7 @@ function HistoryMode() {
         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ blur: 2 }} />
         <Table.ScrollContainer minWidth={960}>
           <Table verticalSpacing="sm" highlightOnHover>
-            <Table.Thead bg="var(--bg-tertiary)">
+            <Table.Thead className="table-head">
               <Table.Tr>
                 <Table.Th>{t('member')}</Table.Th>
                 <Table.Th>{t('gate')}</Table.Th>
@@ -460,34 +513,27 @@ export default function EventsPage() {
 
   return (
     <Stack gap="xl">
-      {/* Page header */}
-      <Group justify="space-between" align="flex-start" wrap="wrap">
-        <Stack gap={4}>
-          <Group gap="xs">
-            {mode === 'live'
-              ? <IconActivity size={26} color="var(--mantine-color-blue-6)" />
-              : <IconHistory size={26} color="var(--color-navy)" />}
-            <Title order={2} fw={800}>
-              {mode === 'live' ? 'Access Log (รายการเข้า-ออก)' : 'ประวัติการเข้าใช้งาน'}
-            </Title>
-          </Group>
-          <Text c="dimmed" size="sm">
-            {mode === 'live'
-              ? 'แสดงข้อมูลการสแกนผ่านประตูแบบเรียลไทม์ (อัปเดตทุก 10 วินาที)'
-              : 'ค้นหาและกรองประวัติการเข้าใช้งานจากฐานข้อมูล SQL Server'}
-          </Text>
-        </Stack>
-
-        <SegmentedControl
-          value={mode}
-          onChange={(v) => setMode(v as 'live' | 'history')}
-          data={[
-            { label: 'Live', value: 'live' },
-            { label: 'ประวัติ', value: 'history' },
-          ]}
-          radius="md"
-        />
-      </Group>
+      {/* Page header — uses shared PageHeader for consistent styling */}
+      <PageHeader
+        icon={mode === 'live' ? IconActivity : IconHistory}
+        title={mode === 'live' ? 'Access Log (รายการเข้า-ออก)' : 'ประวัติการเข้าใช้งาน'}
+        subtitle={
+          mode === 'live'
+            ? 'แสดงข้อมูลการสแกนผ่านประตูแบบเรียลไทม์'
+            : 'ค้นหาและกรองประวัติการเข้าใช้งานจากฐานข้อมูล SQL Server'
+        }
+        actions={
+          <SegmentedControl
+            value={mode}
+            onChange={(v) => setMode(v as 'live' | 'history')}
+            data={[
+              { label: 'Live', value: 'live' },
+              { label: 'ประวัติ', value: 'history' },
+            ]}
+            radius="md"
+          />
+        }
+      />
 
       {/* Mode content */}
       {mode === 'live' ? <LiveMode /> : <HistoryMode />}

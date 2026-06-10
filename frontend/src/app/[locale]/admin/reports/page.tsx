@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Title,
   Text,
@@ -14,6 +14,10 @@ import {
   Menu,
   Badge,
   Alert,
+  Card,
+  Divider,
+  Grid,
+  Paper,
 } from '@mantine/core';
 import {
   IconFileExport,
@@ -21,7 +25,9 @@ import {
   IconFileText,
   IconFileTypePdf,
   IconDatabase,
+  IconCalendar,
 } from '@tabler/icons-react';
+import { DatePicker } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import type { ReportGateOption, ReportsAnalyticsPayload } from '@/types/reports-analytics';
 import { ReportsFilters } from './_components/ReportsFilters';
@@ -38,6 +44,8 @@ import type { DrillDownFilters } from '../dashboard/_components/DashboardDrillDo
 export default function ReportsPage() {
   const t = useTranslations('Report');
   const tc = useTranslations('Common');
+  const locale = useLocale();
+  const isTh = locale === 'th';
 
   const defaults = defaultReportRange();
   const [startDate, setStartDate] = useState<string | null>(defaults.startDate);
@@ -49,6 +57,24 @@ export default function ReportsPage() {
   const [gatesLoading, setGatesLoading] = useState(true);
 
   const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
+  const [calendarDate, setCalendarDate] = useState<string | null>(dayjs().format('YYYY-MM-DD'));
+  const [calendarMonth, setCalendarMonth] = useState<string>(dayjs().format('YYYY-MM-DD'));
+
+  // Keep calendarDate in sync with filter date selection
+  useEffect(() => {
+    if (startDate && endDate && startDate === endDate) {
+      setCalendarDate(startDate);
+    } else {
+      setCalendarDate(null);
+    }
+  }, [startDate, endDate]);
+
+  // Keep calendar viewport month in sync with startDate
+  useEffect(() => {
+    if (startDate) {
+      setCalendarMonth(startDate);
+    }
+  }, [startDate]);
 
   const handleDrillDown = useCallback((filter: DrillDownFilters & { dateStr?: string; hourStr?: string }) => {
     let start: string | undefined = filter.startDate;
@@ -83,13 +109,12 @@ export default function ReportsPage() {
     });
   }, [startDate, endDate, data?.source]);
 
-  const loadReport = useCallback(async () => {
-    if (!startDate || !endDate) return;
+  const loadReportWithParams = useCallback(async (startStr: string, endStr: string) => {
     setLoading(true);
     try {
       const payload = await fetchReportsAnalyticsApi({
-        startDate: dayjs(startDate).format('YYYY-MM-DD'),
-        endDate: dayjs(endDate).format('YYYY-MM-DD'),
+        startDate: dayjs(startStr).format('YYYY-MM-DD'),
+        endDate: dayjs(endStr).format('YYYY-MM-DD'),
         gateIds: selectedGateIds,
       });
       setData(payload);
@@ -102,7 +127,30 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [endDate, selectedGateIds, startDate, tc]);
+  }, [selectedGateIds, tc]);
+
+  const loadReport = useCallback(async () => {
+    if (!startDate || !endDate) return;
+    await loadReportWithParams(startDate, endDate);
+  }, [endDate, startDate, loadReportWithParams]);
+
+  const handleCalendarDateChange = (value: string | null) => {
+    if (!value) return;
+    const formatted = dayjs(value).format('YYYY-MM-DD');
+    setCalendarDate(formatted);
+
+    const startOfDayStr = dayjs(formatted).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+    const endOfDayStr = dayjs(formatted).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+
+    setDrillDown({
+      title: isTh 
+        ? `รายชื่อผู้ใช้วันที่ ${dayjs(formatted).format('DD MMM')}` 
+        : `User list on ${dayjs(formatted).format('DD MMM')}`,
+      startDate: startOfDayStr,
+      endDate: endOfDayStr,
+      source: data?.source === 'pennueng' ? 'pennueng' : 'postgres',
+    });
+  };
 
   useEffect(() => {
     void (async () => {
@@ -213,13 +261,38 @@ export default function ReportsPage() {
         </Center>
       ) : data ? (
         <Stack gap="lg">
+           {/* 6 Summary Cards */}
           <ReportsSummaryCards data={data} />
+
           {data.summary.totalScans === 0 ? (
             <Alert color="gray" variant="light">
               {t('noDataInRange')}
             </Alert>
           ) : (
-            <ReportsChartsGrid data={data} onDrillDown={handleDrillDown} />
+            <ReportsChartsGrid
+              data={data}
+              onDrillDown={handleDrillDown}
+              calendarNode={
+                <Paper withBorder p="lg" radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Group gap="xs" mb="md" justify="center">
+                    <IconCalendar size={20} color="var(--color-navy)" />
+                    <Text fw={700} size="md">
+                      {isTh ? 'เลือกดูข้อมูลรายวัน' : 'Daily Quick View'}
+                    </Text>
+                  </Group>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DatePicker
+                      value={calendarDate}
+                      onChange={handleCalendarDateChange}
+                      maxDate={new Date()}
+                      date={calendarMonth}
+                      onDateChange={setCalendarMonth}
+                      size="md"
+                    />
+                  </div>
+                </Paper>
+              }
+            />
           )}
           <ReportsDetailTable
             data={data}

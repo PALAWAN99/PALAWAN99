@@ -41,7 +41,6 @@ export function ReportsFilters({
   onGenerate,
 }: Props) {
   const t = useTranslations('Report');
-  const [gatePopoverOpened, setGatePopoverOpened] = useState(false);
 
   const gateLabel = useMemo(() => {
     if (selectedGateIds.length === 0) return t('allGates');
@@ -88,8 +87,6 @@ export function ReportsFilters({
           {t('gateFilter')}
         </Text>
         <Popover
-          opened={gatePopoverOpened}
-          onChange={setGatePopoverOpened}
           width={320}
           position="bottom-start"
           shadow="md"

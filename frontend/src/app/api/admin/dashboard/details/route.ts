@@ -114,6 +114,7 @@ export async function GET(req: NextRequest) {
       const colors = ['#38BDF8', '#10B981', '#1E3A5F', '#0EA5E9', '#F59E0B'];
       return {
         name: gate?.nameTh || gate?.gateCode || 'Unknown',
+        code: gate?.id || 'Unknown',
         value: item._count._all,
         color: colors[idx % colors.length]
       };

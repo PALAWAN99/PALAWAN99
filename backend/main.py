@@ -279,7 +279,15 @@ async def api_rfid_read():
             logging.debug("RFID PC/SC read error: %s", e)
 
     # 2. Fall back to Vendor Protocol (direct USB/pyusb)
-    reader = get_reader()
+    try:
+        reader = get_reader()
+    except Exception as e:
+        if "No backend available" in str(e):
+            if PYSCARD_AVAILABLE:
+                return {"success": False, "error": "ไม่พบบัตร RFID — กรุณาวางบัตรบนเครื่องอ่าน"}
+            return {"success": False, "error": "กรุณาติดตั้งไดรเวอร์ USB หรือสลับไปใช้โหมด PC/SC"}
+        return {"success": False, "error": f"RFID read error: {e}"}
+
     for attempt in range(2):
         try:
             if not reader.is_connected:

@@ -223,10 +223,28 @@ def _stop_monitor(b) -> None:
             pass
 
 
-def _read_rfid_uid() -> dict:
-    from vendor_protocol import VendorProtocolError, get_reader
+def _read_rfid_uid(b) -> dict:
+    # 1. Try PC/SC first (standard CCID/default driver compatible)
+    if b["PYSCARD_AVAILABLE"]:
+        try:
+            from card_reader import read_rfid_pcsc
+            pcsc_result = read_rfid_pcsc()
+            if pcsc_result:
+                return pcsc_result
+        except Exception as e:
+            _log(f"RFID PC/SC read error: {e}")
 
-    reader = get_reader()
+    # 2. Fall back to Vendor Protocol (direct USB/pyusb)
+    from vendor_protocol import VendorProtocolError, get_reader
+    try:
+        reader = get_reader()
+    except Exception as e:
+        if "No backend available" in str(e):
+            if b["PYSCARD_AVAILABLE"]:
+                return {"success": False, "error": "ไม่พบบัตร RFID — กรุณาวางบัตรบนเครื่องอ่าน"}
+            return {"success": False, "error": "กรุณาติดตั้งไดรเวอร์ USB หรือสลับไปใช้โหมด PC/SC"}
+        return {"success": False, "error": f"RFID read error: {e}"}
+
     for attempt in range(2):
         try:
             if not reader.is_connected:
@@ -254,6 +272,10 @@ def _read_rfid_uid() -> dict:
             if attempt == 0 and "No such device" in str(exc):
                 reader.close()
                 continue
+            if "No backend available" in str(exc):
+                if b["PYSCARD_AVAILABLE"]:
+                    return {"success": False, "error": "ไม่พบบัตร RFID — กรุณาวางบัตรบนเครื่องอ่าน"}
+                return {"success": False, "error": "กรุณาติดตั้งไดรเวอร์ USB หรือสลับไปใช้โหมด PC/SC"}
             return {"success": False, "error": f"RFID read error: {exc}"}
     return {"success": False, "error": "ไม่สามารถเชื่อมต่อเครื่องอ่านได้"}
 
@@ -311,7 +333,7 @@ def _handle_request(msg: dict) -> dict:
             return {"success": False, "error": str(exc)}
 
     if method == "readRfid":
-        return _read_rfid_uid()
+        return _read_rfid_uid(b)
 
     if method == "startMonitor":
         _start_monitor(b)

@@ -14,6 +14,7 @@
     "settings": "Settings",
     "members": "Members",
     "idcard": "ID Card Reader",
+    "rfidcard": "Student ID (RFID)",
     "logout": "Log out",
     "logoutConfirmTitle": "Confirm sign out",
     "logoutConfirmMessage": "Are you sure you want to sign out?",
@@ -651,6 +652,8 @@
   "IdCard": {
     "title": "Thai ID Card System",
     "subtitle": "Manage and register members via Smart Card Reader",
+    "rfidTitle": "Student ID Card System (RFID)",
+    "rfidSubtitle": "Manage and verify student cards via RFID/Contactless reader",
     "tabRead": "Read from Card",
     "tabRfid": "Read RFID",
     "readModeTitle": "Select read mode",

@@ -195,9 +195,10 @@ interface ReportsChartsGridProps {
     dateStr?: string;
     hourStr?: string;
   }) => void;
+  calendarNode?: React.ReactNode;
 }
 
-export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps) {
+export function ReportsChartsGrid({ data, onDrillDown, calendarNode }: ReportsChartsGridProps) {
   const t = useTranslations('Report');
   const tc = useTranslations('Common');
   const hasData = data.summary.totalScans > 0;
@@ -393,59 +394,62 @@ export function ReportsChartsGrid({ data, onDrillDown }: ReportsChartsGridProps)
             </LineChart>
           </ResponsiveContainer>
         </ChartShell>
-      </SimpleGrid>
 
-      {/* 5. ComposedChart — deny rate (full width) */}
-      <ChartShell title={t('chartDenyRateComposed')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <ComposedChart data={data.denyRateTrend}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Legend />
-            <Bar
-              yAxisId="left"
-              dataKey="total"
-              fill="#38BDF8"
-              name={t('totalAccess')}
-              radius={[4, 4, 0, 0]}
-              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-              onClick={(barData: any) => {
-                if (!onDrillDown) return;
-                const d = barData?.payload || barData;
-                if (d && d.date) {
-                  onDrillDown({
-                    title: `รายชื่อผู้ใช้วันที่ ${d.label ?? d.date}`,
-                    dateStr: d.date,
-                  });
-                }
-              }}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="denyRate"
-              stroke="#EF4444"
-              strokeWidth={2}
-              name={t('denyRate')}
-              style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
-              onClick={(pointData: any) => {
-                if (!onDrillDown) return;
-                const d = pointData?.payload || pointData;
-                if (d && d.date) {
-                  onDrillDown({
-                    title: `ปฏิเสธ วันที่ ${d.label ?? d.date}`,
-                    dateStr: d.date,
-                    decision: 'DENIED',
-                  });
-                }
-              }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </ChartShell>
+        {/* 5. ComposedChart — deny rate */}
+        <ChartShell title={t('chartDenyRateComposed')}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <ComposedChart data={data.denyRateTrend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip />
+              <Legend />
+              <Bar
+                yAxisId="left"
+                dataKey="total"
+                fill="#38BDF8"
+                name={t('totalAccess')}
+                radius={[4, 4, 0, 0]}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(barData: any) => {
+                  if (!onDrillDown) return;
+                  const d = barData?.payload || barData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `รายชื่อผู้ใช้วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                    });
+                  }
+                }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="denyRate"
+                stroke="#EF4444"
+                strokeWidth={2}
+                name={t('denyRate')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(pointData: any) => {
+                  if (!onDrillDown) return;
+                  const d = pointData?.payload || pointData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ปฏิเสธ วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      decision: 'DENIED',
+                    });
+                  }
+                }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </ChartShell>
+
+        {/* 6. Calendar Shortcut View */}
+        {calendarNode}
+      </SimpleGrid>
     </Stack>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, Stack, Text, TextInput, Paper } from '@mantine/core';
 import { IconQrcode, IconUserCheck, IconMail, IconSend } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
@@ -27,6 +27,10 @@ export function IdCardMemberFoundBanner({
   const t = useTranslations('IdCard');
   const [emailValue, setEmailValue] = useState(member.email || '');
   const [emailSending, setEmailSending] = useState(false);
+
+  useEffect(() => {
+    setEmailValue(member.email || '');
+  }, [member.email]);
 
   const handleSendEmail = async () => {
     if (!emailValue.trim()) {

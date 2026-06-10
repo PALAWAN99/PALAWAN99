@@ -101,6 +101,22 @@ html, body {
   background: var(--text-secondary);
 }
 
+/* Hide scrollbars when in fullscreen mode */
+.fullscreen-mode,
+.fullscreen-mode body,
+.fullscreen-mode :fullscreen {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.fullscreen-mode::-webkit-scrollbar,
+.fullscreen-mode body::-webkit-scrollbar,
+.fullscreen-mode :fullscreen::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Card hover animation */
 .stat-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -240,6 +256,81 @@ html, body {
   50% {
     transform: translateY(4px);
   }
+}
+
+/* ── Consistent Summary Cards (replaces per-page borderLeft inline styles) ── */
+/*
+  Usage:  <Card className="summary-card summary-card--blue">
+  Accent colours: --blue, --green, --orange, --red, --navy, --teal
+*/
+.summary-card {
+  border-left: 4px solid transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.summary-card--blue  { border-left-color: var(--mantine-color-blue-5);  }
+.summary-card--green { border-left-color: var(--mantine-color-green-6); }
+.summary-card--orange{ border-left-color: var(--mantine-color-orange-5);}
+.summary-card--red   { border-left-color: var(--mantine-color-red-6);   }
+.summary-card--navy  { border-left-color: var(--color-navy);             }
+.summary-card--teal  { border-left-color: var(--mantine-color-teal-5);  }
+.summary-card--sky   { border-left-color: var(--color-sky);              }
+
+/* ── Filter / toolbar bar ── */
+/*
+  Usage:  <Card className="filter-bar" withBorder radius="md" p="md">
+  Gives a slightly different background to distinguish filters from content.
+*/
+.filter-bar {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+[data-mantine-color-scheme='dark'] .filter-bar {
+  background: rgba(30, 41, 59, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Page section card ── */
+/*
+  Usage:  <Card className="page-section" withBorder radius="md">
+  Standard content card for list/table/chart sections.
+*/
+.page-section {
+  background: var(--bg-primary);
+}
+[data-mantine-color-scheme='dark'] .page-section {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ── Table header row ── */
+/*
+  Usage: <Table.Thead className="table-head">
+  Replaces bg="var(--bg-tertiary)" scattered across tables.
+*/
+.table-head {
+  background: var(--bg-tertiary);
+}
+[data-mantine-color-scheme='dark'] .table-head {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+/* ── Primary action button override (navy brand) ── */
+/*
+  Mantine color="navy" is already defined via theme; this ensures consistent
+  hover gradient matches brand identity.
+*/
+.btn-primary {
+  background: var(--color-navy) !important;
+  color: #fff !important;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
 }
 
 /* reCAPTCHA v3 badge (bottom-right) — keep visible on dark login page */

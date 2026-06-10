@@ -169,7 +169,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
     const resolved = gateLabels.resolve(raw);
     return {
       name: resolved.displayName,
-      code: resolved.code,
+      code: row.gate_id?.trim() || resolved.code,
       value: row.cnt,
       color: GATE_COLORS[idx % GATE_COLORS.length],
     };
@@ -179,6 +179,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
   let gateStatusQuery = `
     SELECT TOP 10
       COALESCE(NULLIF(RTRIM(g.gate_name), ''), RTRIM(g.gate_id)) AS gate_name,
+      RTRIM(g.gate_id) AS gate_id,
       g.gate_status,
       SUM(CASE WHEN gs.status = 1 AND gs.success = 1 THEN 1 ELSE 0 END) AS in_cnt,
       SUM(CASE WHEN gs.status = 0 AND gs.success = 1 THEN 1 ELSE 0 END) AS out_cnt,
@@ -203,6 +204,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
 
   const gateStatusRows = await gateStatusReq.query<{
     gate_name: string;
+    gate_id: string;
     gate_status: number;
     in_cnt: number;
     out_cnt: number;
@@ -214,7 +216,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
     const resolved = gateLabels.resolve(raw === '—' ? '' : raw);
     return {
       name: resolved.displayName,
-      code: resolved.code,
+      code: row.gate_id?.trim() || resolved.code,
       status: row.gate_status === 1 ? 'ACTIVE' : 'INACTIVE',
       in: row.in_cnt,
       out: row.out_cnt,
@@ -266,6 +268,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
       gs.name,
       gs.surname,
       COALESCE(NULLIF(RTRIM(g.gate_name), ''), RTRIM(gs.gate_id)) AS gate_name,
+      RTRIM(gs.gate_id) AS gate_id,
       COALESCE(NULLIF(RTRIM(mt.description), ''), NULLIF(RTRIM(gs.member_type), ''), N'—') AS member_type_label
     FROM gatestatement gs WITH (NOLOCK)
     LEFT JOIN gatemaster g ON RTRIM(gs.gate_id) = RTRIM(g.gate_id)
@@ -288,6 +291,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
     name: string;
     surname: string;
     gate_name: string;
+    gate_id: string;
     member_type_label: string;
   }>(recentQuery);
 
@@ -304,7 +308,7 @@ export async function fetchPennuengDashboard(startDate?: string, endDate?: strin
     gateName: row.gate_name?.trim()
       ? gateLabels.resolve(row.gate_name.trim()).displayName
       : undefined,
-    gateCode: row.gate_name?.trim(),
+    gateCode: row.gate_id?.trim() || row.gate_name?.trim(),
   }));
 
   const s = statsResult.recordset[0];

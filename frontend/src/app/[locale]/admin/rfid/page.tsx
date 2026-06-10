@@ -1,15 +1,15 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import IdCardClient from './IdCardClient';
+import IdCardClient from '../idcard/IdCardClient';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('IdCard');
   return {
-    title: t('title'),
-    description: t('subtitle'),
+    title: t('rfidTitle'),
+    description: t('rfidSubtitle'),
   };
 }
 
-export default function IdCardAdminPage() {
-  return <IdCardClient />;
+export default function RfidAdminPage() {
+  return <IdCardClient forceMode="rfid" />;
 }

@@ -55,10 +55,12 @@ type UseIdCardReaderOptions = {
   cardApiConfigReady?: boolean;
   /** KKU Card API desktop configured on this counter PC. */
   localDesktopApiActive?: boolean;
+  /** Filter mode to only handle contact (idcard) or contactless (rfid) readers */
+  mode?: 'idcard' | 'rfid';
 };
 
 export function useIdCardReader(options: UseIdCardReaderOptions = {}) {
-  const { cardApiConfigReady = true, localDesktopApiActive = false } = options;
+  const { cardApiConfigReady = true, localDesktopApiActive = false, mode } = options;
   const t = useTranslations('IdCard');
   const [readers, setReaders] = useState<ReaderInfo[]>([]);
   const [readersFetching, setReadersFetching] = useState(false);
@@ -132,7 +134,15 @@ export function useIdCardReader(options: UseIdCardReaderOptions = {}) {
     if (awaitingCounterDesktop) return false;
     try {
       const { readers: list } = await fetchReaders();
-      const hasCardNow = list.some((r) => r.has_card);
+      const filteredList = list.filter((r) => {
+        const nameLower = r.name.toLowerCase();
+        const isContactless = nameLower.includes('contactless') || nameLower.includes('rfid');
+        if (mode === 'idcard') return !isContactless;
+        if (mode === 'rfid') return isContactless;
+        return true;
+      });
+
+      const hasCardNow = filteredList.some((r) => r.has_card);
       if (!hasCardNow && prevHadCardRef.current) {
         setCardPresentFromEvent(false);
         setCardData(null);
@@ -146,9 +156,9 @@ export function useIdCardReader(options: UseIdCardReaderOptions = {}) {
       cardApiReachableRef.current = true;
       setCardApiReachable(true);
       if (manualConnectMode) setAutoPollEnabled(true);
-      setReaders((prev) => (readersSnapshotEqual(prev, list) ? prev : list));
+      setReaders((prev) => (readersSnapshotEqual(prev, filteredList) ? prev : filteredList));
       setError(null);
-      return list.length > 0;
+      return filteredList.length > 0;
     } catch (err) {
       if (!hasReadDataRef.current) {
         cardApiReachableRef.current = false;
@@ -171,7 +181,7 @@ export function useIdCardReader(options: UseIdCardReaderOptions = {}) {
       }
       return false;
     }
-  }, [manualConnectMode, awaitingCounterDesktop]);
+  }, [manualConnectMode, awaitingCounterDesktop, mode]);
 
   const loadReaders = useCallback(async () => {
     setReadersFetching(true);
@@ -316,6 +326,11 @@ export function useIdCardReader(options: UseIdCardReaderOptions = {}) {
 
   const handleCardEvent = useCallback(
     (event: CardEvent) => {
+      const nameLower = (event.reader || '').toLowerCase();
+      const isContactless = nameLower.includes('contactless') || nameLower.includes('rfid');
+      if (mode === 'idcard' && isContactless) return;
+      if (mode === 'rfid' && !isContactless) return;
+
       if (event.event === 'card_inserted') {
         setCardPresentFromEvent(true);
         setReaders((prev) =>
@@ -334,7 +349,7 @@ export function useIdCardReader(options: UseIdCardReaderOptions = {}) {
       }
       void syncReaders();
     },
-    [syncReaders],
+    [syncReaders, mode],
   );
 
   useEffect(() => {
