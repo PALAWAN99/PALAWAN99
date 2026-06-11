@@ -34,11 +34,11 @@ if ($Push) {
     Write-Host "Checking git status..."
     $insideGit = git -C $Root rev-parse --is-inside-work-tree 2>$null
     if ($insideGit -ne "true") {
-        Write-Warning "Not a git repository — skip git push"
+        Write-Warning "Not a git repository - skip git push"
     } else {
         $branch = (git -C $Root rev-parse --abbrev-ref HEAD).Trim()
         if ($branch -eq "HEAD") {
-            Write-Error "Detached HEAD — checkout a branch before running with -Push"
+            Write-Error "Detached HEAD - checkout a branch before running with -Push"
             exit 1
         }
 
@@ -58,7 +58,7 @@ if ($Push) {
         if ($LASTEXITCODE -ne 0) {
             $msg = $CommitMsg
             if (-not $msg) { $msg = "deploy: production sync $((Get-Date).ToString('yyyy-MM-dd'))" }
-            Write-Host "Git: commit on $branch — $msg"
+            Write-Host "Git: commit on $branch - $msg"
             git -C $Root commit -m $msg
         } else {
             Write-Host "Git: no staged changes to commit"
@@ -116,10 +116,10 @@ set -a && source .env && set +a && \
 PROFILES='' && \
 if [ "${CARD_API_ON_SERVER:-true}" = 'true' ]; then PROFILES='--profile card-api-server'; fi && \
 docker compose -f deploy/docker-compose.prod.yml $PROFILES up -d --build || { \
-  echo 'Full stack build failed — retrying frontend only...'; \
+  echo 'Full stack build failed - retrying frontend only...'; \
   docker compose -f deploy/docker-compose.prod.yml up -d --build frontend; \
 } && \
-if [ "${CARD_API_ON_SERVER:-true}" = 'true' ]; then ./deploy/sync-nginx-card-api.sh --env-file .env || echo 'WARN: nginx card-api sync failed — fix proxy_pass manually'; fi
+if [ "${CARD_API_ON_SERVER:-true}" = 'true' ]; then ./deploy/sync-nginx-card-api.sh --env-file .env || echo 'WARN: nginx card-api sync failed - fix proxy_pass manually'; fi
 '@
 
 $RemoteScript = $RemoteScript.Replace('__REMOTE_DIR__', $REMOTE_DIR)
@@ -137,7 +137,7 @@ curl -fsS "http://127.0.0.1:${PORT}/smart-access/api/health" || true; echo; \
 echo '--- Card API (host)'; \
 curl -fsS "http://127.0.0.1:${BPORT}/api/readers" 2>/dev/null | head -c 200 || echo 'backend not reachable on host port'; echo; \
 echo '--- Card API (via public nginx)'; \
-curl -fsS "https://lib.kku.ac.th/smart-access/card-api/api/readers" 2>/dev/null | head -c 200 || echo 'nginx /smart-access/card-api/ missing or backend down — add deploy/nginx-lib-kku-smart-access.conf block and reload nginx'
+curl -fsS "https://lib.kku.ac.th/smart-access/card-api/api/readers" 2>/dev/null | head -c 200 || echo 'nginx /smart-access/card-api/ missing or backend down - add deploy/nginx-lib-kku-smart-access.conf block and reload nginx'
 '@
 
 $HealthScript = $HealthScript.Replace('__REMOTE_DIR__', $REMOTE_DIR)
