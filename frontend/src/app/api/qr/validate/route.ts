@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { GateDirection } from '@prisma/client';
 import { validateQrToken } from '@/lib/qr-engine';
 import { validateQrSchema } from '@/lib/schemas/gate';
 import { checkStrictRateLimit } from '@/lib/rate-limit';
 import { ApiSuccess, handleError } from '@/lib/api-response';
+import { emitAccessEvent } from '@/lib/event-emitter';
 
 /**
  * POST /api/qr/validate
@@ -25,17 +27,17 @@ export async function POST(req: NextRequest) {
       const deniedMemberId = validation.qrToken?.memberId;
       if (deniedMemberId) {
         // คำนวณทิศทางสำหรับ Log การปฏิเสธ
-        let deniedDirection: import('@prisma/client').GateDirection = 'IN';
+        let deniedDirection: GateDirection = 'IN';
         try {
           const tempGate = await prisma.gate.findUnique({ where: { id: gateId } });
           if (tempGate) {
             deniedDirection = tempGate.direction === 'BIDIRECTIONAL'
-              ? (direction as import('@prisma/client').GateDirection || 'IN')
+              ? (direction || 'IN')
               : tempGate.direction;
           }
         } catch (_) {}
 
-        await prisma.accessEvent.create({
+        const event = await prisma.accessEvent.create({
           data: {
             gateId,
             memberId: deniedMemberId,
@@ -52,6 +54,7 @@ export async function POST(req: NextRequest) {
             },
           },
         });
+        void emitAccessEvent(event.id);
       }
 
       return ApiSuccess({
@@ -69,8 +72,8 @@ export async function POST(req: NextRequest) {
     // คำนวณทิศทางจริงตามเงื่อนไข:
     // - หากประตูเป็นแบบทางเดียว (IN หรือ OUT) ให้ใช้ค่านั้นเสมอ
     // - หากประตูเป็นแบบสองทาง (BIDIRECTIONAL) ให้ใช้ค่า direction ที่ client ส่งมา (หากไม่มีให้ fallback เป็น IN)
-    const finalDirection: import('@prisma/client').GateDirection = gate.direction === 'BIDIRECTIONAL'
-      ? (direction as import('@prisma/client').GateDirection || 'IN')
+    const finalDirection = gate.direction === 'BIDIRECTIONAL'
+      ? (direction || 'IN')
       : gate.direction;
 
     // 2. บันทึกประวัติการเข้า-ออก (Allowed เบื้องต้น)
@@ -88,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (!transactionResult) {
       // บันทึกประวัติการปฏิเสธการเข้า-ออก เนื่องจากสแกนซ้ำซ้อน (Race Condition)
-      await prisma.accessEvent.create({
+      const event = await prisma.accessEvent.create({
         data: {
           gateId: gate.id,
           memberId: member.id,
@@ -105,6 +108,7 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+      void emitAccessEvent(event.id);
 
       return ApiSuccess({
         decision: 'DENIED',
@@ -131,6 +135,7 @@ export async function POST(req: NextRequest) {
         }
       }
     });
+    void emitAccessEvent(event.id);
 
     // 5. สั่งเปิดประตู (อยู่นอก transaction ได้เนื่องจากไม่ใช่ส่วน critical)
     await prisma.gate.update({

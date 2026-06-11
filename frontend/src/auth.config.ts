@@ -31,9 +31,9 @@ export const authConfig = {
           return url;
         }
       } catch {
-        return appPublicUrl('/admin');
+        return appPublicUrl('/admin/dashboard');
       }
-      return appPublicUrl('/admin');
+      return appPublicUrl('/admin/dashboard');
     },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
@@ -50,7 +50,7 @@ export const authConfig = {
         return false; // Redirect to login
       } else if (isLoginPath) {
         if (isLoggedIn) {
-          return Response.redirect(new URL(withBasePath('/admin'), nextUrl));
+          return Response.redirect(new URL(withBasePath('/admin/dashboard'), nextUrl));
         }
         return true;
       }

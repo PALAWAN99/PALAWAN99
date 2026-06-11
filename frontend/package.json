@@ -18,7 +18,7 @@
     "agent:pack": "bash ../desktop-agent/build-all.sh",
     "extension:pack": "sh ../extension/build.sh && sh ../extension/easy-install/build-easy-install.sh && mkdir -p public/downloads && cp ../extension/dist/kku-smart-access-card-bridge.zip ../extension/dist/kku-card-bridge-easy-install-mac.zip ../extension/dist/kku-card-bridge-easy-install-windows.zip public/downloads/ && npm run agent:pack",
     "check-members": "tsx scratch/check-members.ts",
-    "test:sqlserver": "tsx scripts/test-sqlserver.ts"
+    "test:sqlserver": "tsx scripts/explore-sqlserver.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -31,6 +31,7 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@tabler/icons-react": "^3.41.1",
+    "@types/nodemailer": "^8.0.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",
@@ -47,6 +48,7 @@
     "next": "16.2.4",
     "next-auth": "^5.0.0-beta.31",
     "next-intl": "^4.9.2",
+    "nodemailer": "^7.0.13",
     "pg": "^8.20.0",
     "prisma": "^7.8.0",
     "qrcode.react": "^4.2.0",

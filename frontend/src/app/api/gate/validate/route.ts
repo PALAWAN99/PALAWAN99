@@ -4,6 +4,7 @@ import { validateQrToken } from '@/lib/qr-engine';
 import { auth } from '@/auth';
 import { checkStrictRateLimit } from '@/lib/rate-limit';
 import { ApiSuccess, ApiUnauthorized, ApiValidationError, handleError } from '@/lib/api-response';
+import { emitAccessEvent } from '@/lib/event-emitter';
 
 import { z } from 'zod';
 import { gateDirectionSchema } from '@/lib/schemas/gate';
@@ -16,7 +17,7 @@ const validateRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   // 1. Check Rate Limit (30 req/min — strict for QR scan)
-  const rateLimitError = await checkStrictRateLimit(req);
+  const rateLimitError = checkStrictRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {
@@ -56,9 +57,10 @@ export async function POST(req: NextRequest) {
       accessEventData.qrToken = { connect: { id: result.qrToken.id } };
     }
 
-    await prisma.accessEvent.create({
+    const event = await prisma.accessEvent.create({
       data: accessEventData
     });
+    void emitAccessEvent(event.id);
 
     // 4. ถ้าผ่าน ให้บันทึกว่า QR นี้ถูกใช้แล้ว (กรณี One-time)
     if (result.isValid && result.qrToken) {

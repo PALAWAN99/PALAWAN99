@@ -113,3 +113,9 @@ yarn-error.log*
 *.db-journal
 /prisma/migrations
 /prisma/generated/
+
+# Database dumps & backups — never commit production data!
+*.sql
+backups/
+*_dump.sql
+production_dump.sql

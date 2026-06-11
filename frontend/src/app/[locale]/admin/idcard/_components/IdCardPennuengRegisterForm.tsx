@@ -13,9 +13,10 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconCash, IconQrcode, IconUserPlus } from '@tabler/icons-react';
+import { IconCash, IconQrcode, IconUserPlus, IconSend } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { apiPath } from '@/lib/base-path';
 import type { ThaiIdData } from '@/lib/idcard/reader';
 import {
   groupDetailForMemberType,
@@ -43,9 +44,17 @@ type FormValues = {
   keyExpireDate: string;
 };
 
-function cardToForm(card: ThaiIdData | null, member?: PennuengMember | null): Partial<FormValues> {
+function cardToForm(
+  card: ThaiIdData | null,
+  member?: PennuengMember | null,
+  rfidCapture?: string | null
+): Partial<FormValues> {
   const citizenDigits = card?.citizenId?.replace(/\D/g, '') ?? '';
   const parts = card?.fullNameTh?.split(/\s+/).filter(Boolean) ?? [];
+
+  const oneYearFromNow = new Date();
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  const defaultExpireStr = oneYearFromNow.toISOString().split('T')[0];
 
   return {
     memberNo: member?.memberNo ?? citizenDigits,
@@ -58,8 +67,8 @@ function cardToForm(card: ThaiIdData | null, member?: PennuengMember | null): Pa
     email: member?.email ?? '',
     sex: member?.sex ?? card?.gender ?? '',
     description: member?.description ?? '',
-    accessKey: '',
-    keyExpireDate: '',
+    accessKey: rfidCapture ?? '',
+    keyExpireDate: defaultExpireStr,
   };
 }
 
@@ -106,9 +115,9 @@ export function IdCardPennuengRegisterForm({
   });
 
   useEffect(() => {
-    form.setValues((prev) => ({ ...prev, ...cardToForm(card, member) }));
+    form.setValues((prev) => ({ ...prev, ...cardToForm(card, member, rfidCapture) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, member]);
+  }, [card, member, rfidCapture]);
 
   useEffect(() => {
     if (rfidCapture && awaitRfid) {
@@ -203,6 +212,72 @@ export function IdCardPennuengRegisterForm({
     }
   };
 
+  const [emailSending, setEmailSending] = useState(false);
+
+  const handleSendEmail = async () => {
+    const email = form.values.email.trim();
+    if (!email) {
+      notifications.show({
+        title: 'คำเตือน',
+        message: t('sendEmailRequired'),
+        color: 'orange',
+      });
+      return;
+    }
+    if (!qr) return;
+
+    setEmailSending(true);
+    try {
+      const canvas = document.getElementById('register-qr-canvas') as HTMLCanvasElement;
+      if (!canvas) {
+        notifications.show({
+          title: 'ข้อผิดพลาด',
+          message: t('sendEmailCanvasError'),
+          color: 'red',
+        });
+        return;
+      }
+      const qrImageDataUrl = canvas.toDataURL('image/png');
+
+      const res = await fetch(apiPath('/api/admin/qr/send-email'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          memberName: `${form.values.name} ${form.values.surname}`.trim(),
+          qrImageDataUrl,
+          expiresAt: qr.expiresAt,
+          isTemporary: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        notifications.show({
+          title: 'ข้อผิดพลาด',
+          message: json.error || t('sendEmailFailed'),
+          color: 'red',
+        });
+        return;
+      }
+
+      notifications.show({
+        title: 'สำเร็จ',
+        message: t('sendEmailSuccess'),
+        color: 'green',
+      });
+    } catch (error) {
+      console.error(error);
+      notifications.show({
+        title: 'ข้อผิดพลาด',
+        message: t('sendEmailFailed'),
+        color: 'red',
+      });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   return (
     <Paper withBorder p="md" radius="md">
       <Stack gap="sm">
@@ -221,12 +296,29 @@ export function IdCardPennuengRegisterForm({
           <TextInput label={tp('surname')} required {...form.getInputProps('surname')} />
         </Group>
         <Group grow>
-          <TextInput label={tp('personId')} {...form.getInputProps('personId')} />
-          <TextInput label={tp('tel')} {...form.getInputProps('tel')} />
+          <TextInput
+            label={t('phone')}
+            placeholder="08X-XXX-XXXX"
+            {...form.getInputProps('tel')}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/-/g, '');
+              const d = raw.slice(0, 10);
+              let fmt = d;
+              if (d.length > 3) fmt = `${d.slice(0, 3)}-${d.slice(3)}`;
+              if (d.length > 6) {
+                fmt = `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+              }
+              form.setFieldValue('tel', fmt);
+            }}
+            maxLength={12}
+          />
+          <TextInput label={t('email')} placeholder="example@mail.com" {...form.getInputProps('email')} />
         </Group>
-        <TextInput label={tp('email')} {...form.getInputProps('email')} />
-        <Textarea label={tp('address')} minRows={2} {...form.getInputProps('address')} />
-        <Textarea label={tp('description')} minRows={2} {...form.getInputProps('description')} />
+        <TextInput
+          label={t('school')}
+          placeholder="School / University name..."
+          {...form.getInputProps('description')}
+        />
 
         <Text fw={600} size="sm" mt="xs">
           {t('accessKeySection')}
@@ -246,11 +338,6 @@ export function IdCardPennuengRegisterForm({
             {t('accessKeyTapRfid')}
           </Button>
         </Group>
-        <TextInput
-          label={t('accessKeyExpire')}
-          type="date"
-          {...form.getInputProps('keyExpireDate')}
-        />
 
         <Group grow mt="md">
           <Button
@@ -290,10 +377,22 @@ export function IdCardPennuengRegisterForm({
 
         {qr ? (
           <Stack align="center" gap="xs" py="sm">
-            <QRCodeSVG value={qr.qrContent} size={140} includeMargin level="H" />
+            <QRCodeCanvas id="register-qr-canvas" value={qr.qrContent} size={140} includeMargin level="H" />
             <Text size="xs" c="green">
               {t('pennQrUntil', { date: new Date(qr.expiresAt).toLocaleString('th-TH') })}
             </Text>
+            <Button
+              size="xs"
+              color="blue"
+              leftSection={<IconSend size={12} />}
+              loading={emailSending}
+              onClick={handleSendEmail}
+              w="100%"
+              maw={240}
+              mt="xs"
+            >
+              {t('sendEmailButton')}
+            </Button>
           </Stack>
         ) : null}
       </Stack>

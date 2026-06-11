@@ -66,6 +66,7 @@ export default function PennuengMembersClient() {
   const [editing, setEditing] = useState<PennuengMember | null>(null);
   const [keysMember, setKeysMember] = useState<PennuengMember | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isMock, setIsMock] = useState(false);
   const fetchSeq = useRef(0);
 
   useEffect(() => {
@@ -100,6 +101,7 @@ export default function PennuengMembersClient() {
       setMembers(data.members);
       setTotal(data.total);
       setPages(data.pages);
+      setIsMock(!!data.isMock);
     } catch (e) {
       if (seq !== fetchSeq.current) return;
       notifications.show({
@@ -243,6 +245,18 @@ export default function PennuengMembersClient() {
           </Button>
         </Group>
       </Group>
+
+      {isMock && (
+        <Alert
+          icon={<IconDatabase size={16} />}
+          title="โหมดทดสอบ (Mock Mode)"
+          color="yellow"
+          variant="light"
+        >
+          ขณะนี้แสดงข้อมูลสมาชิกตัวอย่าง เนื่องจากยังไม่ได้เชื่อมต่อกับฐานข้อมูล SQL Server (Pennueng) จริง
+          การเพิ่ม แก้ไข และลบสมาชิกจะยังไม่มีผล จนกว่าจะตั้งค่า SQLSERVER_* ใน .env ครับ
+        </Alert>
+      )}
 
       <Card withBorder p="md" radius="md">
         <Group grow preventGrowOverflow={false} wrap="wrap">

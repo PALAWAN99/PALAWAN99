@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 try:
     import usb.core
@@ -53,7 +56,12 @@ def detect_de620() -> Optional[USBDeviceInfo]:
     if not PYUSB_AVAILABLE:
         return None
 
-    dev = usb.core.find(idVendor=DUALI_VID)
+    try:
+        dev = usb.core.find(idVendor=DUALI_VID)
+    except Exception as e:
+        logger.debug("USB detection failed (possibly missing backend): %s", e)
+        return None
+
     if dev is None:
         return None
 

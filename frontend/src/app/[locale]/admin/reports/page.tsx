@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Title,
   Text,
@@ -14,6 +14,10 @@ import {
   Menu,
   Badge,
   Alert,
+  Card,
+  Divider,
+  Grid,
+  Paper,
 } from '@mantine/core';
 import {
   IconFileExport,
@@ -21,7 +25,9 @@ import {
   IconFileText,
   IconFileTypePdf,
   IconDatabase,
+  IconCalendar,
 } from '@tabler/icons-react';
+import { DatePicker } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import type { ReportGateOption, ReportsAnalyticsPayload } from '@/types/reports-analytics';
 import { ReportsFilters } from './_components/ReportsFilters';
@@ -32,10 +38,14 @@ import {
   fetchReportGatesApi,
   fetchReportsAnalyticsApi,
 } from './lib/reports-api';
+import { DashboardDrillDownModal } from '../dashboard/_components/DashboardDrillDownModal';
+import type { DrillDownFilters } from '../dashboard/_components/DashboardDrillDownModal';
 
 export default function ReportsPage() {
   const t = useTranslations('Report');
   const tc = useTranslations('Common');
+  const locale = useLocale();
+  const isTh = locale === 'th';
 
   const defaults = defaultReportRange();
   const [startDate, setStartDate] = useState<string | null>(defaults.startDate);
@@ -46,13 +56,65 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [gatesLoading, setGatesLoading] = useState(true);
 
-  const loadReport = useCallback(async () => {
-    if (!startDate || !endDate) return;
+  const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
+  const [calendarDate, setCalendarDate] = useState<string | null>(dayjs().format('YYYY-MM-DD'));
+  const [calendarMonth, setCalendarMonth] = useState<string>(dayjs().format('YYYY-MM-DD'));
+
+  // Keep calendarDate in sync with filter date selection
+  useEffect(() => {
+    if (startDate && endDate && startDate === endDate) {
+      setCalendarDate(startDate);
+    } else {
+      setCalendarDate(null);
+    }
+  }, [startDate, endDate]);
+
+  // Keep calendar viewport month in sync with startDate
+  useEffect(() => {
+    if (startDate) {
+      setCalendarMonth(startDate);
+    }
+  }, [startDate]);
+
+  const handleDrillDown = useCallback((filter: DrillDownFilters & { dateStr?: string; hourStr?: string }) => {
+    let start: string | undefined = filter.startDate;
+    let end: string | undefined = filter.endDate;
+
+    // ถ้า filter ไม่ได้ส่ง startDate/endDate มา ให้ derive จาก dateStr/hourStr หรือ state
+    if (!start && !end) {
+      if (filter.dateStr) {
+        start = dayjs(filter.dateStr).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+        end = dayjs(filter.dateStr).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      } else if (filter.hourStr) {
+        const baseDate = startDate ? dayjs(startDate) : dayjs();
+        const hour = parseInt(filter.hourStr.split(':')[0]);
+        start = baseDate.hour(hour).minute(0).second(0).millisecond(0).format('YYYY-MM-DDTHH:mm:ss');
+        end = baseDate.hour(hour).minute(59).second(59).millisecond(999).format('YYYY-MM-DDTHH:mm:ss');
+      } else {
+        if (startDate) start = dayjs(startDate).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+        if (endDate) end = dayjs(endDate).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      }
+    }
+
+    setDrillDown({
+      title: filter.title,
+      gateId: filter.gateId,
+      decision: filter.decision,
+      direction: filter.direction,
+      memberType: filter.memberType,
+      startDate: start,
+      endDate: end,
+      search: filter.search,
+      source: filter.source ?? (data?.source === 'pennueng' ? 'pennueng' : 'postgres'),
+    });
+  }, [startDate, endDate, data?.source]);
+
+  const loadReportWithParams = useCallback(async (startStr: string, endStr: string) => {
     setLoading(true);
     try {
       const payload = await fetchReportsAnalyticsApi({
-        startDate: dayjs(startDate).format('YYYY-MM-DD'),
-        endDate: dayjs(endDate).format('YYYY-MM-DD'),
+        startDate: dayjs(startStr).format('YYYY-MM-DD'),
+        endDate: dayjs(endStr).format('YYYY-MM-DD'),
         gateIds: selectedGateIds,
       });
       setData(payload);
@@ -65,7 +127,30 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [endDate, selectedGateIds, startDate, tc]);
+  }, [selectedGateIds, tc]);
+
+  const loadReport = useCallback(async () => {
+    if (!startDate || !endDate) return;
+    await loadReportWithParams(startDate, endDate);
+  }, [endDate, startDate, loadReportWithParams]);
+
+  const handleCalendarDateChange = (value: string | null) => {
+    if (!value) return;
+    const formatted = dayjs(value).format('YYYY-MM-DD');
+    setCalendarDate(formatted);
+
+    const startOfDayStr = dayjs(formatted).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+    const endOfDayStr = dayjs(formatted).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+
+    setDrillDown({
+      title: isTh 
+        ? `รายชื่อผู้ใช้วันที่ ${dayjs(formatted).format('DD MMM')}` 
+        : `User list on ${dayjs(formatted).format('DD MMM')}`,
+      startDate: startOfDayStr,
+      endDate: endOfDayStr,
+      source: data?.source === 'pennueng' ? 'pennueng' : 'postgres',
+    });
+  };
 
   useEffect(() => {
     void (async () => {
@@ -176,17 +261,53 @@ export default function ReportsPage() {
         </Center>
       ) : data ? (
         <Stack gap="lg">
-          <ReportsSummaryCards data={data} />
+          <ReportsSummaryCards
+            data={data}
+            onDrillDown={handleDrillDown}
+            startDate={startDate ? dayjs(startDate).startOf('day').format('YYYY-MM-DDTHH:mm:ss') : undefined}
+            endDate={endDate ? dayjs(endDate).endOf('day').format('YYYY-MM-DDTHH:mm:ss') : undefined}
+          />
+
           {data.summary.totalScans === 0 ? (
             <Alert color="gray" variant="light">
               {t('noDataInRange')}
             </Alert>
           ) : (
-            <ReportsChartsGrid data={data} />
+            <ReportsChartsGrid
+              data={data}
+              onDrillDown={handleDrillDown}
+              calendarNode={
+                <Paper withBorder p="lg" radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Group gap="xs" mb="md" justify="center">
+                    <IconCalendar size={20} color="var(--color-navy)" />
+                    <Text fw={700} size="md">
+                      {isTh ? 'เลือกดูข้อมูลรายวัน' : 'Daily Quick View'}
+                    </Text>
+                  </Group>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DatePicker
+                      value={calendarDate}
+                      onChange={handleCalendarDateChange}
+                      maxDate={new Date()}
+                      date={calendarMonth}
+                      onDateChange={setCalendarMonth}
+                      size="md"
+                    />
+                  </div>
+                </Paper>
+              }
+            />
           )}
-          <ReportsDetailTable data={data} />
+          <ReportsDetailTable
+            data={data}
+            onDrillDown={handleDrillDown}
+            startDate={startDate ?? undefined}
+            endDate={endDate ?? undefined}
+          />
         </Stack>
       ) : null}
+
+      <DashboardDrillDownModal filters={drillDown} onClose={() => setDrillDown(null)} />
     </Stack>
   );
 }

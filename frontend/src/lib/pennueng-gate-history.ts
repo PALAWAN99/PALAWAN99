@@ -1,6 +1,9 @@
 import 'server-only';
 
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
+
 import sql from 'mssql';
 import { loadGateDisplayRegistry } from '@/lib/gate-display-registry';
 import { formatPennuengBangkok, pennuengSqlDateToIso } from '@/lib/pennueng-datetime';
@@ -38,8 +41,8 @@ function buildWhereClause(
   request: sql.Request,
   query: PennuengGateHistoryQuery,
 ): string {
-  const start = dayjs(query.startDate).startOf('day').toDate();
-  const endExclusive = dayjs(query.endDate).add(1, 'day').startOf('day').toDate();
+  const start = dayjs.utc(query.startDate).startOf('day').toDate();
+  const endExclusive = dayjs.utc(query.endDate).add(1, 'day').startOf('day').toDate();
   request.input('startDate', sql.DateTime, start);
   request.input('endDate', sql.DateTime, endExclusive);
 
@@ -48,6 +51,31 @@ function buildWhereClause(
   if (query.gateId?.trim()) {
     request.input('gateId', sql.VarChar(50), query.gateId.trim());
     parts.push('RTRIM(gs.gate_id) = @gateId');
+  }
+
+  if (query.memberType?.trim()) {
+    const mType = query.memberType.trim();
+    if (mType === 'อื่นๆ' || mType.toLowerCase() === 'other' || mType.toLowerCase() === 'others') {
+      parts.push(`(
+        COALESCE(RTRIM(mt.description), N'') NOT IN (N'นักศึกษาป.ตรี', N'นักศึกษาป.โท', N'นักศึกษาป.เอก')
+        AND COALESCE(RTRIM(gs.member_type), '') NOT IN ('004', '005', '006', '007')
+      )`);
+    } else {
+      request.input('memberType', sql.NVarChar(100), mType);
+      parts.push('(RTRIM(gs.member_type) = @memberType OR RTRIM(mt.description) = @memberType)');
+    }
+  }
+
+  if (query.decision?.trim()) {
+    const successVal = query.decision.toUpperCase() === 'ALLOWED' ? 1 : 0;
+    request.input('successVal', sql.Int, successVal);
+    parts.push('gs.success = @successVal');
+  }
+
+  if (query.direction?.trim()) {
+    const statusVal = query.direction.toUpperCase() === 'IN' ? 1 : 0;
+    request.input('statusVal', sql.Int, statusVal);
+    parts.push('gs.status = @statusVal');
   }
 
   const search = query.search?.trim();
@@ -59,6 +87,21 @@ function buildWhereClause(
       RTRIM(gs.member_no) LIKE @searchPattern OR
       gs.person_id LIKE @searchPattern OR
       RTRIM(gs.member_key) LIKE @searchPattern
+    )`);
+  }
+
+  const department = query.department?.trim();
+  if (department) {
+    request.input('deptPattern', sql.NVarChar(200), `%${department}%`);
+    parts.push(`EXISTS (
+      SELECT 1
+      FROM mbmembmaster mm WITH (NOLOCK)
+      LEFT JOIN mbdepartment md ON RTRIM(mm.department_code) = RTRIM(md.department_code)
+      WHERE RTRIM(mm.member_no) = RTRIM(gs.member_no)
+        AND (
+          RTRIM(md.department_desc) LIKE @deptPattern
+          OR RTRIM(mm.department_code) LIKE @deptPattern
+        )
     )`);
   }
 

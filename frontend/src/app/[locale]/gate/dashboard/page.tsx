@@ -51,6 +51,14 @@ interface AccessEvent {
 
 const GATE_CODE = 'G-MAIN-01';
 
+const EMPTY_GATE_STATE = {
+  id: undefined as string | undefined,
+  name: 'ยังไม่ได้กำหนดประตู',
+  branch: '—',
+  isOpen: false,
+  isOnline: false,
+};
+
 type GateDashboardData = {
   gate: {
     id: string;
@@ -72,6 +80,7 @@ export default function GateDashboard() {
   const [events, setEvents] = useState<AccessEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [gateNotFound, setGateNotFound] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [stats, setStats] = useState({
     todayIn: 0,
@@ -93,27 +102,32 @@ export default function GateDashboard() {
       const payload = await response.json();
 
       if (!response.ok) {
+        const isMissingGate = response.status === 404;
+
+        if (isMissingGate) {
+          // ประตูยังไม่ถูกสร้าง — ลอง seed ข้อมูลใน dev mode
+          if (!options?.retryAfterSeed && process.env.NODE_ENV === 'development') {
+            const seeded = await seedDevGateData();
+            if (seeded) {
+              await fetchEvents({ retryAfterSeed: true });
+              return;
+            }
+          }
+          // แสดง empty state แทน error
+          setGateNotFound(true);
+          setGateInfo(EMPTY_GATE_STATE);
+          setFetchError(null);
+          return;
+        }
+
         const message =
           (payload as { error?: { message?: string } })?.error?.message ??
           'ไม่สามารถโหลดข้อมูลประตูได้';
-        const isMissingGate = response.status === 404;
-
-        if (
-          isMissingGate &&
-          !options?.retryAfterSeed &&
-          process.env.NODE_ENV === 'development'
-        ) {
-          const seeded = await seedDevGateData();
-          if (seeded) {
-            await fetchEvents({ retryAfterSeed: true });
-            return;
-          }
-        }
-
         throw new Error(message);
       }
 
       const data = unwrapApiData<GateDashboardData>(payload);
+      setGateNotFound(false);
       setEvents(data.recentEvents ?? []);
       setStats({
         todayIn: data.stats?.todayIn ?? 0,
@@ -206,22 +220,26 @@ export default function GateDashboard() {
     <Box style={{ background: '#f8f9fa', minHeight: '100vh', padding: '24px' }}>
       <Container size="xl">
         <Stack gap="lg">
-          {fetchError && (
-            <Alert color="red" title="โหลดข้อมูลไม่สำเร็จ" variant="light">
+          {gateNotFound && (
+            <Alert color="yellow" title={`ไม่พบประตู: ${GATE_CODE}`} variant="light" icon={<IconAlertCircle size={18} />}>
               <Stack gap="sm">
-                <Text size="sm">{fetchError}</Text>
+                <Text size="sm">
+                  ยังไม่มีประตูนี้ในฐานข้อมูล กรุณาสร้างประตูในหน้า
+                  {' '}<strong>การจัดการระบบ → ประตู</strong>{' '}
+                  แล้วใช้ Gate Code: <strong>{GATE_CODE}</strong>
+                </Text>
                 {process.env.NODE_ENV === 'development' && (
-                  <Button
-                    size="xs"
-                    variant="light"
-                    loading={seeding}
-                    onClick={handleSeedData}
-                    w="fit-content"
-                  >
+                  <Button size="xs" variant="light" loading={seeding} onClick={handleSeedData} w="fit-content">
                     สร้างข้อมูลทดสอบ ({GATE_CODE})
                   </Button>
                 )}
               </Stack>
+            </Alert>
+          )}
+
+          {fetchError && (
+            <Alert color="red" title="โหลดข้อมูลไม่สำเร็จ" variant="light">
+              <Text size="sm">{fetchError}</Text>
             </Alert>
           )}
 

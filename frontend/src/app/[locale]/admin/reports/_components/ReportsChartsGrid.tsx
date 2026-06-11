@@ -1,17 +1,18 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useRef } from 'react';
 import {
   Paper,
   Text,
-  Grid,
   Center,
   Stack,
   ThemeIcon,
   SimpleGrid,
   Card,
+  ActionIcon,
+  Menu,
 } from '@mantine/core';
-import { IconChartBar, IconDoor } from '@tabler/icons-react';
+import { IconChartBar, IconDoor, IconDownload, IconFileSpreadsheet, IconPhoto } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 import {
   Area,
@@ -21,29 +22,15 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
-  Funnel,
-  FunnelChart,
-  LabelList,
   Legend,
   Line,
   LineChart,
   Pie,
   PieChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  RadialBar,
-  RadialBarChart,
   ResponsiveContainer,
-  Scatter,
-  ScatterChart,
   Tooltip,
-  Treemap,
   XAxis,
   YAxis,
-  ZAxis,
 } from 'recharts';
 import type { ReportsAnalyticsPayload } from '@/types/reports-analytics';
 
@@ -53,21 +40,79 @@ const CHART_HEIGHT = 300;
 function ChartShell({
   title,
   children,
-  span = 6,
+  onDownloadExcel,
 }: {
   title: string;
   children: React.ReactNode;
-  span?: number;
+  onDownloadExcel?: () => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleDownload = () => {
+    const svg = chartContainerRef.current?.querySelector('svg');
+    if (!svg) return;
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const { width, height } = svg.getBoundingClientRect();
+    canvas.width = width * 2;  // 2x for retina
+    canvas.height = height * 2;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(2, 2);
+    const img = new Image();
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.download = `${title.replace(/\s+/g, '-')}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+    img.src = url;
+  };
+
   return (
-    <Grid.Col span={{ base: 12, lg: span }}>
-      <Paper withBorder p="lg" radius="md" h="100%">
-        <Text fw={700} mb="md" size="md">
-          {title}
-        </Text>
+    <Paper withBorder p="lg" radius="md" h="100%" pos="relative" ref={containerRef}>
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+        {onDownloadExcel ? (
+          <Menu shadow="md" width={180} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" title="Download options">
+                <IconDownload size={16} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<IconPhoto size={14} />} onClick={handleDownload}>
+                ดาวน์โหลดรูปภาพ (PNG)
+              </Menu.Item>
+              <Menu.Item leftSection={<IconFileSpreadsheet size={14} />} onClick={onDownloadExcel}>
+                ดาวน์โหลดข้อมูล (Excel)
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        ) : (
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            onClick={handleDownload}
+            title="Download PNG"
+          >
+            <IconDownload size={16} />
+          </ActionIcon>
+        )}
+      </div>
+      <Text fw={700} mb="md" size="md">
+        {title}
+      </Text>
+      <div ref={chartContainerRef}>
         <ChartBox>{children}</ChartBox>
-      </Paper>
-    </Grid.Col>
+      </div>
+    </Paper>
   );
 }
 
@@ -92,75 +137,116 @@ function EmptyChart({ label }: { label: string }) {
   );
 }
 
-function normalizeRadar(data: ReportsAnalyticsPayload['gateRadar']) {
-  if (data.length === 0) return [];
-  const max = {
-    total: Math.max(...data.map((d) => d.total), 1),
-    allowed: Math.max(...data.map((d) => d.allowed), 1),
-    denied: Math.max(...data.map((d) => d.denied), 1),
-    in: Math.max(...data.map((d) => d.in), 1),
-    out: Math.max(...data.map((d) => d.out), 1),
-  };
-  return data.map((row) => ({
-    gate: row.gate,
-    total: Math.round((row.total / max.total) * 100),
-    allowed: Math.round((row.allowed / max.allowed) * 100),
-    denied: Math.round((row.denied / max.denied) * 100),
-    in: Math.round((row.in / max.in) * 100),
-    out: Math.round((row.out / max.out) * 100),
-  }));
-}
-
-function TreemapContent(props: {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  name?: string;
-  value?: number;
-  index?: number;
+export function ReportsSummaryCards({
+  data,
+  onDrillDown,
+  startDate,
+  endDate,
+}: {
+  data: ReportsAnalyticsPayload;
+  onDrillDown?: (filter: {
+    title: string;
+    decision?: 'ALLOWED' | 'DENIED';
+    source?: 'pennueng' | 'postgres';
+    startDate?: string;
+    endDate?: string;
+  }) => void;
+  startDate?: string;
+  endDate?: string;
 }) {
-  const { x = 0, y = 0, width = 0, height = 0, name = '', index = 0 } = props;
-  if (width < 30 || height < 24) return null;
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={COLORS[index % COLORS.length]}
-        stroke="#fff"
-        strokeWidth={2}
-        rx={4}
-      />
-      {width > 56 && height > 28 ? (
-        <text x={x + 8} y={y + 18} fill="#fff" fontSize={11} fontWeight={600}>
-          {name.length > 12 ? `${name.slice(0, 11)}…` : name}
-        </text>
-      ) : null}
-    </g>
-  );
-}
-
-export function ReportsSummaryCards({ data }: { data: ReportsAnalyticsPayload }) {
   const t = useTranslations('Report');
-  const cards = [
-    { title: t('totalAccess'), value: data.summary.totalScans, color: 'blue' },
-    { title: t('allowedAccess'), value: data.summary.allowed, color: 'teal' },
-    { title: t('deniedAccess'), value: data.summary.denied, color: 'red' },
-    { title: t('uniqueMembers'), value: data.summary.uniqueMembers, color: 'grape' },
-    { title: t('avgDailyScans'), value: data.summary.avgDailyScans, color: 'orange' },
-    { title: t('denyRate'), value: `${data.summary.denyRate}%`, color: 'pink' },
+  const source = data.source === 'pennueng' ? 'pennueng' as const : 'postgres' as const;
+
+  const cards: {
+    title: string;
+    value: number | string;
+    color: string;
+    drillDown?: Parameters<NonNullable<typeof onDrillDown>>[0];
+  }[] = [
+    {
+      title: t('totalAccess'),
+      value: data.summary.totalScans,
+      color: 'blue',
+      drillDown: {
+        title: `รายชื่อทั้งหมด — ${t('totalAccess')}`,
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('allowedAccess'),
+      value: data.summary.allowed,
+      color: 'teal',
+      drillDown: {
+        title: `รายชื่อ — ${t('allowedAccess')}`,
+        decision: 'ALLOWED',
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('deniedAccess'),
+      value: data.summary.denied,
+      color: 'red',
+      drillDown: {
+        title: `รายชื่อ — ${t('deniedAccess')}`,
+        decision: 'DENIED',
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('uniqueMembers'),
+      value: data.summary.uniqueMembers,
+      color: 'grape',
+      drillDown: {
+        title: `รายชื่อ — ${t('uniqueMembers')}`,
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('avgDailyScans'),
+      value: data.summary.avgDailyScans,
+      color: 'orange',
+      // avg per day is informational only — no drill-down
+    },
+    {
+      title: t('denyRate'),
+      value: `${data.summary.denyRate}%`,
+      color: 'pink',
+      drillDown: {
+        title: `รายชื่อ — ${t('deniedAccess')}`,
+        decision: 'DENIED',
+        source,
+        startDate,
+        endDate,
+      },
+    },
   ];
 
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-      {cards.map((card) => (
-        <Card key={card.title} withBorder radius="md" p="lg">
-          <GroupLikeSummary title={card.title} value={card.value} color={card.color} />
-        </Card>
-      ))}
+      {cards.map((card) => {
+        const clickable = !!card.drillDown && !!onDrillDown;
+        return (
+          <Card
+            key={card.title}
+            withBorder
+            radius="md"
+            p="lg"
+            onClick={clickable ? () => onDrillDown!(card.drillDown!) : undefined}
+            className={clickable ? 'stat-card' : undefined}
+            style={clickable ? { cursor: 'pointer', transition: 'box-shadow 0.15s, transform 0.15s' } : undefined}
+          >
+            <GroupLikeSummary title={card.title} value={card.value} color={card.color} clickable={clickable} />
+          </Card>
+        );
+      })}
     </SimpleGrid>
   );
 }
@@ -169,10 +255,12 @@ function GroupLikeSummary({
   title,
   value,
   color,
+  clickable,
 }: {
   title: string;
   value: number | string;
   color: string;
+  clickable?: boolean;
 }) {
   return (
     <Stack gap="xs">
@@ -185,228 +273,282 @@ function GroupLikeSummary({
       <Text size="xl" fw={800}>
         {typeof value === 'number' ? value.toLocaleString() : value}
       </Text>
+      {clickable && (
+        <Text size="xs" c="dimmed" mt={-4}>
+          คลิกเพื่อดูรายละเอียด →
+        </Text>
+      )}
     </Stack>
   );
 }
 
-export function ReportsChartsGrid({ data }: { data: ReportsAnalyticsPayload }) {
+interface ReportsChartsGridProps {
+  data: ReportsAnalyticsPayload;
+  onDrillDown?: (filter: {
+    title: string;
+    gateId?: string;
+    decision?: 'ALLOWED' | 'DENIED';
+    direction?: 'IN' | 'OUT';
+    memberType?: string;
+    search?: string;
+    dateStr?: string;
+    hourStr?: string;
+  }) => void;
+  calendarNode?: React.ReactNode;
+}
+
+export function ReportsChartsGrid({ data, onDrillDown, calendarNode }: ReportsChartsGridProps) {
   const t = useTranslations('Report');
   const tc = useTranslations('Common');
-  const radarData = useMemo(() => normalizeRadar(data.gateRadar), [data.gateRadar]);
-  const funnelData = useMemo(
-    () =>
-      data.funnel.map((step) => ({
-        ...step,
-        name:
-          step.name === 'totalScans'
-            ? t('totalAccess')
-            : step.name === 'allowed'
-              ? t('allowedAccess')
-              : t('deniedAccess'),
-      })),
-    [data.funnel, t],
-  );
-  const scatterHourly = useMemo(
-    () => data.hourlyDistribution.map((row, index) => ({ hour: index, count: row.count, label: row.hour })),
-    [data.hourlyDistribution],
-  );
   const hasData = data.summary.totalScans > 0;
+
+  const handleDownloadExcelDailyTrend = async () => {
+    const { exportToExcel } = await import('@/lib/export-utils');
+    const excelData = data.dailyTrend.map((row) => ({
+      'วันที่ (Date)': row.date,
+      'จำนวนผู้เข้า (Check-in)': row.in,
+      'จำนวนผู้ออก (Check-out)': row.out,
+      'รวมการใช้งานทั้งหมด (Total)': row.total,
+    }));
+    exportToExcel(excelData, 'Daily_Access_Summary');
+  };
+
 
   if (!hasData) {
     return <EmptyChart label={tc('noData')} />;
   }
 
   return (
-    <Grid gap="md">
-      <ChartShell title={t('chartDailyTotal')} span={8}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <BarChart data={data.dailyTrend}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Bar dataKey="total" fill="#38BDF8" radius={[4, 4, 0, 0]} name={t('totalAccess')} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartGateShare')} span={4}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <PieChart>
-            <Pie data={data.gateShare} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
-              {data.gateShare.map((entry, index) => (
-                <Cell key={entry.name} fill={entry.color ?? COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
-          </PieChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartInOutArea')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <AreaChart data={data.dailyTrend}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Legend />
-            <Area type="monotone" dataKey="in" stackId="1" stroke="#38BDF8" fill="#38BDF8" fillOpacity={0.35} name={t('directionIn')} />
-            <Area type="monotone" dataKey="out" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.35} name={t('directionOut')} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartCumulative')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <LineChart data={data.cumulativeTrend}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Line type="monotone" dataKey="cumulative" stroke="#1E3A5F" strokeWidth={3} dot={false} name={t('cumulativeAccess')} />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartTopGates')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <BarChart data={data.gateInOut} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis type="category" dataKey="name" width={120} fontSize={10} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Bar dataKey="total" fill="#0EA5E9" radius={[0, 4, 4, 0]} name={t('totalAccess')} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartGateInOutStack')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <BarChart data={data.gateInOut}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={60} />
-            <YAxis fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="in" stackId="a" fill="#38BDF8" name={t('directionIn')} />
-            <Bar dataKey="out" stackId="a" fill="#10B981" name={t('directionOut')} />
-            <Bar dataKey="denied" stackId="a" fill="#EF4444" name={t('deniedAccess')} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartAllowedDenied')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <LineChart data={data.dailyTrend}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="allowed" stroke="#10B981" strokeWidth={2} name={t('allowedAccess')} />
-            <Line type="monotone" dataKey="denied" stroke="#EF4444" strokeWidth={2} name={t('deniedAccess')} />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartGateRadar')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <RadarChart data={radarData}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="gate" tick={{ fontSize: 10 }} />
-            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
-            <Radar name={t('totalAccess')} dataKey="total" stroke="#38BDF8" fill="#38BDF8" fillOpacity={0.25} />
-            <Radar name={t('allowedAccess')} dataKey="allowed" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
-            <Radar name={t('deniedAccess')} dataKey="denied" stroke="#EF4444" fill="#EF4444" fillOpacity={0.2} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Tooltip />
-          </RadarChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartDenyRateComposed')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <ComposedChart data={data.denyRateTrend}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip />
-            <Legend />
-            <Bar yAxisId="left" dataKey="total" fill="#38BDF8" name={t('totalAccess')} radius={[4, 4, 0, 0]} />
-            <Line yAxisId="right" type="monotone" dataKey="denyRate" stroke="#EF4444" strokeWidth={2} name={t('denyRate')} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title={t('chartMemberTypeTreemap')}>
-        {data.memberTypeAccess.length > 0 ? (
+    <Stack gap="md">
+      {/* 2-column grid for the first 4 charts */}
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+        {/* 1. BarChart — daily total access */}
+        <ChartShell title={t('chartDailyTotal')} onDownloadExcel={handleDownloadExcelDailyTrend}>
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-            <Treemap
-              data={data.memberTypeAccess}
-              dataKey="value"
-              nameKey="name"
-              stroke="#fff"
-              fill="#8884d8"
-              content={<TreemapContent />}
-            />
+            <BarChart data={data.dailyTrend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip />
+              <Bar
+                dataKey="total"
+                fill="#38BDF8"
+                radius={[4, 4, 0, 0]}
+                name={t('totalAccess')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(barData: any) => {
+                  if (!onDrillDown) return;
+                  const d = barData?.payload || barData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `รายชื่อผู้ใช้วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                    });
+                  }
+                }}
+              />
+            </BarChart>
           </ResponsiveContainer>
-        ) : (
-          <EmptyChart label={tc('noData')} />
-        )}
-      </ChartShell>
+        </ChartShell>
 
-      <ChartShell title={t('chartWeekdayRadial')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <RadialBarChart
-            cx="50%"
-            cy="50%"
-            innerRadius="20%"
-            outerRadius="95%"
-            data={data.weekdayDistribution.map((row, index) => ({
-              name: row.name,
-              value: row.value,
-              fill: COLORS[index % COLORS.length],
-            }))}
-            startAngle={180}
-            endAngle={0}
-          >
-            <PolarAngleAxis type="number" domain={[0, 6]} tick={false} />
-            <RadialBar background dataKey="value" cornerRadius={6} label={{ position: 'insideStart', fill: '#fff', fontSize: 10 }} />
-            <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-            <Tooltip />
-          </RadialBarChart>
-        </ResponsiveContainer>
-      </ChartShell>
+        {/* 2. AreaChart — stacked in/out area (คลิกสีเขียว=ออก สีน้ำเงิน=เข้า) */}
+        <ChartShell title={t('chartInOutArea')} onDownloadExcel={handleDownloadExcelDailyTrend}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <AreaChart data={data.dailyTrend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip />
+              <Legend />
+              {/* เข้า = สีน้ำเงิน */}
+              <Area
+                type="monotone"
+                dataKey="in"
+                stackId="1"
+                stroke="#38BDF8"
+                fill="#38BDF8"
+                fillOpacity={0.35}
+                name={t('directionIn')}
+                activeDot={{ r: 5 }}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(areaData: any) => {
+                  if (!onDrillDown) return;
+                  const d = areaData?.payload || areaData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ผู้เข้า วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      direction: 'IN',
+                    });
+                  }
+                }}
+              />
+              {/* ออก = สีเขียว */}
+              <Area
+                type="monotone"
+                dataKey="out"
+                stackId="1"
+                stroke="#10B981"
+                fill="#10B981"
+                fillOpacity={0.35}
+                name={t('directionOut')}
+                activeDot={{ r: 5 }}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(areaData: any) => {
+                  if (!onDrillDown) return;
+                  const d = areaData?.payload || areaData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ผู้ออก วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      direction: 'OUT',
+                    });
+                  }
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartShell>
 
-      <ChartShell title={t('chartHourlyScatter')}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <ScatterChart>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" dataKey="hour" name={t('hour')} domain={[0, 23]} tickCount={12} fontSize={11} />
-            <YAxis type="number" dataKey="count" name={t('totalAccess')} fontSize={11} />
-            <ZAxis range={[80, 400]} />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value, name) => [value, name]} labelFormatter={(_, payload) => payload?.[0]?.payload?.label ?? ''} />
-            <Scatter data={scatterHourly} fill="#8B5CF6" name={t('totalAccess')} />
-          </ScatterChart>
-        </ResponsiveContainer>
-      </ChartShell>
+        {/* 3. PieChart — gate traffic share */}
+        <ChartShell title={t('chartGateShare')}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <PieChart>
+              <Pie
+                data={data.gateShare}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={3}
+                onClick={(sliceData: any) => {
+                  console.log('Reports Gate Share slice clicked:', sliceData);
+                  const d = sliceData?.payload || sliceData;
+                  if (d && d.gateId) {
+                    onDrillDown?.({
+                      title: `รายชื่อผู้ใช้งานประตู: ${d.name}`,
+                      gateId: d.gateId,
+                    });
+                  }
+                }}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+              >
+                {data.gateShare.map((entry, index) => (
+                  <Cell key={entry.name} fill={entry.color ?? COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartShell>
 
-      <ChartShell title={t('chartAccessFunnel')} span={12}>
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-          <FunnelChart>
-            <Tooltip />
-            <Funnel dataKey="value" data={funnelData} isAnimationActive>
-              {funnelData.map((entry, index) => (
-                <Cell key={entry.name} fill={entry.fill ?? COLORS[index % COLORS.length]} />
-              ))}
-              <LabelList position="right" fill="#334155" stroke="none" dataKey="name" />
-            </Funnel>
-          </FunnelChart>
-        </ResponsiveContainer>
-      </ChartShell>
-    </Grid>
+        {/* 4. LineChart — allowed vs denied trend */}
+        <ChartShell title={t('chartAllowedDenied')}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <LineChart data={data.dailyTrend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="allowed"
+                stroke="#10B981"
+                strokeWidth={2}
+                name={t('allowedAccess')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(pointData: any) => {
+                  if (!onDrillDown) return;
+                  const d = pointData?.payload || pointData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `อนุญาต วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      decision: 'ALLOWED',
+                    });
+                  }
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="denied"
+                stroke="#EF4444"
+                strokeWidth={2}
+                name={t('deniedAccess')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(pointData: any) => {
+                  if (!onDrillDown) return;
+                  const d = pointData?.payload || pointData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ปฏิเสธ วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      decision: 'DENIED',
+                    });
+                  }
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartShell>
+
+        {/* 5. ComposedChart — deny rate */}
+        <ChartShell title={t('chartDenyRateComposed')}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <ComposedChart data={data.denyRateTrend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip />
+              <Legend />
+              <Bar
+                yAxisId="left"
+                dataKey="total"
+                fill="#38BDF8"
+                name={t('totalAccess')}
+                radius={[4, 4, 0, 0]}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(barData: any) => {
+                  if (!onDrillDown) return;
+                  const d = barData?.payload || barData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `รายชื่อผู้ใช้วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                    });
+                  }
+                }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="denyRate"
+                stroke="#EF4444"
+                strokeWidth={2}
+                name={t('denyRate')}
+                style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                onClick={(pointData: any) => {
+                  if (!onDrillDown) return;
+                  const d = pointData?.payload || pointData;
+                  if (d && d.date) {
+                    onDrillDown({
+                      title: `ปฏิเสธ วันที่ ${d.label ?? d.date}`,
+                      dateStr: d.date,
+                      decision: 'DENIED',
+                    });
+                  }
+                }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </ChartShell>
+
+        {/* 6. Calendar Shortcut View */}
+        {calendarNode}
+      </SimpleGrid>
+    </Stack>
   );
 }

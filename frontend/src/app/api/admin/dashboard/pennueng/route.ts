@@ -28,7 +28,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchPennuengDashboard();
+    const searchParams = req.nextUrl.searchParams;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+
+    const data = await fetchPennuengDashboard(startDate, endDate);
     return ApiSuccess(data);
   } catch (error) {
     console.error('[pennueng-dashboard]', error);

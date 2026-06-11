@@ -33,6 +33,7 @@ export type PennuengMemberKeyWithMember = PennuengMemberKeyRow & {
   memberType: string;
   memberTypeLabel: string | null;
   groupDetail: string | null;
+  email?: string | null;
 };
 
 function randomSuffix(length: number): string {
@@ -210,6 +211,7 @@ export async function findPennuengMemberByAccessKey(
       member_type: string;
       member_type_label: string | null;
       group_detail: string | null;
+      email: string | null;
     }>(`
       SELECT
         k.seq_no,
@@ -219,6 +221,7 @@ export async function findPennuengMemberByAccessKey(
         RTRIM(m.name) AS name,
         RTRIM(m.surname) AS surname,
         RTRIM(m.member_type) AS member_type,
+        NULLIF(RTRIM(m.email), '') AS email,
         NULLIF(RTRIM(t.description), '') AS member_type_label,
         NULLIF(RTRIM(t.group_detail), '') AS group_detail
       FROM mbmemberkey k WITH (NOLOCK)
@@ -239,6 +242,7 @@ export async function findPennuengMemberByAccessKey(
         memberType: row.member_type?.trim() ?? '',
         memberTypeLabel: row.member_type_label?.trim() || null,
         groupDetail: row.group_detail?.trim() || null,
+        email: row.email?.trim() || null,
       };
     }
   }

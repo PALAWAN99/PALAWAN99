@@ -69,12 +69,6 @@ function BalancedXAxisTick({ x, y, payload }: TickProps) {
   );
 }
 
-export const MOCK_EMPLOYMENT_AFTER_GRAD: PennuengMemberTypeSlice[] = [
-  { name: 'มีงานตรงสาย', value: 50 },
-  { name: 'มีงานไม่ตรงสาย', value: 20 },
-  { name: 'ศึกษาต่อ', value: 25 },
-  { name: 'ยังไม่ระบุ/ว่างงาน', value: 10 },
-];
 
 type PennuengVerticalBarChartProps = {
   data: PennuengMemberTypeSlice[];
@@ -82,6 +76,7 @@ type PennuengVerticalBarChartProps = {
   barColor?: string;
   /** ค่าสูงสุดแกน Y (เช่น 100 สำหรับ %) */
   yMax?: number;
+  onClickBar?: (name: string) => void;
 };
 
 export function PennuengVerticalBarChart({
@@ -89,6 +84,7 @@ export function PennuengVerticalBarChart({
   height = CHART_BODY_HEIGHT + X_AXIS_TICK_HEIGHT,
   barColor = DEFAULT_BAR_COLOR,
   yMax,
+  onClickBar,
 }: PennuengVerticalBarChartProps) {
   const maxValue = useMemo(() => {
     const peak = data.reduce((m, d) => Math.max(m, d.value), 0);
@@ -136,6 +132,13 @@ export function PennuengVerticalBarChart({
             fill={barColor}
             radius={[4, 4, 0, 0]}
             maxBarSize={48}
+            onClick={(barData) => {
+              console.log('VerticalBar click data:', barData);
+              if (barData && barData.name && onClickBar) {
+                onClickBar(String(barData.name));
+              }
+            }}
+            style={{ cursor: onClickBar ? 'pointer' : 'default' }}
           />
         </BarChart>
       </ResponsiveContainer>

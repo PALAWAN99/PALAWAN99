@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardReaderStatus } from "@/components/CardReaderStatus";
@@ -18,7 +19,7 @@ import {
   type CitizenInfo,
   type CardEvent,
 } from "@/lib/api";
-import { getCardApiBase, getDefaultCardApiBase } from "@/lib/card-api-base";
+import { getCardApiBase } from "@/lib/card-api-base";
 
 type ActiveTab = "idcard" | "rfid";
 
@@ -67,6 +68,7 @@ export function SmartCardReaderPage({
   embedded = false,
   apiUrl,
 }: SmartCardReaderPageProps) {
+  const t = useTranslations("IdCard");
   const cardApiBase = apiUrl ?? getCardApiBase();
   const [readers, setReaders] = useState<ReaderInfo[]>([]);
   const [citizenData, setCitizenData] = useState<CitizenInfo | null>(null);
@@ -90,11 +92,11 @@ export function SmartCardReaderPage({
       setError(null);
     } catch {
       setReaders([]);
-      setError("ไม่สามารถเชื่อมต่อ Backend ได้ กรุณาตรวจสอบว่า Python server ทำงานอยู่");
+      setError(t("errorConnect"));
     } finally {
       setIsLoadingReaders(false);
     }
-  }, []);
+  }, [t]);
 
   const handleReaderStatusRefresh = useCallback(async () => {
     try {
@@ -112,7 +114,7 @@ export function SmartCardReaderPage({
     setError(null);
     setCitizenData(null);
     setProgress(0);
-    setProgressMsg("กำลังเชื่อมต่อเครื่องอ่าน...");
+    setProgressMsg(t("readingRetry"));
     partialRef.current = {};
     setReaders((prev) =>
       prev.length > 0
@@ -164,7 +166,7 @@ export function SmartCardReaderPage({
 
     evtSource.onerror = () => {
       evtSource.close();
-      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ Backend");
+      setError(t("errorBackend"));
       setIsReading(false);
     };
   };
@@ -199,13 +201,13 @@ export function SmartCardReaderPage({
       } catch {
         if (cancelled) return;
         setReaders([]);
-        setError("ไม่สามารถเชื่อมต่อ Backend ได้ กรุณาตรวจสอบว่า Python server ทำงานอยู่");
+        setError(t("errorConnect"));
       } finally {
         if (!cancelled) setIsLoadingReaders(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (isReading) return;
@@ -295,9 +297,9 @@ export function SmartCardReaderPage({
 
   const isWindows = clientEnv?.os.toLowerCase().includes("windows") ?? false;
   const hasReader = readers.length > 0;
-  const isBackendOffline =
-    !!error &&
-    (error.includes("Backend") || error.includes("ไม่สามารถเชื่อมต่อ"));
+  // error is a translated string; the errorBackend key is set by evtSource.onerror
+  const errorBackendStr = t("errorBackend");
+  const isBackendOffline = !!error && error === errorBackendStr;
   const connectionStep: "done" | "active" | "idle" = isBackendOffline
     ? "active"
     : hasReader
@@ -322,7 +324,7 @@ export function SmartCardReaderPage({
       {!embedded && (
         <header className="mb-8 text-center">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-linear-to-r from-slate-800 via-sky-800 to-slate-800 dark:from-slate-100 dark:via-sky-200 dark:to-slate-100 bg-clip-text text-transparent">
-            Smart Card Reader
+            {t("title")}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
             DUALi DE-620
@@ -345,9 +347,9 @@ export function SmartCardReaderPage({
       >
         <div className="border-b border-slate-200/70 bg-slate-50/80 px-3 sm:px-4 py-3">
           <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2.5">
-            เลือกโหมด
+            {t("readModeTitle")}
           </p>
-      <nav aria-label="โหมดการอ่าน">
+      <nav aria-label={t("readModeTitle")}>
         <div className="flex rounded-xl p-1 gap-1 border bg-slate-100/90 border-slate-200/90">
           <button
             type="button"
@@ -362,7 +364,7 @@ export function SmartCardReaderPage({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 sm:w-7 sm:h-7 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
               </svg>
-              <span>บัตรประชาชน</span>
+              <span>{t("readModeIdCard")}</span>
             </span>
           </button>
           <button
@@ -378,7 +380,7 @@ export function SmartCardReaderPage({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 sm:w-7 sm:h-7 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
               </svg>
-              <span>อ่าน RFID</span>
+              <span>{t("readModeRfid")}</span>
             </span>
           </button>
         </div>
@@ -390,10 +392,10 @@ export function SmartCardReaderPage({
         <RfidReader />
       ) : (
       <div className="space-y-5">
-        <div className="flex gap-2" aria-label="ขั้นตอนการใช้งาน">
-          <StepPill n={1} label="เชื่อมต่อ" state={connectionStep} />
-          <StepPill n={2} label="ยินยอม PDPA" state={consentStep} />
-          <StepPill n={3} label="อ่านบัตร" state={readStep} />
+        <div className="flex gap-2" aria-label={t("stepRead")}>
+          <StepPill n={1} label={t("stepConnect")} state={connectionStep} />
+          <StepPill n={2} label={t("stepPdpa")} state={consentStep} />
+          <StepPill n={3} label={t("stepRead")} state={readStep} />
         </div>
 
         {isBackendOffline && (
@@ -401,10 +403,10 @@ export function SmartCardReaderPage({
             role="alert"
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
           >
-            <p className="font-semibold">ไม่สามารถเชื่อมต่อ Backend</p>
+            <p className="font-semibold">{t("errorBackendTitle")}</p>
             <p className="mt-1 text-red-800/90">
-              ตรวจสอบว่า Python server ทำงานที่{" "}
-              <code className="rounded bg-red-100/80 px-1.5 py-0.5 text-xs">{apiUrl}</code>
+              {t("errorBackend")} (URL:{" "}
+              <code className="rounded bg-red-100/80 px-1.5 py-0.5 text-xs">{apiUrl}</code>)
             </p>
           </div>
         )}
@@ -429,7 +431,7 @@ export function SmartCardReaderPage({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
               </svg>
-              ให้ความยินยอม PDPA ก่อนอ่านบัตร
+              {t("btnPdpa")}
             </Button>
           ) : (
             <div className="flex flex-col sm:flex-row gap-3">
@@ -460,10 +462,10 @@ export function SmartCardReaderPage({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    กำลังอ่านบัตร...
+                    {t("reading")}
                   </>
                 ) : (
-                  "คลิกเพื่ออ่านบัตร"
+                  t("btnReadCard")
                 )}
               </Button>
               <Button
@@ -471,7 +473,7 @@ export function SmartCardReaderPage({
                 variant="outline"
                 size="lg"
                 className="h-11 sm:h-12 shrink-0 border-slate-300 dark:border-slate-600"
-                title="รีเฟรชหน้า"
+                title={t("btnRefreshPage")}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -481,31 +483,25 @@ export function SmartCardReaderPage({
           )}
         </section>
 
-        {error && !isBackendOffline && (
-          <Card className={error.includes("EMPTY") || error.includes("NO IC CARD") || error.includes("ไม่พบบัตร")
-            ? "border-amber-300 bg-amber-50"
-            : "border-destructive"
-          }>
-            <CardContent className="py-4 flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-6 h-6 shrink-0 ${
-                error.includes("EMPTY") || error.includes("NO IC CARD") || error.includes("ไม่พบบัตร")
-                  ? "text-amber-500"
-                  : "text-destructive"
-              }`}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-              <p className={`text-sm font-medium ${
-                error.includes("EMPTY") || error.includes("NO IC CARD") || error.includes("ไม่พบบัตร")
-                  ? "text-amber-700"
-                  : "text-destructive"
-              }`}>
-                {error.includes("EMPTY") || error.includes("NO IC CARD")
-                  ? "กรุณาสอดบัตรประชาชน แล้วคลิกเพื่ออ่าน"
-                  : error}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        {error && !isBackendOffline && (() => {
+          const isNoCardError = error.includes("EMPTY") || error.includes("NO IC CARD") || error.includes("ไม่พบบัตร");
+          return (
+            <Card className={isNoCardError ? "border-amber-300 bg-amber-50" : "border-destructive"}>
+              <CardContent className="py-4 flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-6 h-6 shrink-0 ${
+                  isNoCardError ? "text-amber-500" : "text-destructive"
+                }`}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <p className={`text-sm font-medium ${
+                  isNoCardError ? "text-amber-700" : "text-destructive"
+                }`}>
+                  {isNoCardError ? t("errorInsertCard") : error}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {isReading && !citizenData && (
           <div className="space-y-4">
@@ -519,7 +515,7 @@ export function SmartCardReaderPage({
                   />
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{progressMsg || "กำลังอ่านข้อมูลจากบัตร..."}</span>
+                  <span>{progressMsg || t("reading")}</span>
                   <span>{progress}%</span>
                 </div>
               </CardContent>
@@ -539,7 +535,7 @@ export function SmartCardReaderPage({
                   />
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{progressMsg || "กำลังอ่านข้อมูลจากบัตร..."}</span>
+                  <span>{progressMsg || t("reading")}</span>
                   <span>{progress}%</span>
                 </div>
               </CardContent>

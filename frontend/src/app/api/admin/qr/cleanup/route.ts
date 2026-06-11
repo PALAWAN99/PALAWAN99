@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { deleteExpiredPennuengMemberKeys } from '@/lib/pennueng-member-key';
 import { isSqlServerConfigured } from '@/lib/sqlserver';
+import { autoCleanSoftDeletedMembers } from '@/lib/pennueng-members';
 
 /**
  * GET /api/admin/qr/cleanup
@@ -19,15 +20,21 @@ export async function GET() {
     });
 
     let memberKeys = { deletedKeys: 0, deletedQrTokens: 0 };
+    let cleanedMembers = 0;
     if (isSqlServerConfigured()) {
       memberKeys = await deleteExpiredPennuengMemberKeys();
+      cleanedMembers = await autoCleanSoftDeletedMembers().catch((err) => {
+        console.error('[CLEANUP_API_AUTO_CLEAN_SOFT_DELETED_ERROR]', err);
+        return 0;
+      });
     }
 
     return NextResponse.json({
       success: true,
-      message: `Cleaned ${tokenResult.count} expired qr_tokens; ${memberKeys.deletedKeys} mbmemberkey rows (${memberKeys.deletedQrTokens} linked tokens).`,
+      message: `Cleaned ${tokenResult.count} expired qr_tokens; ${memberKeys.deletedKeys} mbmemberkey rows (${memberKeys.deletedQrTokens} linked tokens); ${cleanedMembers} soft-deleted members permanently deleted.`,
       qrTokens: tokenResult.count,
       mbmemberkey: memberKeys.deletedKeys,
+      cleanedSoftDeletedMembers: cleanedMembers,
       timestamp: now,
     });
   } catch (error) {

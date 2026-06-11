@@ -57,4 +57,5 @@ export type PennuengMemberKeyWithMember = PennuengMemberKey & {
   memberType: string;
   memberTypeLabel: string | null;
   groupDetail: string | null;
+  email?: string | null;
 };

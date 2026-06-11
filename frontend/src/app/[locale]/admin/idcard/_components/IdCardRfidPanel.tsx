@@ -7,6 +7,8 @@ import {
   Button,
   Card,
   Code,
+  Divider,
+  Grid,
   Group,
   Loader,
   Paper,
@@ -26,6 +28,8 @@ import {
 } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 import { QRCodeSVG } from 'qrcode.react';
+import type { ReaderInfo } from '@/lib/api';
+import { CardReaderStatus } from '@/components/CardReaderStatus';
 import type { PennuengMember, PennuengMemberTypeOption } from '@/types/pennueng-member';
 import type { PennuengMemberKeyWithMember } from '@/types/pennueng-member';
 import { formatUidHex, useRfidReader } from '../hooks/useRfidReader';
@@ -40,6 +44,12 @@ import {
 type Props = {
   hasReader: boolean;
   memberTypes: PennuengMemberTypeOption[];
+  readers: ReaderInfo[];
+  cardApiReachable: boolean;
+  wsConnected: boolean;
+  isLoadingReaders: boolean;
+  isBackendOffline: boolean;
+  handleRefresh: () => void;
 };
 
 const MIN_SEARCH = 3;
@@ -57,7 +67,16 @@ function keyFromRfid(uidHex?: string, uidDecimal?: string): string {
   return uidDecimal?.trim() || uidHex?.replace(/\s/g, '') || '';
 }
 
-export function IdCardRfidPanel({ hasReader, memberTypes }: Props) {
+export function IdCardRfidPanel({
+  hasReader,
+  memberTypes,
+  readers,
+  cardApiReachable,
+  wsConnected,
+  isLoadingReaders,
+  isBackendOffline,
+  handleRefresh,
+}: Props) {
   const t = useTranslations('IdCard');
   const { isScanning, lastResult, history, autoScan, setAutoScan, doScan } =
     useRfidReader(false);
@@ -156,7 +175,7 @@ export function IdCardRfidPanel({ hasReader, memberTypes }: Props) {
         sex: null,
         address: null,
         tel: null,
-        email: null,
+        email: keyRow.email ?? null,
         birthDate: null,
         personId: null,
         memberDate: null,
@@ -167,162 +186,227 @@ export function IdCardRfidPanel({ hasReader, memberTypes }: Props) {
     : selectedMember;
 
   return (
-    <Stack gap="md">
-      <Card
-        withBorder
-        radius="md"
-        p={0}
-        style={{ overflow: 'hidden', cursor: isScanning ? 'default' : 'pointer' }}
-        onClick={() => {
-          if (!isScanning && !autoScan) void doScan();
-        }}
-      >
-        <Paper p="xl" radius={0} bg="var(--bg-secondary)">
-          <Stack align="center" gap="md">
-            <ThemeIcon size={80} radius="xl" variant="light" color="teal">
-              {isScanning ? (
-                <Loader color="green" size={32} type="dots" />
-              ) : (
-                <IconAntenna size={40} stroke={1.5} />
-              )}
-            </ThemeIcon>
-            <Text fw={700} size="lg" ta="center">
-              {isScanning ? t('rfidScanning') : t('rfidPlaceCard')}
-            </Text>
-          </Stack>
-        </Paper>
-      </Card>
+    <Grid gap="md" align="flex-start">
+      <Grid.Col span={{ base: 12, md: 5 }}>
+        <Stack gap="md">
+          <CardReaderStatus
+            readers={readers}
+            isConnected={cardApiReachable || hasReader || wsConnected}
+            isLoading={isLoadingReaders}
+            onRefresh={handleRefresh}
+            backendOffline={isBackendOffline}
+            embedded
+          />
 
-      <Group grow>
-        <Button
-          variant={autoScan ? 'filled' : 'light'}
-          color={autoScan ? 'orange' : 'green'}
-          leftSection={autoScan ? <IconPlayerPause size={18} /> : <IconPlayerPlay size={18} />}
-          onClick={() => setAutoScan(!autoScan)}
-        >
-          {autoScan ? t('rfidStopAuto') : t('rfidStartAuto')}
-        </Button>
-        <Button
-          variant="light"
-          leftSection={<IconRefresh size={18} />}
-          onClick={() => void doScan()}
-          loading={isScanning}
-        >
-          {t('rfidScanOnce')}
-        </Button>
-      </Group>
+          <Card
+            withBorder
+            radius="md"
+            p={0}
+            style={{ overflow: 'hidden', cursor: isScanning ? 'default' : 'pointer' }}
+            onClick={() => {
+              if (!isScanning && !autoScan) void doScan();
+            }}
+          >
+            <Paper p="xl" radius={0} bg="var(--bg-secondary)">
+              <Stack align="center" gap="md">
+                <ThemeIcon size={80} radius="xl" variant="light" color="teal">
+                  {isScanning ? (
+                    <Loader color="green" size={32} type="dots" />
+                  ) : (
+                    <IconAntenna size={40} stroke={1.5} />
+                  )}
+                </ThemeIcon>
+                <Text fw={700} size="lg" ta="center">
+                  {isScanning ? t('rfidScanning') : t('rfidPlaceCard')}
+                </Text>
+              </Stack>
+            </Paper>
+          </Card>
 
-      {showError ? (
-        <Alert color="orange" variant="light" title={t('rfidErrorTitle')}>
-          {lastResult!.error}
-        </Alert>
-      ) : null}
+          <Group grow>
+            <Button
+              variant={autoScan ? 'filled' : 'light'}
+              color={autoScan ? 'orange' : 'green'}
+              leftSection={autoScan ? <IconPlayerPause size={18} /> : <IconPlayerPlay size={18} />}
+              onClick={() => setAutoScan(!autoScan)}
+            >
+              {autoScan ? t('rfidStopAuto') : t('rfidStartAuto')}
+            </Button>
+            <Button
+              variant="light"
+              leftSection={<IconRefresh size={18} />}
+              onClick={() => void doScan()}
+              loading={isScanning}
+            >
+              {t('rfidScanOnce')}
+            </Button>
+          </Group>
+        </Stack>
+      </Grid.Col>
 
-      {keyLoading ? (
-        <Group justify="center" py="md">
-          <Loader size="sm" />
-          <Text size="sm" c="dimmed">
-            {t('pennKeyLookup')}
-          </Text>
-        </Group>
-      ) : null}
-
-      {keyRow && pennMember ? (
-        <IdCardMemberFoundBanner
-          member={pennMember}
-          groupDetail={keyRow.groupDetail}
-          issuing={issuing}
-          qr={qr}
-          onIssueQr={() => void issueTempQr(keyRow.memberNo)}
-        />
-      ) : null}
-
-      {!keyLoading && !keyRow && lastResult?.success ? (
-        <Alert color="orange" variant="light" title={t('pennKeyNotFound')}>
-          {t('pennKeyNotFoundHint')}
-        </Alert>
-      ) : null}
-
-      <Autocomplete
-        label={t('pennMemberSearch')}
-        placeholder={t('pennMemberSearchPlaceholder')}
-        value={searchValue}
-        onChange={setSearchValue}
-        data={searchOptions}
-        filter={({ options }) => options}
-        rightSection={searching ? <Loader size={16} /> : null}
-        onOptionSubmit={async (memberNo) => {
-          const members = await searchPennuengMembersBriefApi(memberNo);
-          const m = members.find((x) => x.memberNo === memberNo) ?? members[0] ?? null;
-          setSelectedMember(m);
-          setShowRegister(true);
-          setSearchValue(m ? `${m.name} ${m.surname}` : memberNo);
-        }}
-      />
-
-      {!showRegister && !keyRow ? (
-        <Button
-          variant="light"
-          leftSection={<IconUserPlus size={18} />}
-          onClick={() => setShowRegister(true)}
-        >
-          {t('pennShowRegister')}
-        </Button>
-      ) : null}
-
-      {showRegister ? (
-        <IdCardPennuengRegisterForm
-          card={null}
-          member={selectedMember}
-          types={memberTypes}
-          rfidCapture={rfidCapture}
-          onRfidCaptureConsumed={() => setRfidCapture(null)}
-        />
-      ) : null}
-
-      {lastResult?.success && (
-        <Card withBorder radius="md" p="md">
-          <Stack gap="xs">
-            <Group gap="xs">
-              <IconCheck size={16} color="green" />
-              <Text fw={600} size="sm">
-                UID: {formatUidHex(lastResult.uid_hex!)}
-              </Text>
-              <Button
-                size="compact-xs"
-                variant="light"
-                leftSection={<IconCopy size={12} />}
-                onClick={() => void handleCopy(lastResult.uid_decimal!, 'dec')}
-              >
-                {copied === 'dec' ? t('rfidCopied') : lastResult.uid_decimal}
-              </Button>
+      <Grid.Col span={{ base: 12, md: 7 }}>
+        <Card withBorder radius="md" p="lg" h="100%">
+          <Stack gap="md">
+            <Group justify="space-between">
+              <Text fw={700}>{t('readResult')}</Text>
             </Group>
-            <Code block>{formatUidHex(lastResult.uid_hex!)}</Code>
+            <Divider />
+
+            {lastResult || keyLoading || showRegister || keyRow || searchValue ? (
+              <Stack gap="md">
+                {showError ? (
+                  <Alert color="orange" variant="light" title={t('rfidErrorTitle')}>
+                    {lastResult!.error}
+                  </Alert>
+                ) : null}
+
+                {keyLoading ? (
+                  <Group justify="center" py="md">
+                    <Loader size="sm" />
+                    <Text size="sm" c="dimmed">
+                      {t('pennKeyLookup')}
+                    </Text>
+                  </Group>
+                ) : null}
+
+                {keyRow && pennMember ? (
+                  <Stack gap="md">
+                    {lastResult?.success && (
+                      <Card withBorder radius="md" p="md">
+                        <Stack gap="xs">
+                          <Group gap="xs">
+                            <IconCheck size={16} color="green" />
+                            <Text fw={600} size="sm">
+                              UID: {formatUidHex(lastResult.uid_hex!)}
+                            </Text>
+                            <Button
+                              size="compact-xs"
+                              variant="light"
+                              leftSection={<IconCopy size={12} />}
+                              onClick={() => void handleCopy(lastResult.uid_decimal!, 'dec')}
+                            >
+                              {copied === 'dec' ? t('rfidCopied') : lastResult.uid_decimal}
+                            </Button>
+                          </Group>
+                          <Code block>{formatUidHex(lastResult.uid_hex!)}</Code>
+                        </Stack>
+                      </Card>
+                    )}
+
+                    <IdCardMemberFoundBanner
+                      key={pennMember.memberNo}
+                      member={pennMember}
+                      groupDetail={keyRow.groupDetail}
+                      issuing={issuing}
+                      qr={qr}
+                      onIssueQr={() => void issueTempQr(keyRow.memberNo)}
+                    />
+                  </Stack>
+                ) : (
+                  <Stack gap="md">
+                    {lastResult?.success && (
+                      <Card withBorder radius="md" p="md">
+                        <Stack gap="xs">
+                          <Group gap="xs">
+                            <IconCheck size={16} color="green" />
+                            <Text fw={600} size="sm">
+                              UID: {formatUidHex(lastResult.uid_hex!)}
+                            </Text>
+                            <Button
+                              size="compact-xs"
+                              variant="light"
+                              leftSection={<IconCopy size={12} />}
+                              onClick={() => void handleCopy(lastResult.uid_decimal!, 'dec')}
+                            >
+                              {copied === 'dec' ? t('rfidCopied') : lastResult.uid_decimal}
+                            </Button>
+                          </Group>
+                          <Code block>{formatUidHex(lastResult.uid_hex!)}</Code>
+                        </Stack>
+                      </Card>
+                    )}
+
+                    {!keyLoading && lastResult?.success ? (
+                      <Alert color="orange" variant="light" title={t('pennKeyNotFound')}>
+                        {t('pennKeyNotFoundHint')}
+                      </Alert>
+                    ) : null}
+
+                    <Autocomplete
+                      label={t('pennMemberSearch')}
+                      placeholder={t('pennMemberSearchPlaceholder')}
+                      value={searchValue}
+                      onChange={setSearchValue}
+                      data={searchOptions}
+                      filter={({ options }) => options}
+                      rightSection={searching ? <Loader size={16} /> : null}
+                      onOptionSubmit={async (memberNo) => {
+                        const members = await searchPennuengMembersBriefApi(memberNo);
+                        const m = members.find((x) => x.memberNo === memberNo) ?? members[0] ?? null;
+                        setSelectedMember(m);
+                        setShowRegister(true);
+                        setSearchValue(m ? `${m.name} ${m.surname}` : memberNo);
+                      }}
+                    />
+
+                    {!showRegister && (
+                      <Button
+                        variant="light"
+                        leftSection={<IconUserPlus size={18} />}
+                        onClick={() => setShowRegister(true)}
+                      >
+                        {t('pennShowRegister')}
+                      </Button>
+                    )}
+
+                    {showRegister ? (
+                      <IdCardPennuengRegisterForm
+                        card={null}
+                        member={selectedMember}
+                        types={memberTypes}
+                        rfidCapture={rfidCapture}
+                        onRfidCaptureConsumed={() => setRfidCapture(null)}
+                      />
+                    ) : null}
+
+                    {history.length > 0 && (
+                      <Card withBorder radius="md" p="md">
+                        <Text fw={600} size="sm" mb="sm">
+                          {t('rfidHistory')}
+                        </Text>
+                        <ScrollArea h={160}>
+                          <Stack gap="xs">
+                            {history.map((record) => (
+                              <Paper key={record.id} withBorder p="xs" radius="sm">
+                                <Group justify="space-between" wrap="nowrap">
+                                  <Text size="xs" c="dimmed">
+                                    {record.timestamp}
+                                  </Text>
+                                  <Code>{formatUidHex(record.result.uid_hex!)}</Code>
+                                </Group>
+                              </Paper>
+                            ))}
+                          </Stack>
+                        </ScrollArea>
+                      </Card>
+                    )}
+                  </Stack>
+                )}
+              </Stack>
+            ) : (
+              <Stack align="center" gap="xs" pt="sm" pb="md">
+                <IconAntenna size={40} color="var(--mantine-color-gray-4)" />
+                <Text c="dimmed" size="sm" ta="center">
+                  {t('noData')}
+                </Text>
+                <Text c="dimmed" size="xs" ta="center" maw={280}>
+                  ทาบบัตรนักศึกษา/บัตร RFID บนเครื่องอ่านเพื่อเริ่มต้นใช้งาน
+                </Text>
+              </Stack>
+            )}
           </Stack>
         </Card>
-      )}
-
-      {history.length > 0 && (
-        <Card withBorder radius="md" p="md">
-          <Text fw={600} size="sm" mb="sm">
-            {t('rfidHistory')}
-          </Text>
-          <ScrollArea h={160}>
-            <Stack gap="xs">
-              {history.map((record) => (
-                <Paper key={record.id} withBorder p="xs" radius="sm">
-                  <Group justify="space-between" wrap="nowrap">
-                    <Text size="xs" c="dimmed">
-                      {record.timestamp}
-                    </Text>
-                    <Code>{formatUidHex(record.result.uid_hex!)}</Code>
-                  </Group>
-                </Paper>
-              ))}
-            </Stack>
-          </ScrollArea>
-        </Card>
-      )}
-    </Stack>
+      </Grid.Col>
+    </Grid>
   );
 }

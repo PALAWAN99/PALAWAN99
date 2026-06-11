@@ -148,7 +148,7 @@ export function LoginForm() {
             : 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
         );
       } else if (result?.ok) {
-        window.location.assign(withBasePath('/admin'));
+        window.location.assign(withBasePath('/admin/dashboard'));
       } else {
         setError('เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่');
       }

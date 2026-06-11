@@ -20,9 +20,18 @@ export function unwrapApiList<T>(payload: unknown): T[] {
 /** ข้อความจาก body `{ success: false, error: { message } }` หรือ `{ message }` */
 export function getApiErrorMessage(payload: unknown): string {
   if (!payload || typeof payload !== 'object') return '';
-  const o = payload as { error?: { message?: unknown }; message?: unknown };
-  const em = o.error?.message;
-  if (typeof em === 'string' && em.trim()) return em.trim();
+  const o = payload as { error?: unknown; message?: unknown };
+  
+  if (o.error) {
+    if (typeof o.error === 'object' && 'message' in o.error) {
+      const em = (o.error as { message?: unknown }).message;
+      if (typeof em === 'string' && em.trim()) return em.trim();
+    }
+    if (typeof o.error === 'string' && o.error.trim()) {
+      return o.error.trim();
+    }
+  }
+  
   const m = o.message;
   if (typeof m === 'string' && m.trim()) return m.trim();
   return '';

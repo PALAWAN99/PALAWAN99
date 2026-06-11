@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { inferApiAction } from './infer-action';
 import { normalizeRoutePattern, shouldSkipRouteLog } from './paths';
@@ -12,10 +13,10 @@ export type LoggedApiOptions = {
 };
 
 export function withLoggedApi(
-  handler: (req: NextRequest, ctx: RouteContext) => Promise<Response>,
+  handler: (req: NextRequest, ctx: RouteContext) => Promise<NextResponse>,
   options?: LoggedApiOptions,
 ) {
-  return async (req: NextRequest, ctx: RouteContext): Promise<Response> => {
+  return async (req: NextRequest, ctx: RouteContext): Promise<NextResponse> => {
     const path = req.nextUrl.pathname;
     if (shouldSkipRouteLog(path)) {
       return handler(req, ctx);

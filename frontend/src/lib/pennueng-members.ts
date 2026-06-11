@@ -423,11 +423,46 @@ export async function restorePennuengMember(memberNo: string): Promise<PennuengM
   return restored;
 }
 
+export async function autoCleanSoftDeletedMembers(): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+
+  const oldDeleted = await prisma.pennuengMemberSoftDelete.findMany({
+    where: {
+      restoredAt: null,
+      deletedAt: {
+        lt: cutoff,
+      },
+    },
+    select: {
+      memberNo: true,
+    },
+  });
+
+  if (oldDeleted.length === 0) return 0;
+
+  let count = 0;
+  for (const item of oldDeleted) {
+    try {
+      await hardDeletePennuengMember(item.memberNo);
+      count++;
+    } catch (err) {
+      console.error(`Failed to auto hard-delete member ${item.memberNo}:`, err);
+    }
+  }
+  return count;
+}
+
 export async function listPennuengSoftDeleted(options: {
   search?: string;
   page?: number;
   limit?: number;
 }): Promise<{ rows: PennuengMemberSoftDeleteRow[]; total: number; pages: number; page: number }> {
+  // Auto clean up soft deleted members older than 30 days
+  await autoCleanSoftDeletedMembers().catch((err) => {
+    console.error('[AUTO_CLEAN_SOFT_DELETED_ERROR]', err);
+  });
+
   const page = Math.max(1, options.page ?? 1);
   const limit = Math.min(100, Math.max(1, options.limit ?? 20));
   const skip = (page - 1) * limit;
@@ -468,3 +503,47 @@ export async function listPennuengSoftDeleted(options: {
     page,
   };
 }
+
+export async function hardDeletePennuengMember(memberNo: string): Promise<void> {
+  const crypto = await import('crypto');
+  assertSqlServerReady();
+  const trimmed = memberNo.trim();
+  const pool = await getSqlServerPool();
+
+  // 1. Get keys to delete their qr_tokens
+  const keysResult = await pool
+    .request()
+    .input('memberNo', sql.VarChar, trimmed)
+    .query<{ member_key: string }>(`
+      SELECT RTRIM(member_key) AS member_key FROM mbmemberkey WITH (NOLOCK) WHERE RTRIM(member_no) = @memberNo
+    `);
+  const keys = keysResult.recordset.map((r) => r.member_key?.trim()).filter((k): k is string => Boolean(k));
+
+  // 2. Delete qr_tokens associated with keys
+  for (const key of keys) {
+    const hash = crypto.createHash('sha256').update(key).digest('hex');
+    await prisma.qrToken.deleteMany({ where: { tokenHash: hash } });
+  }
+
+  // 3. Delete keys from SQL Server
+  await pool
+    .request()
+    .input('memberNo', sql.VarChar, trimmed)
+    .query(`
+      DELETE FROM mbmemberkey WHERE RTRIM(member_no) = @memberNo
+    `);
+
+  // 4. Delete member from SQL Server
+  await pool
+    .request()
+    .input('memberNo', sql.VarChar, trimmed)
+    .query(`
+      DELETE FROM mbmembmaster WHERE RTRIM(member_no) = @memberNo
+    `);
+
+  // 5. Delete soft delete records from PostgreSQL
+  await prisma.pennuengMemberSoftDelete.deleteMany({
+    where: { memberNo: trimmed },
+  });
+}
+

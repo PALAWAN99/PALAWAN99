@@ -11,7 +11,20 @@ import {
 
 import type { PennuengMemberTypeSlice } from '@/types/pennueng-dashboard';
 
-const PIE_COLORS = ['#38BDF8', '#10B981', '#1E3A5F', '#0EA5E9', '#F59E0B', '#8B5CF6', '#EC4899', '#64748B'];
+const PIE_COLORS = [
+  '#38BDF8',
+  '#10B981',
+  '#1E3A5F',
+  '#0EA5E9',
+  '#F59E0B',
+  '#8B5CF6',
+  '#EC4899',
+  '#64748B',
+  '#F97316',
+  '#14B8A6',
+  '#F43F5E',
+  '#6366F1',
+];
 
 const OTHER_LABEL = 'อื่นๆ';
 
@@ -54,6 +67,7 @@ type PennuengDonutChartProps = {
   height?: number;
   mergeSmall?: boolean;
   otherLabel?: string;
+  onClickSlice?: (name: string) => void;
 };
 
 export function PennuengDonutChart({
@@ -61,6 +75,7 @@ export function PennuengDonutChart({
   height = 200,
   mergeSmall = true,
   otherLabel = OTHER_LABEL,
+  onClickSlice,
 }: PennuengDonutChartProps) {
   const chartData = mergeSmall ? mergeSmallPieSlices(data) : data;
   const total = chartData.reduce((sum, s) => sum + s.value, 0);
@@ -83,9 +98,9 @@ export function PennuengDonutChart({
   });
 
   return (
-    <Stack gap="sm">
-      <Box style={{ height, width: '100%', minWidth: 0 }}>
-        <ResponsiveContainer width="100%" height={height}>
+    <Group justify="center" align="center" gap="xl" wrap="wrap" py="sm">
+      <Box style={{ height, width: height, flexShrink: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={chartData}
@@ -93,11 +108,18 @@ export function PennuengDonutChart({
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius="52%"
-              outerRadius="78%"
+              innerRadius="55%"
+              outerRadius="80%"
               paddingAngle={1}
               stroke="none"
               isAnimationActive={false}
+              onClick={(data) => {
+                console.log('Pie slice click data:', data);
+                if (data && data.name && onClickSlice) {
+                  onClickSlice(String(data.name));
+                }
+              }}
+              style={{ cursor: onClickSlice ? 'pointer' : 'default' }}
             >
               {chartData.map((_, i) => (
                 <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -114,20 +136,20 @@ export function PennuengDonutChart({
           </PieChart>
         </ResponsiveContainer>
       </Box>
-      <Stack gap={6}>
+
+      <Stack gap={8} style={{ flex: '1 1 180px', minWidth: 150 }} justify="center">
         {legendRows.map((row) => (
-          <Group key={row.key} gap="xs" wrap="nowrap" align="flex-start">
+          <Group key={row.key} gap="xs" wrap="nowrap" align="center">
             <Box
-              w={10}
-              h={10}
-              mt={4}
+              w={12}
+              h={12}
               style={{
-                borderRadius: 2,
+                borderRadius: 3,
                 background: row.color,
                 flexShrink: 0,
               }}
             />
-            <Text size="xs" lh={1.35} style={{ flex: 1, minWidth: 0 }}>
+            <Text size="sm" lh={1.35} style={{ flex: 1, minWidth: 0 }}>
               <Text span fw={600}>
                 {row.label}
               </Text>
@@ -139,6 +161,6 @@ export function PennuengDonutChart({
           </Group>
         ))}
       </Stack>
-    </Stack>
+    </Group>
   );
 }

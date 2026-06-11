@@ -16,8 +16,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const start = dayjs().startOf('day').toDate();
-    const end = dayjs().endOf('day').toDate();
+    const searchParams = req.nextUrl.searchParams;
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
+    const start = startDateParam ? dayjs(startDateParam).startOf('day').toDate() : dayjs().startOf('day').toDate();
+    const end = endDateParam ? dayjs(endDateParam).endOf('day').toDate() : dayjs().endOf('day').toDate();
 
     // Run queries in parallel for performance
     const [

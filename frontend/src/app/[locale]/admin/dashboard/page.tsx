@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import {
   Title,
@@ -9,8 +10,11 @@ import {
   Badge,
   Box,
   Alert,
+  Button,
 } from '@mantine/core';
-import { IconLayoutDashboard, IconAlertCircle } from '@tabler/icons-react';
+import { DatePickerInput, type DatesRangeValue } from '@mantine/dates';
+import { IconLayoutDashboard, IconAlertCircle, IconPlugOff, IconRefresh, IconSearch } from '@tabler/icons-react';
+import dayjs from 'dayjs';
 
 import { useDashboard } from '../dashboard/hooks/useDashboard';
 import { DashboardStats } from '../dashboard/_components/DashboardStats';
@@ -19,11 +23,51 @@ import { DashboardActivity } from '../dashboard/_components/DashboardActivity';
 import { DashboardGateSummary } from '../dashboard/_components/DashboardGateSummary';
 import { DashboardPennuengSection } from '../dashboard/_components/DashboardPennuengSection';
 import { DashboardStudentsCurriculumHeader } from '../dashboard/_components/DashboardStudentsCurriculumHeader';
+import { DashboardDrillDownModal, type DrillDownFilters } from '../dashboard/_components/DashboardDrillDownModal';
 
 /** แดชบอร์ดภาพรวมระบบ — ย้ายจาก /admin */
 export default function AdminDashboardPage() {
   const t = useTranslations();
   const locale = useLocale();
+  const [dateRange, setDateRange] = useState<DatesRangeValue>([null, null]);
+  const [searchRange, setSearchRange] = useState<DatesRangeValue>([null, null]);
+  const [drillDown, setDrillDown] = useState<DrillDownFilters | null>(null);
+
+  const handleDrillDown = (filter: Omit<DrillDownFilters, 'startDate' | 'endDate'> & { dateStr?: string; hourStr?: string }) => {
+    console.log('handleDrillDown invoked with filter:', filter);
+    let start: string | undefined;
+    let end: string | undefined;
+
+    if (filter.dateStr) {
+      start = dayjs(filter.dateStr).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      end = dayjs(filter.dateStr).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+    } else if (filter.hourStr) {
+      // If hour is e.g. "08:00", get search range start date or today
+      const baseDate = searchRange[0] ? dayjs(searchRange[0]) : dayjs();
+      const hour = parseInt(filter.hourStr.split(':')[0]);
+      start = baseDate.hour(hour).minute(0).second(0).millisecond(0).format('YYYY-MM-DDTHH:mm:ss');
+      end = baseDate.hour(hour).minute(59).second(59).millisecond(999).format('YYYY-MM-DDTHH:mm:ss');
+    } else {
+      // Use general search range
+      if (searchRange[0]) start = dayjs(searchRange[0]).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      if (searchRange[1]) end = dayjs(searchRange[1]).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+    }
+
+    const nextDrillDown = {
+      title: filter.title,
+      gateId: filter.gateId,
+      decision: filter.decision,
+      direction: filter.direction,
+      memberType: filter.memberType,
+      startDate: start,
+      endDate: end,
+      search: filter.search,
+      source: filter.source ?? (dataSource === 'pennueng' ? 'pennueng' : 'postgres'),
+    };
+    console.log('Setting drillDown state to:', nextDrillDown);
+    setDrillDown(nextDrillDown);
+  };
+
   const {
     stats,
     recentEvents,
@@ -37,7 +81,8 @@ export default function AdminDashboardPage() {
     dataSource,
     loading,
     error,
-  } = useDashboard();
+    refetchPennueng,
+  } = useDashboard(searchRange);
 
   const formattedDate = new Date().toLocaleDateString(
     locale === 'th' ? 'th-TH' : 'en-US',
@@ -66,6 +111,29 @@ export default function AdminDashboardPage() {
           </Text>
         </div>
         <Group gap="xs">
+          <DatePickerInput
+            type="range"
+            placeholder="เลือกช่วงเวลา"
+            value={dateRange}
+            onChange={(val: DatesRangeValue) => {
+              setDateRange(val);
+              if (val[0] === null && val[1] === null) {
+                setSearchRange([null, null]);
+              }
+            }}
+            clearable
+            size="sm"
+            maxDate={new Date()}
+            w={220}
+          />
+          <Button
+            size="sm"
+            variant="filled"
+            leftSection={<IconSearch size={16} />}
+            onClick={() => setSearchRange(dateRange)}
+          >
+            ค้นหา
+          </Button>
           {dataSource === 'pennueng' ? (
             <Badge color="navy" variant="light" size="lg">
               Pennueng DB
@@ -84,29 +152,53 @@ export default function AdminDashboardPage() {
       </Group>
 
       <DashboardStats stats={stats} loading={loading} t={t} />
-      <DashboardCharts chartData={chartData} gateTraffic={gateTraffic} loading={loading} t={t} />
+      <DashboardCharts chartData={chartData} gateTraffic={gateTraffic} loading={loading} onDrillDown={handleDrillDown} t={t} />
 
       {!pennuengUnavailable ? (
         <Stack gap="md">
           <DashboardStudentsCurriculumHeader title={t('Dashboard.studentsCurriculumSection')} />
           <DashboardPennuengSection
-          stats={pennueng?.stats ?? null}
-          chartData={[]}
-          gateTraffic={[]}
-          gateStatus={[]}
-          memberTypes={pennueng?.memberTypes ?? []}
-          topCurricula={pennueng?.topCurricula ?? []}
-          loading={pennuengLoading}
-          error={pennuengError}
-          unavailable={pennuengUnavailable}
-          compact
-          t={t}
-        />
+            stats={pennueng?.stats ?? null}
+            chartData={[]}
+            gateTraffic={[]}
+            gateStatus={[]}
+            memberTypes={pennueng?.memberTypes ?? []}
+            topCurricula={pennueng?.topCurricula ?? []}
+            loading={pennuengLoading}
+            error={pennuengError}
+            unavailable={pennuengUnavailable}
+            compact
+            onDrillDown={handleDrillDown}
+            t={t}
+          />
         </Stack>
-      ) : null}
+      ) : (
+        <Alert
+          icon={<IconPlugOff size={18} />}
+          title="ไม่สามารถเชื่อมต่อ Pennueng DB ได้"
+          color="gray"
+          variant="light"
+          radius="md"
+        >
+          <Group justify="space-between" align="center" wrap="wrap">
+            <Text size="sm">ข้อมูลนักศึกษาและหลักสูตรไม่พร้อมใช้งานในขณะนี้</Text>
+            <Button
+              size="xs"
+              variant="light"
+              color="gray"
+              leftSection={<IconRefresh size={14} />}
+              onClick={refetchPennueng}
+            >
+              ลองใหม่
+            </Button>
+          </Group>
+        </Alert>
+      )}
 
       <DashboardGateSummary gates={gateStatus} loading={loading} t={t} />
       <DashboardActivity recentEvents={recentEvents} loading={loading} t={t} />
+
+      <DashboardDrillDownModal filters={drillDown} onClose={() => setDrillDown(null)} />
     </Stack>
   );
 }

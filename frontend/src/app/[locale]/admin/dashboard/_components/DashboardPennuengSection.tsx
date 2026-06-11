@@ -38,6 +38,7 @@ import { PennuengDonutChart } from './PennuengDonutChart';
 import { PennuengHorizontalBarChart } from './PennuengHorizontalBarChart';
 import { PennuengVerticalBarChart } from './PennuengVerticalBarChart';
 import { DashboardStudentsCurriculumCharts } from './DashboardStudentsCurriculumCharts';
+import { DrillDownFilters } from './DashboardDrillDownModal';
 
 import type {
   PennuengDashboardStats,
@@ -59,6 +60,7 @@ interface DashboardPennuengSectionProps {
   unavailable: boolean;
   /** แสดงเฉพาะกราฟประเภทสมาชิก (ข้อมูลหลักอยู่ในแดชบอร์ดด้านบนแล้ว) */
   compact?: boolean;
+  onDrillDown?: (filter: DrillDownFilters) => void;
   t: (key: string) => string;
 }
 
@@ -158,6 +160,7 @@ export function DashboardPennuengSection({
   error,
   unavailable,
   compact = false,
+  onDrillDown,
   t,
 }: DashboardPennuengSectionProps) {
   if (unavailable) {
@@ -190,6 +193,7 @@ export function DashboardPennuengSection({
         topCurricula={topCurricula}
         todayOutcome={todayOutcome}
         loading={loading}
+        onDrillDown={onDrillDown}
         t={t}
       />
     );
@@ -273,7 +277,21 @@ export function DashboardPennuengSection({
             {!loading ? (
               <div style={{ height: 280, width: '100%', minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={chartData}>
+                  <AreaChart
+                    data={chartData}
+                    onClick={(clickData) => {
+                      console.log('Pennueng Traffic click data:', clickData);
+                      if (clickData && clickData.activeLabel) {
+                        const label = String(clickData.activeLabel);
+                        onDrillDown?.({
+                          title: `รายชื่อผู้ผ่านเข้าออกช่วงเวลา ${label}`,
+                          search: label.includes(':') ? label : undefined,
+                          source: 'pennueng',
+                        });
+                      }
+                    }}
+                    style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                  >
                     <defs>
                       <linearGradient id="penIn" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#1E3A5F" stopOpacity={0.35} />
@@ -326,7 +344,23 @@ export function DashboardPennuengSection({
                       axisLine={false}
                     />
                     <ChartTooltip />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18}>
+                    <Bar
+                      dataKey="value"
+                      radius={[0, 4, 4, 0]}
+                      barSize={18}
+                      onClick={(barData: any) => {
+                        console.log('Pennueng Top Gates click data:', barData);
+                        const d = barData?.payload || barData;
+                        if (d) {
+                          onDrillDown?.({
+                            title: `รายชื่อผู้ผ่านประตู: ${d.name || ''}`,
+                            gateId: d.code,
+                            source: 'pennueng',
+                          });
+                        }
+                      }}
+                      style={{ cursor: onDrillDown ? 'pointer' : 'default' }}
+                    >
                       {gateTraffic.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
@@ -355,6 +389,7 @@ export function DashboardPennuengSection({
           t('Common.other'),
         )}
         loading={loading}
+        onDrillDown={onDrillDown}
         t={t}
       />
 

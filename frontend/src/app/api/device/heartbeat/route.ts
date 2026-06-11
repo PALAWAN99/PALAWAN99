@@ -17,7 +17,7 @@ const heartbeatSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   // Check Rate Limit (200 req/min — relaxed for device heartbeat)
-  const rateLimitError = await checkRelaxedRateLimit(req);
+  const rateLimitError = checkRelaxedRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
   try {

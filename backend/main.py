@@ -266,9 +266,28 @@ async def api_read_photo(reader: Optional[str] = None):
 @app.get("/api/rfid/read")
 async def api_rfid_read():
     """Read RFID card UID via contactless interface."""
+    from card_reader import read_rfid_pcsc, PYSCARD_AVAILABLE
     from vendor_protocol import get_reader, VendorProtocolError
 
-    reader = get_reader()
+    # 1. Try PC/SC first (standard CCID/default driver compatible)
+    if PYSCARD_AVAILABLE:
+        try:
+            pcsc_result = read_rfid_pcsc()
+            if pcsc_result:
+                return pcsc_result
+        except Exception as e:
+            logging.debug("RFID PC/SC read error: %s", e)
+
+    # 2. Fall back to Vendor Protocol (direct USB/pyusb)
+    try:
+        reader = get_reader()
+    except Exception as e:
+        if "No backend available" in str(e):
+            if PYSCARD_AVAILABLE:
+                return {"success": False, "error": "ไม่พบบัตร RFID — กรุณาวางบัตรบนเครื่องอ่าน"}
+            return {"success": False, "error": "กรุณาติดตั้งไดรเวอร์ USB หรือสลับไปใช้โหมด PC/SC"}
+        return {"success": False, "error": f"RFID read error: {e}"}
+
     for attempt in range(2):
         try:
             if not reader.is_connected:
@@ -289,7 +308,17 @@ async def api_rfid_read():
             if attempt == 0 and "No such device" in str(e):
                 reader.close()
                 continue
+            
+            # If pyusb has no backend driver (libusb) but PC/SC is available, it means the hardware
+            # is connected via CCID/PC/SC driver, so "No backend available" is expected.
+            # In this case, return "no card found" to the user instead of driver error.
+            if "No backend available" in str(e):
+                if PYSCARD_AVAILABLE:
+                    return {"success": False, "error": "ไม่พบบัตร RFID — กรุณาวางบัตรบนเครื่องอ่าน"}
+                return {"success": False, "error": "กรุณาติดตั้งไดรเวอร์ USB หรือสลับไปใช้โหมด PC/SC"}
+                
             return {"success": False, "error": f"RFID read error: {e}"}
+            
     return {"success": False, "error": "ไม่สามารถเชื่อมต่อเครื่องอ่านได้"}
 
 
