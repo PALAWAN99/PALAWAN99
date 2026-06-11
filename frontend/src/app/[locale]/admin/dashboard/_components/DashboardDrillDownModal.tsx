@@ -43,6 +43,7 @@ export interface DrillDownFilters {
   startDate?: string;
   endDate?: string;
   search?: string;
+  department?: string;
   source?: 'pennueng' | 'postgres';
   hourStr?: string;
   dateStr?: string;
@@ -130,6 +131,7 @@ export function DashboardDrillDownModal({ filters, onClose }: DashboardDrillDown
       if (effectiveDirection) queryParams.set('direction', effectiveDirection);
       if (effectiveDecision) queryParams.set('decision', effectiveDecision);
       if (effectiveMemberType) queryParams.set('memberType', effectiveMemberType);
+      if (filters.department) queryParams.set('department', filters.department);
 
       if (filters.source === 'pennueng') {
         if (filters.startDate) {

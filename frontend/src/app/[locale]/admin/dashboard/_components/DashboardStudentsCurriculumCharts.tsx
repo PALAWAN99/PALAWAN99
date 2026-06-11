@@ -160,7 +160,7 @@ export function DashboardStudentsCurriculumCharts({
               onClickBar={(name) => {
                 onDrillDown?.({
                   title: `รายชื่อผู้ใช้สังกัดหลักสูตร: ${name}`,
-                  search: name,
+                  department: name,
                   source: 'pennueng',
                 });
               }}

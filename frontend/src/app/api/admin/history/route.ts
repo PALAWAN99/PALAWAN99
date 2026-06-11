@@ -25,6 +25,7 @@ const querySchema = z.object({
   memberType: z.string().trim().optional(),
   decision: z.string().trim().optional(),
   direction: z.string().trim().optional(),
+  department: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
       memberType: searchParams.get('memberType') ?? undefined,
       decision: searchParams.get('decision') ?? undefined,
       direction: searchParams.get('direction') ?? undefined,
+      department: searchParams.get('department') ?? undefined,
       page: searchParams.get('page') ?? '1',
       pageSize: searchParams.get('pageSize') ?? undefined,
     });
@@ -62,7 +64,7 @@ export async function GET(req: NextRequest) {
       return ApiBadRequest('พารามิเตอร์ startDate/endDate ไม่ถูกต้อง (YYYY-MM-DD)');
     }
 
-    let { startDate, endDate, gateId, search, memberType, decision, direction, page, pageSize } = parsed.data;
+    let { startDate, endDate, gateId, search, memberType, decision, direction, department, page, pageSize } = parsed.data;
     if (dayjs(endDate).isBefore(dayjs(startDate))) {
       [startDate, endDate] = [endDate, startDate];
     }
@@ -75,6 +77,7 @@ export async function GET(req: NextRequest) {
       memberType: memberType || undefined,
       decision: decision || undefined,
       direction: direction || undefined,
+      department: department || undefined,
       page,
       pageSize: pageSize || PAGE_SIZE,
     });

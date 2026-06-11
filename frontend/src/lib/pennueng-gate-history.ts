@@ -90,6 +90,21 @@ function buildWhereClause(
     )`);
   }
 
+  const department = query.department?.trim();
+  if (department) {
+    request.input('deptPattern', sql.NVarChar(200), `%${department}%`);
+    parts.push(`EXISTS (
+      SELECT 1
+      FROM mbmembmaster mm WITH (NOLOCK)
+      LEFT JOIN mbdepartment md ON RTRIM(mm.department_code) = RTRIM(md.department_code)
+      WHERE RTRIM(mm.member_no) = RTRIM(gs.member_no)
+        AND (
+          RTRIM(md.department_desc) LIKE @deptPattern
+          OR RTRIM(mm.department_code) LIKE @deptPattern
+        )
+    )`);
+  }
+
   return parts.join(' AND ');
 }
 
