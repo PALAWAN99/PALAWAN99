@@ -105,18 +105,18 @@ if (Test-Path $TarFile) {
 Write-Host "`nRemote: pick ports, build, up..."
 
 $RemoteScript = @(
-    "cd $REMOTE_DIR && chmod +x deploy/pick-host-port.sh deploy/sync-nginx-card-api.sh && ./deploy/pick-host-port.sh && \",
-    "grep -q '^CARD_API_ON_SERVER=' .env 2>/dev/null || echo 'CARD_API_ON_SERVER=true' >> .env && \",
-    "grep -q '^NEXT_PUBLIC_CARD_API_PROXY=' .env 2>/dev/null || echo 'NEXT_PUBLIC_CARD_API_PROXY=true' >> .env && \",
-    "sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://localhost:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true && \",
-    "sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://127.0.0.1:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true && \",
-    "set -a && source .env && set +a && \",
-    "PROFILES='' && \",
-    "if [ \"`${CARD_API_ON_SERVER:-true}\" = 'true' ]; then PROFILES='--profile card-api-server'; fi && \",
-    "docker compose -f deploy/docker-compose.prod.yml `$PROFILES up -d --build || { \",
-    "  echo 'Full stack build failed — retrying frontend only...'; \",
-    "  docker compose -f deploy/docker-compose.prod.yml up -d --build frontend; \",
-    "} && \",
+    "cd $REMOTE_DIR && chmod +x deploy/pick-host-port.sh deploy/sync-nginx-card-api.sh && ./deploy/pick-host-port.sh &&",
+    "grep -q '^CARD_API_ON_SERVER=' .env 2>/dev/null || echo 'CARD_API_ON_SERVER=true' >> .env &&",
+    "grep -q '^NEXT_PUBLIC_CARD_API_PROXY=' .env 2>/dev/null || echo 'NEXT_PUBLIC_CARD_API_PROXY=true' >> .env &&",
+    "sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://localhost:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true &&",
+    "sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://127.0.0.1:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true &&",
+    "set -a && source .env && set +a &&",
+    "PROFILES='' &&",
+    "if [ \"`${CARD_API_ON_SERVER:-true}\" = 'true' ]; then PROFILES='--profile card-api-server'; fi &&",
+    "docker compose -f deploy/docker-compose.prod.yml `$PROFILES up -d --build || {",
+    "  echo 'Full stack build failed — retrying frontend only...';",
+    "  docker compose -f deploy/docker-compose.prod.yml up -d --build frontend;",
+    "} &&",
     "if [ \"`${CARD_API_ON_SERVER:-true}\" = 'true' ]; then ./deploy/sync-nginx-card-api.sh --env-file .env || echo 'WARN: nginx card-api sync failed — fix proxy_pass manually'; fi"
 ) -join "`n"
 
@@ -126,13 +126,13 @@ $RemoteScript = @(
 Write-Host "`nHealth (on server):"
 
 $HealthScript = @(
-    "set -a; source $REMOTE_DIR/.env; set +a; \",
-    "PORT=`${FRONTEND_HOST_PORT:-13010}; BPORT=`${BACKEND_HOST_PORT:-8004}; \",
-    "echo '--- Next.js'; \",
-    "curl -fsS \"http://127.0.0.1:`${PORT}/smart-access/api/health\" || true; echo; \",
-    "echo '--- Card API (host)'; \",
-    "curl -fsS \"http://127.0.0.1:`${BPORT}/api/readers\" 2>/dev/null | head -c 200 || echo 'backend not reachable on host port'; echo; \",
-    "echo '--- Card API (via public nginx)'; \",
+    "set -a; source $REMOTE_DIR/.env; set +a;",
+    "PORT=`${FRONTEND_HOST_PORT:-13010}; BPORT=`${BACKEND_HOST_PORT:-8004};",
+    "echo '--- Next.js';",
+    "curl -fsS \"http://127.0.0.1:`${PORT}/smart-access/api/health\" || true; echo;",
+    "echo '--- Card API (host)';",
+    "curl -fsS \"http://127.0.0.1:`${BPORT}/api/readers\" 2>/dev/null | head -c 200 || echo 'backend not reachable on host port'; echo;",
+    "echo '--- Card API (via public nginx)';",
     "curl -fsS \"https://lib.kku.ac.th/smart-access/card-api/api/readers\" 2>/dev/null | head -c 200 || echo 'nginx /smart-access/card-api/ missing or backend down — add deploy/nginx-lib-kku-smart-access.conf block and reload nginx'"
 ) -join "`n"
 
