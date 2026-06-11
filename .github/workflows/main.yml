@@ -92,7 +92,18 @@ jobs:
             ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-backend:${{ github.sha }}
             ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-backend:latest
 
+      - name: Check Deployment Secrets
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.SSH_HOST }}" ] || [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "deployment_configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SSH_HOST, SSH_USER, or SSH_PRIVATE_KEY is not configured. Skipping server deployment."
+          else
+            echo "deployment_configured=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure SSH Key
+        if: steps.check_secrets.outputs.deployment_configured == 'true'
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -100,11 +111,13 @@ jobs:
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy Deploy Configuration to Server
+        if: steps.check_secrets.outputs.deployment_configured == 'true'
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.DEPLOY_PATH }}/deploy"
           scp -r deploy/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/deploy/
 
       - name: Pull and Start Containers on Remote Server
+        if: steps.check_secrets.outputs.deployment_configured == 'true'
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ${{ secrets.DEPLOY_PATH }} && \
@@ -119,6 +132,7 @@ jobs:
           "
 
       - name: Perform Post-Deployment Health Check
+        if: steps.check_secrets.outputs.deployment_configured == 'true'
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ${{ secrets.DEPLOY_PATH }} && \
@@ -138,7 +152,7 @@ jobs:
           "
 
       - name: Rollback to Last Successful Deploy on Failure
-        if: failure()
+        if: failure() && steps.check_secrets.outputs.deployment_configured == 'true'
         run: |
           echo '🚨 Deployment or Health Check failed! Initiating rollback to last successful tag (latest)...'
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
