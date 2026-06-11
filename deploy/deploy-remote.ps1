@@ -71,9 +71,30 @@ if ($Push) {
 
 # 2. Pack extension + desktop agent
 Write-Host "`nPack extension + desktop agent for /downloads/ ..."
-Set-Location (Join-Path $Root "frontend")
-npm run extension:pack
-Set-Location $Root
+try {
+    Set-Location (Join-Path $Root "frontend")
+    # Prepend Git/sh/bash paths to PATH on Windows if they exist but are not in PATH
+    $GitPaths = @(
+        "C:\Program Files\Git\bin",
+        "C:\Program Files\Git\usr\bin",
+        "C:\Program Files (x86)\Git\bin",
+        "C:\Program Files (x86)\Git\usr\bin",
+        "$env:USERPROFILE\AppData\Local\Programs\Git\bin",
+        "$env:USERPROFILE\AppData\Local\Programs\Git\usr\bin"
+    )
+    foreach ($p in $GitPaths) {
+        if (Test-Path (Join-Path $p "sh.exe")) {
+            $env:PATH = "$p;$env:PATH"
+            Write-Host "Found Git utilities in $p, added to PATH."
+            break
+        }
+    }
+    npm run extension:pack
+} catch {
+    Write-Warning "Failed to pack extension/desktop agent locally: $_. Proceeding with deploy..."
+} finally {
+    Set-Location $Root
+}
 
 # 3. Pack and Upload to Server
 Write-Host "`nrsync not available natively on Windows. Syncing using tar + scp sync..."
@@ -108,6 +129,7 @@ Write-Host "`nRemote: pick ports, build, up..."
 # PowerShell single-quoted here-strings treat everything as literal text.
 $RemoteScript = @'
 cd __REMOTE_DIR__ && chmod +x deploy/pick-host-port.sh deploy/sync-nginx-card-api.sh && ./deploy/pick-host-port.sh && \
+sudo chown -R $(whoami):$(whoami) ~/.docker 2>/dev/null || true && \
 grep -q '^CARD_API_ON_SERVER=' .env 2>/dev/null || echo 'CARD_API_ON_SERVER=true' >> .env && \
 grep -q '^NEXT_PUBLIC_CARD_API_PROXY=' .env 2>/dev/null || echo 'NEXT_PUBLIC_CARD_API_PROXY=true' >> .env && \
 sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://localhost:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true && \
@@ -122,7 +144,8 @@ docker compose -f deploy/docker-compose.prod.yml $PROFILES up -d --build || { \
 if [ "${CARD_API_ON_SERVER:-true}" = 'true' ]; then ./deploy/sync-nginx-card-api.sh --env-file .env || echo 'WARN: nginx card-api sync failed - fix proxy_pass manually'; fi
 '@
 
-$RemoteScript = $RemoteScript.Replace('__REMOTE_DIR__', $REMOTE_DIR)
+# Replace path and remove carriage returns (\r) to avoid bash syntax errors on Linux
+$RemoteScript = $RemoteScript.Replace('__REMOTE_DIR__', $REMOTE_DIR).Replace("`r", "")
 
 & ssh $REMOTE $RemoteScript
 
@@ -140,7 +163,8 @@ echo '--- Card API (via public nginx)'; \
 curl -fsS "https://lib.kku.ac.th/smart-access/card-api/api/readers" 2>/dev/null | head -c 200 || echo 'nginx /smart-access/card-api/ missing or backend down - add deploy/nginx-lib-kku-smart-access.conf block and reload nginx'
 '@
 
-$HealthScript = $HealthScript.Replace('__REMOTE_DIR__', $REMOTE_DIR)
+# Replace path and remove carriage returns (\r) to avoid bash syntax errors on Linux
+$HealthScript = $HealthScript.Replace('__REMOTE_DIR__', $REMOTE_DIR).Replace("`r", "")
 
 & ssh $REMOTE $HealthScript
 
