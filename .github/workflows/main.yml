@@ -43,52 +43,5 @@ jobs:
           NEXTAUTH_URL: "http://localhost:3000"
           QR_SECRET: "test-qr-secret-at-least-32-chars-long-security-fix"
 
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set lower case owner name
-        run: |
-          echo "GHCR_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Push Frontend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: deploy/Dockerfile.frontend
-          push: true
-          tags: |
-            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-frontend:${{ github.sha }}
-            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-frontend:latest
-          build-args: |
-            NEXT_PUBLIC_BASE_PATH=/smart-access
-            DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public
-
-      - name: Build and Push Backend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: deploy/Dockerfile.backend
-          push: true
-          tags: |
-            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-backend:${{ github.sha }}
-            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-backend:latest
 
