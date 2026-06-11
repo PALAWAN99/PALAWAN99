@@ -14,6 +14,13 @@ const MIN_SCORE_DEVELOPMENT = 0.3;
 export function isRecaptchaEnforced(): boolean {
   if (process.env.RECAPTCHA_ENFORCE === 'true') return true;
   if (process.env.RECAPTCHA_ENFORCE === 'false') return false;
+  
+  // Fallback: If no site key is configured on the server, disable enforcement
+  // to prevent locking out administrators.
+  if (!getRecaptchaSiteKey()) {
+    return false;
+  }
+  
   return process.env.NODE_ENV === 'production';
 }
 
