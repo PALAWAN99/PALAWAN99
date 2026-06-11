@@ -261,8 +261,12 @@ export default function ReportsPage() {
         </Center>
       ) : data ? (
         <Stack gap="lg">
-           {/* 6 Summary Cards */}
-          <ReportsSummaryCards data={data} />
+          <ReportsSummaryCards
+            data={data}
+            onDrillDown={handleDrillDown}
+            startDate={startDate ? dayjs(startDate).startOf('day').format('YYYY-MM-DDTHH:mm:ss') : undefined}
+            endDate={endDate ? dayjs(endDate).endOf('day').format('YYYY-MM-DDTHH:mm:ss') : undefined}
+          />
 
           {data.summary.totalScans === 0 ? (
             <Alert color="gray" variant="light">

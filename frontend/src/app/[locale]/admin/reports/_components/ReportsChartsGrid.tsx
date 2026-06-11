@@ -137,24 +137,116 @@ function EmptyChart({ label }: { label: string }) {
   );
 }
 
-export function ReportsSummaryCards({ data }: { data: ReportsAnalyticsPayload }) {
+export function ReportsSummaryCards({
+  data,
+  onDrillDown,
+  startDate,
+  endDate,
+}: {
+  data: ReportsAnalyticsPayload;
+  onDrillDown?: (filter: {
+    title: string;
+    decision?: 'ALLOWED' | 'DENIED';
+    source?: 'pennueng' | 'postgres';
+    startDate?: string;
+    endDate?: string;
+  }) => void;
+  startDate?: string;
+  endDate?: string;
+}) {
   const t = useTranslations('Report');
-  const cards = [
-    { title: t('totalAccess'), value: data.summary.totalScans, color: 'blue' },
-    { title: t('allowedAccess'), value: data.summary.allowed, color: 'teal' },
-    { title: t('deniedAccess'), value: data.summary.denied, color: 'red' },
-    { title: t('uniqueMembers'), value: data.summary.uniqueMembers, color: 'grape' },
-    { title: t('avgDailyScans'), value: data.summary.avgDailyScans, color: 'orange' },
-    { title: t('denyRate'), value: `${data.summary.denyRate}%`, color: 'pink' },
+  const source = data.source === 'pennueng' ? 'pennueng' as const : 'postgres' as const;
+
+  const cards: {
+    title: string;
+    value: number | string;
+    color: string;
+    drillDown?: Parameters<NonNullable<typeof onDrillDown>>[0];
+  }[] = [
+    {
+      title: t('totalAccess'),
+      value: data.summary.totalScans,
+      color: 'blue',
+      drillDown: {
+        title: `รายชื่อทั้งหมด — ${t('totalAccess')}`,
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('allowedAccess'),
+      value: data.summary.allowed,
+      color: 'teal',
+      drillDown: {
+        title: `รายชื่อ — ${t('allowedAccess')}`,
+        decision: 'ALLOWED',
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('deniedAccess'),
+      value: data.summary.denied,
+      color: 'red',
+      drillDown: {
+        title: `รายชื่อ — ${t('deniedAccess')}`,
+        decision: 'DENIED',
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('uniqueMembers'),
+      value: data.summary.uniqueMembers,
+      color: 'grape',
+      drillDown: {
+        title: `รายชื่อ — ${t('uniqueMembers')}`,
+        source,
+        startDate,
+        endDate,
+      },
+    },
+    {
+      title: t('avgDailyScans'),
+      value: data.summary.avgDailyScans,
+      color: 'orange',
+      // avg per day is informational only — no drill-down
+    },
+    {
+      title: t('denyRate'),
+      value: `${data.summary.denyRate}%`,
+      color: 'pink',
+      drillDown: {
+        title: `รายชื่อ — ${t('deniedAccess')}`,
+        decision: 'DENIED',
+        source,
+        startDate,
+        endDate,
+      },
+    },
   ];
 
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-      {cards.map((card) => (
-        <Card key={card.title} withBorder radius="md" p="lg">
-          <GroupLikeSummary title={card.title} value={card.value} color={card.color} />
-        </Card>
-      ))}
+      {cards.map((card) => {
+        const clickable = !!card.drillDown && !!onDrillDown;
+        return (
+          <Card
+            key={card.title}
+            withBorder
+            radius="md"
+            p="lg"
+            onClick={clickable ? () => onDrillDown!(card.drillDown!) : undefined}
+            className={clickable ? 'stat-card' : undefined}
+            style={clickable ? { cursor: 'pointer', transition: 'box-shadow 0.15s, transform 0.15s' } : undefined}
+          >
+            <GroupLikeSummary title={card.title} value={card.value} color={card.color} clickable={clickable} />
+          </Card>
+        );
+      })}
     </SimpleGrid>
   );
 }
@@ -163,10 +255,12 @@ function GroupLikeSummary({
   title,
   value,
   color,
+  clickable,
 }: {
   title: string;
   value: number | string;
   color: string;
+  clickable?: boolean;
 }) {
   return (
     <Stack gap="xs">
@@ -179,6 +273,11 @@ function GroupLikeSummary({
       <Text size="xl" fw={800}>
         {typeof value === 'number' ? value.toLocaleString() : value}
       </Text>
+      {clickable && (
+        <Text size="xs" c="dimmed" mt={-4}>
+          คลิกเพื่อดูรายละเอียด →
+        </Text>
+      )}
     </Stack>
   );
 }
