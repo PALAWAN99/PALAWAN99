@@ -52,6 +52,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set lower case owner name
+        run: |
+          echo "GHCR_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -59,7 +63,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ env.GHCR_OWNER }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build and Push Frontend Image
@@ -69,8 +73,8 @@ jobs:
           file: deploy/Dockerfile.frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/qrcode-accesscontrol-frontend:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/qrcode-accesscontrol-frontend:latest
+            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-frontend:${{ github.sha }}
+            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-frontend:latest
           build-args: |
             NEXT_PUBLIC_BASE_PATH=/smart-access
             DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public
@@ -82,8 +86,8 @@ jobs:
           file: deploy/Dockerfile.backend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/qrcode-accesscontrol-backend:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/qrcode-accesscontrol-backend:latest
+            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-backend:${{ github.sha }}
+            ghcr.io/${{ env.GHCR_OWNER }}/qrcode-accesscontrol-backend:latest
 
       - name: Configure SSH Key
         run: |
@@ -101,9 +105,9 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ${{ secrets.DEPLOY_PATH }} && \
-            echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin && \
+            echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ env.GHCR_OWNER }} --password-stdin && \
             export IMAGE_TAG=${{ github.sha }} && \
-            export GHCR_REPO_OWNER=${{ github.repository_owner }} && \
+            export GHCR_REPO_OWNER=${{ env.GHCR_OWNER }} && \
             if [ -f .env ]; then set -a; source .env; set +a; fi && \
             PROFILES='' && \
             if [ \"\${CARD_API_ON_SERVER:-true}\" = 'true' ]; then PROFILES='--profile card-api-server'; fi && \
@@ -138,7 +142,7 @@ jobs:
             cd ${{ secrets.DEPLOY_PATH }} && \
             if [ -f .env ]; then set -a; source .env; set +a; fi && \
             export IMAGE_TAG=latest && \
-            export GHCR_REPO_OWNER=${{ github.repository_owner }} && \
+            export GHCR_REPO_OWNER=${{ env.GHCR_OWNER }} && \
             PROFILES='' && \
             if [ \"\${CARD_API_ON_SERVER:-true}\" = 'true' ]; then PROFILES='--profile card-api-server'; fi && \
             docker compose -f deploy/docker-compose.prod.yml \$PROFILES up -d --no-build
