@@ -16,7 +16,7 @@
     "changelog:auto": "tsx scripts/changelog-auto.ts",
     "release:version": "tsx scripts/release-version.ts",
     "agent:pack": "bash ../desktop-agent/build-all.sh",
-    "extension:pack": "sh ../extension/build.sh && sh ../extension/easy-install/build-easy-install.sh && mkdir -p public/downloads && cp ../extension/dist/kku-smart-access-card-bridge.zip ../extension/dist/kku-card-bridge-easy-install-mac.zip ../extension/dist/kku-card-bridge-easy-install-windows.zip public/downloads/ && npm run agent:pack",
+    "extension:pack": "bash ../extension/build.sh && bash ../extension/easy-install/build-easy-install.sh && mkdir -p public/downloads && cp ../extension/dist/kku-smart-access-card-bridge.zip ../extension/dist/kku-card-bridge-easy-install-mac.zip ../extension/dist/kku-card-bridge-easy-install-windows.zip public/downloads/ && npm run agent:pack",
     "check-members": "tsx scratch/check-members.ts",
     "test:sqlserver": "tsx scripts/explore-sqlserver.ts"
   },
