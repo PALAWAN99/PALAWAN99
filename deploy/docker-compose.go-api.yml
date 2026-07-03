@@ -1,0 +1,32 @@
+# Go API (business API spike — chi + pgx + sqlc).
+# Deployed independently from frontend + Python card reader so it can be rebuilt
+# without touching the running stack. Internal container port is 8080 (from
+# deploy/Dockerfile.go-api-spike); host port is picked by pick-host-port.sh
+# (GO_API_HOST_PORT, default 8090) to avoid clashing with 3000/8000-8005/8010/
+# 13010-13015/18080-18081 used by other services on this host.
+#
+# Usage:
+#   cd /var/docker/smart-accesscontrol
+#   ./deploy/pick-host-port.sh        # sets GO_API_HOST_PORT in .env
+#   docker compose -f deploy/docker-compose.go-api.yml up -d --build
+services:
+  go-api:
+    image: ghcr.io/${GHCR_REPO_OWNER:-panuwath}/qrcode-accesscontrol-go-api:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.go-api-spike
+    container_name: smart-access-go-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "${GO_API_HOST_PORT:-8090}:8080"
+    environment:
+      - API_PORT=8080
+      # Do NOT set API_BASE_PATH=/api — main.go already mounts routes under /api
+      # (and at root). Setting it to /api causes chi to panic on duplicate Mount.
+    # DATABASE_URL in .env uses host IP 10.101.118.149:5436, so the container
+    # can reach Postgres directly. extra_hosts is a safety net for any future
+    # .env that uses localhost/127.0.0.1.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

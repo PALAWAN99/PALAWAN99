@@ -111,3 +111,37 @@ With GitHub backup before deploy (commit if needed, push current branch):
 Does not upload `.env` — upload separately. `--push` (or `-Push`) also excludes `.env*` from commits.
 
 **Note:** `frontend/deploy.sh` only pushes to GitHub; it does not sync or rebuild Docker. Use `deploy/deploy-remote.sh` or `deploy/deploy-remote.ps1` for production.
+
+## GitHub Actions CI/CD (main branch)
+
+| Workflow | Trigger | Runner | Purpose |
+| --- | --- | --- | --- |
+| [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | PR + push to `main` | `ubuntu-latest` | lint, typecheck, build |
+| [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) | push to `main`, manual | self-hosted `smart-access-prod` | sync + Docker rebuild on `docker-lib01` |
+
+### Flow
+
+1. Merge/push to **`main`** → CI runs on GitHub-hosted runner.
+2. After CI passes → **Deploy Production** runs on self-hosted runner at `10.101.118.149`.
+3. Runner syncs checkout → `/var/docker/smart-accesscontrol` (never overwrites `.env`) and runs `deploy/deploy-on-server.sh`.
+
+Manual deploy (skip extension pack for faster test):
+
+```bash
+gh workflow run deploy.yml -f skip_extension_pack=true
+```
+
+### One-time: register self-hosted runner
+
+On `docker-lib01` as user `ping`:
+
+```bash
+# From dev machine — get token and install runner
+TOKEN=$(gh api -X POST repos/Panuwath/qrcode-accesscontrol/actions/runners/registration-token -q .token)
+scp deploy/setup-github-runner.sh ping@10.101.118.149:/tmp/
+ssh ping@10.101.118.149 "chmod +x /tmp/setup-github-runner.sh && RUNNER_TOKEN=$TOKEN bash /tmp/setup-github-runner.sh"
+```
+
+Runner labels: `self-hosted`, `linux`, `x64`, `smart-access-prod`.
+
+Verify: `gh api repos/Panuwath/qrcode-accesscontrol/actions/runners`

@@ -1,0 +1,65 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_extension_pack:
+        description: Skip extension/desktop pack (faster; use if downloads unchanged)
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  PROD_DIR: /var/docker/smart-accesscontrol
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: [self-hosted, smart-access-prod]
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js (extension pack)
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_extension_pack }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Pack extension and desktop downloads
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_extension_pack }}
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run extension:pack
+
+      - name: Sync to production directory
+        run: bash deploy/sync-to-prod.sh
+        env:
+          SOURCE_DIR: ${{ github.workspace }}
+          PROD_DIR: ${{ env.PROD_DIR }}
+
+      - name: Deploy containers
+        run: bash deploy/deploy-on-server.sh
+        env:
+          PROD_DIR: ${{ env.PROD_DIR }}
+          SKIP_EXTENSION_PACK: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_extension_pack && '1' || '0' }}
+
+      - name: Summary
+        run: |
+          echo "Deployed commit: ${{ github.sha }}"
+          echo "Production: https://lib.kku.ac.th/smart-access"

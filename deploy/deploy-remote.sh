@@ -88,59 +88,8 @@ fi
 echo "Pack extension + desktop agent for /downloads/ ..."
 (cd "$ROOT/frontend" && npm run extension:pack)
 
-if command -v rsync >/dev/null 2>&1; then
-  echo "Syncing via rsync..."
-  rsync -avz --delete \
-    --exclude node_modules \
-    --exclude .next \
-    --exclude backend/venv \
-    --exclude .git \
-    --exclude '.env' \
-    "$ROOT/" "$REMOTE:$REMOTE_DIR/"
-else
-  echo "rsync not found. Falling back to tar + scp sync (highly compatible with Windows/Git Bash)..."
-  TAR_FILE="deploy_pack.tar.gz"
-  
-  echo "Packing files locally..."
-  tar --exclude="node_modules" \
-      --exclude=".next" \
-      --exclude="backend/venv" \
-      --exclude=".git" \
-      --exclude=".env" \
-      -czf "$TAR_FILE" -C "$ROOT" .
-  
-  echo "Uploading archive to remote..."
-  scp "$TAR_FILE" "$REMOTE:$REMOTE_DIR/"
-  
-  echo "Extracting archive on remote..."
-  ssh "$REMOTE" "cd $REMOTE_DIR && tar -xzf $TAR_FILE && rm $TAR_FILE"
-  
-  echo "Cleaning up local archive..."
-  rm -f "$TAR_FILE"
-fi
+chmod +x "$ROOT/deploy/sync-to-prod.sh" "$ROOT/deploy/deploy-on-server.sh"
+REMOTE="$REMOTE" PROD_DIR="$REMOTE_DIR" bash "$ROOT/deploy/sync-to-prod.sh"
 
-echo "Remote: pick ports, build, up..."
-# shellcheck source=/dev/null
-ssh "$REMOTE" "cd $REMOTE_DIR && chmod +x deploy/pick-host-port.sh deploy/sync-nginx-card-api.sh && ./deploy/pick-host-port.sh && \
-  grep -q '^CARD_API_ON_SERVER=' .env 2>/dev/null || echo 'CARD_API_ON_SERVER=true' >> .env && \
-  grep -q '^NEXT_PUBLIC_CARD_API_PROXY=' .env 2>/dev/null || echo 'NEXT_PUBLIC_CARD_API_PROXY=true' >> .env && \
-  sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://localhost:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true && \
-  sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://127.0.0.1:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true && \
-  set -a && source .env && set +a && \
-  PROFILES='' && \
-  if [ \"\${CARD_API_ON_SERVER:-true}\" = 'true' ]; then PROFILES='--profile card-api-server'; fi && \
-  docker compose -f deploy/docker-compose.prod.yml \$PROFILES up -d --build || { \
-    echo 'Full stack build failed — retrying frontend only...'; \
-    docker compose -f deploy/docker-compose.prod.yml up -d --build frontend; \
-  } && \
-  if [ \"\${CARD_API_ON_SERVER:-true}\" = 'true' ]; then ./deploy/sync-nginx-card-api.sh --env-file .env || echo 'WARN: nginx card-api sync failed — fix proxy_pass manually'; fi"
-
-echo "Health (on server):"
-ssh "$REMOTE" "set -a; source ${REMOTE_DIR}/.env; set +a; \
-  PORT=\${FRONTEND_HOST_PORT:-13010}; BPORT=\${BACKEND_HOST_PORT:-8004}; \
-  echo '--- Next.js'; \
-  curl -fsS \"http://127.0.0.1:\${PORT}/smart-access/api/health\" || true; echo; \
-  echo '--- Card API (host)'; \
-  curl -fsS \"http://127.0.0.1:\${BPORT}/api/readers\" 2>/dev/null | head -c 200 || echo 'backend not reachable on host port'; echo; \
-  echo '--- Card API (via public nginx)'; \
-  curl -fsS \"https://lib.kku.ac.th/smart-access/card-api/api/readers\" 2>/dev/null | head -c 200 || echo 'nginx /smart-access/card-api/ missing or backend down — add deploy/nginx-lib-kku-smart-access.conf block and reload nginx'"
+echo "Remote: deploy on server..."
+ssh "$REMOTE" "PROD_DIR='$REMOTE_DIR' SKIP_EXTENSION_PACK=1 bash '$REMOTE_DIR/deploy/deploy-on-server.sh'"
