@@ -8,6 +8,7 @@ import type {
   PennuengMemberTypeOption,
 } from '@/types/pennueng-member';
 import type { PennuengMemberInput, PennuengMemberUpdateInput } from '@/validators/pennuengMemberValidator';
+import type { PennuengMemberSortField } from '@/lib/pennueng-members';
 
 async function parseJson(res: Response) {
   return res.json() as Promise<unknown>;
@@ -30,12 +31,16 @@ export async function fetchPennuengMembersApi(params: {
   page?: number;
   limit?: number;
   memberType?: string | null;
+  sortBy?: PennuengMemberSortField;
+  sortDir?: 'asc' | 'desc';
 }): Promise<PennuengMemberListResult & { isMock?: boolean }> {
   const q = new URLSearchParams();
   if (params.search) q.set('search', params.search);
   if (params.page) q.set('page', String(params.page));
   if (params.limit) q.set('limit', String(params.limit));
   if (params.memberType) q.set('type', params.memberType);
+  if (params.sortBy) q.set('sortBy', params.sortBy);
+  if (params.sortDir) q.set('sortDir', params.sortDir);
 
   const res = await fetch(apiPath(`/api/admin/pennueng-members?${q}`));
   const json = await parseJson(res);

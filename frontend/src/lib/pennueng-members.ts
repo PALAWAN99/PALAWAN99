@@ -16,6 +16,18 @@ import { sanitizeMemberTypeDescription } from '@/lib/sanitizeMemberTypeDescripti
 export const PENNUENG_MEMBER_ACTIVE = 1;
 export const PENNUENG_MEMBER_SOFT_DELETED = 0;
 
+export type PennuengMemberSortField = 'memberNo' | 'name' | 'memberType' | 'contact' | 'expireDate';
+
+// Whitelisted column expressions only — sortBy/sortDir are interpolated into SQL below,
+// so every value that reaches the query text must come from this map, never from user input directly.
+const MEMBER_SORT_COLUMNS: Record<PennuengMemberSortField, string> = {
+  memberNo: 'm.member_no',
+  name: 'm.name, m.surname',
+  memberType: "COALESCE(NULLIF(RTRIM(t.description), ''), RTRIM(m.member_type))",
+  contact: 'm.tel, m.email',
+  expireDate: 'm.expire_date',
+};
+
 const MEMBER_FROM = `
   FROM mbmembmaster m WITH (NOLOCK)
   LEFT JOIN mbmembtype t ON RTRIM(m.member_type) = RTRIM(t.member_type)
@@ -176,6 +188,8 @@ export async function listPennuengMembers(options: {
   page?: number;
   limit?: number;
   memberType?: string | null;
+  sortBy?: PennuengMemberSortField;
+  sortDir?: 'asc' | 'desc';
 }): Promise<PennuengMemberListResult> {
   assertSqlServerReady();
   const page = Math.max(1, options.page ?? 1);
@@ -210,10 +224,13 @@ export async function listPennuengMembers(options: {
   dataReq.input('offset', sql.Int, skip);
   dataReq.input('limit', sql.Int, limit);
 
+  const sortColumn = MEMBER_SORT_COLUMNS[options.sortBy ?? 'memberNo'] ?? MEMBER_SORT_COLUMNS.memberNo;
+  const sortDir = options.sortDir === 'asc' ? 'ASC' : 'DESC';
+
   const dataResult = await dataReq.query<RawMemberRow>(`
     ${MEMBER_SELECT}
     ${where}
-    ORDER BY m.member_no DESC
+    ORDER BY ${sortColumn} ${sortDir}
     OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
   `);
 

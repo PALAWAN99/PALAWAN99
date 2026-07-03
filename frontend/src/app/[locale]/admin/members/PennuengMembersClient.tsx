@@ -210,12 +210,10 @@ export default function PennuengMembersClient() {
         ...fields
       } = values;
       if (editing) {
+        // memberNo is the natural key looked up server-side (RTRIM(member_no) = ...)
+        // across mbmembmaster and related tables — renaming it isn't supported, so
+        // PennuengMemberUpdateInput deliberately omits the field.
         const patch: PennuengMemberUpdateInput = { ...fields };
-        const normalizedCurrent = normalizeMemberNo(editing.memberNo);
-        const normalizedNew = normalizeMemberNo(formMemberNo);
-        if (normalizedNew !== normalizedCurrent) {
-          patch.memberNo = normalizedNew;
-        }
         await updatePennuengMemberApi(editing.memberNo, patch);
         notifications.show({
           title: tc('success'),

@@ -3,6 +3,7 @@ import { LRUCache } from 'lru-cache';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { env } from './env';
+import { auth } from '@/auth';
 
 // ============================================
 // Rate Limiter — Dual-mode (In-memory & Upstash Redis)
@@ -104,12 +105,28 @@ export async function rateLimit(
 }
 
 /**
+ * ระบุตัวตนผู้ขอสำหรับ rate limit — ผูกกับผู้ใช้ที่ล็อกอินแล้วแทน IP เมื่อทำได้
+ * เพราะเจ้าหน้าที่ห้องสมุดหลายคนมักออกอินเทอร์เน็ตผ่าน IP เดียวกัน (NAT ของมหาวิทยาลัย)
+ * การผูกกับ IP อย่างเดียวจึงทำให้ผู้ใช้คนหนึ่งโดนจำกัดจากการใช้งานของคนอื่นในเครือข่ายเดียวกัน
+ */
+async function getRateLimitIdentifier(req: Request): Promise<string> {
+  try {
+    const session = await auth();
+    if (session?.user?.id) return `user:${session.user.id}`;
+  } catch {
+    // ไม่มี session context (เช่น endpoint สาธารณะ) — ใช้ IP แทน
+  }
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+  return `ip:${ip}`;
+}
+
+/**
  * Helper สำหรับเช็ค Rate Limit ใน API Route
  * คืน NextResponse 429 ถ้าเกิน limit หรือ null ถ้าผ่าน
  */
 export async function checkRateLimit(req: Request, limit: number = 60): Promise<NextResponse | undefined> {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
-  const result = await rateLimit(ip, limit);
+  const identifier = await getRateLimitIdentifier(req);
+  const result = await rateLimit(identifier, limit);
 
   if (result.isRateLimited) {
     return NextResponse.json(

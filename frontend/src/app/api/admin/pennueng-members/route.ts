@@ -21,6 +21,13 @@ import {
   handleError,
 } from '@/lib/api-response';
 import type { PennuengMemberListResult, PennuengMemberTypeOption } from '@/types/pennueng-member';
+import type { PennuengMemberSortField } from '@/lib/pennueng-members';
+
+const MEMBER_SORT_FIELDS: PennuengMemberSortField[] = ['memberNo', 'name', 'memberType', 'contact', 'expireDate'];
+
+function parseSortField(value: string | null): PennuengMemberSortField | undefined {
+  return MEMBER_SORT_FIELDS.find((field) => field === value);
+}
 
 /** ข้อมูลสมาชิกตัวอย่าง — ใช้เมื่อ SQL Server ยังไม่ได้ตั้งค่า (Mock Mode) */
 const MOCK_MEMBER_TYPES: PennuengMemberTypeOption[] = [
@@ -113,6 +120,8 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const typesOnly = searchParams.get('types') === '1';
+    const sortBy = parseSortField(searchParams.get('sortBy'));
+    const sortDir = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
 
     if (typesOnly) {
       const types = await fetchPennuengMemberTypes();
@@ -124,6 +133,8 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       memberType: type,
+      sortBy,
+      sortDir,
     });
     return ApiSuccess(result);
   } catch (error) {
