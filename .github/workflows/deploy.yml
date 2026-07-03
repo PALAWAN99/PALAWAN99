@@ -57,7 +57,7 @@ jobs:
         run: bash deploy/deploy-on-server.sh
         env:
           PROD_DIR: ${{ env.PROD_DIR }}
-          SKIP_EXTENSION_PACK: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_extension_pack && '1' || '0' }}
+          SKIP_EXTENSION_PACK: "1"
 
       - name: Summary
         run: |
