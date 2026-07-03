@@ -16,7 +16,7 @@ import type {
 } from '@/types/pennueng-gate-history';
 
 /** เพดานความปลอดภัยของจำนวนแถวต่อคำขอ (รวมโหมด "ทั้งหมด") กันคำขอช่วงวันที่กว้างโหลดหนักเกินไป */
-const MAX_PAGE_SIZE = 5000;
+const MAX_PAGE_SIZE = 100_000;
 
 type SqlHistoryRow = {
   id: number;
