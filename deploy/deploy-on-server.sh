@@ -29,10 +29,13 @@ grep -q '^NEXT_PUBLIC_CARD_API_PROXY=' .env 2>/dev/null || echo 'NEXT_PUBLIC_CAR
 sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://localhost:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true
 sed -i.bak 's|^NEXT_PUBLIC_API_URL=http://127.0.0.1:8000|# NEXT_PUBLIC_API_URL=|' .env 2>/dev/null || true
 
+echo "Loading .env (ignore invalid shell lines) ..."
+set +e
 set -a
 # shellcheck source=/dev/null
 source .env
 set +a
+set -e
 
 PROFILES=''
 if [[ "${CARD_API_ON_SERVER:-true}" == 'true' ]]; then
