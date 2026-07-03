@@ -78,6 +78,11 @@ function buildWhereClause(
     parts.push('gs.status = @statusVal');
   }
 
+  if (query.memberNo?.trim()) {
+    request.input('memberNoExact', sql.VarChar(30), query.memberNo.trim());
+    parts.push('RTRIM(gs.member_no) = @memberNoExact');
+  }
+
   const search = query.search?.trim();
   if (search) {
     request.input('searchPattern', sql.NVarChar(200), `%${search}%`);

@@ -39,6 +39,7 @@ export type PennuengGateHistoryQuery = {
   decision?: string;
   direction?: string;
   department?: string;
+  memberNo?: string;
   page: number;
   pageSize: number;
 };

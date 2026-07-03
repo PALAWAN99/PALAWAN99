@@ -14,6 +14,7 @@ import {
   IconReportAnalytics,
   IconTool,
   IconActivity,
+  IconHistory,
 } from '@tabler/icons-react';
 
 export type AdminNavItem = {
@@ -64,6 +65,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     icon: IconReportAnalytics,
     items: [
       { labelKey: 'Common.events', icon: IconActivity, href: '/admin/events' },
+      { labelKey: 'Common.memberAccessHistory', icon: IconHistory, href: '/admin/history' },
       { labelKey: 'Common.reports', icon: IconChartBar, href: '/admin/reports' },
     ],
   },
@@ -91,6 +93,9 @@ export function isNavItemActive(pathname: string | null, href: string): boolean 
   }
   if (href === '/admin/dashboard') {
     return pathname === '/admin/dashboard' || pathname.endsWith('/admin/dashboard');
+  }
+  if (href === '/admin/history') {
+    return pathname.includes('/admin/history');
   }
   if (href === '/admin/members/deleted') {
     return pathname.includes('/admin/members/deleted');

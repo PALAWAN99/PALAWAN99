@@ -19,6 +19,7 @@ import {
   ActionIcon,
   Tooltip,
   Alert,
+  UnstyledButton,
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
@@ -32,10 +33,16 @@ import {
   IconDatabase,
   IconArchive,
   IconKey,
+  IconChevronUp,
+  IconChevronDown,
+  IconSelector,
+  IconHistory,
 } from '@tabler/icons-react';
 
 import type { PennuengMember, PennuengMemberTypeOption } from '@/types/pennueng-member';
-import type { PennuengMemberInput } from '@/validators/pennuengMemberValidator';
+import type { PennuengMemberSortField } from '@/lib/pennueng-members';
+import type { PennuengMemberInput, PennuengMemberUpdateInput } from '@/validators/pennuengMemberValidator';
+import { normalizeMemberNo } from '@/lib/normalize-member-no';
 import {
   createPennuengMemberApi,
   fetchPennuengMemberTypesApi,
@@ -47,6 +54,46 @@ import { PennuengMemberFormModal } from './_components/PennuengMemberFormModal';
 import { PennuengMemberKeysModal } from './_components/PennuengMemberKeysModal';
 
 const SEARCH_DEBOUNCE_MS = 350;
+
+type SortDir = 'asc' | 'desc';
+
+function SortableTh({
+  label,
+  field,
+  sortBy,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  field: PennuengMemberSortField;
+  sortBy: PennuengMemberSortField;
+  sortDir: SortDir;
+  onSort: (field: PennuengMemberSortField) => void;
+}) {
+  const active = sortBy === field;
+  const SortIcon = active ? (sortDir === 'asc' ? IconChevronUp : IconChevronDown) : IconSelector;
+
+  return (
+    <Table.Th>
+      <UnstyledButton
+        onClick={() => onSort(field)}
+        aria-label={`${label} — sort`}
+        style={{ width: '100%' }}
+      >
+        <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <Text fw={600} size="sm" component="span">
+            {label}
+          </Text>
+          <SortIcon
+            size={14}
+            stroke={1.5}
+            style={{ opacity: active ? 1 : 0.35, flexShrink: 0 }}
+          />
+        </Group>
+      </UnstyledButton>
+    </Table.Th>
+  );
+}
 
 export default function PennuengMembersClient() {
   const t = useTranslations('PennuengMember');
@@ -62,6 +109,8 @@ export default function PennuengMembersClient() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<PennuengMemberSortField>('memberNo');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PennuengMember | null>(null);
   const [keysMember, setKeysMember] = useState<PennuengMember | null>(null);
@@ -76,7 +125,16 @@ export default function PennuengMembersClient() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, filterType]);
+  }, [debouncedSearch, filterType, sortBy, sortDir]);
+
+  const handleSort = useCallback((field: PennuengMemberSortField) => {
+    if (field === sortBy) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir(field === 'memberNo' ? 'desc' : 'asc');
+    }
+  }, [sortBy]);
 
   const loadTypes = useCallback(async () => {
     try {
@@ -96,6 +154,8 @@ export default function PennuengMembersClient() {
         page,
         memberType: filterType,
         limit: 20,
+        sortBy,
+        sortDir,
       });
       if (seq !== fetchSeq.current) return;
       setMembers(data.members);
@@ -116,7 +176,7 @@ export default function PennuengMembersClient() {
         setLoading(false);
       }
     }
-  }, [debouncedSearch, page, filterType, tc]);
+  }, [debouncedSearch, page, filterType, sortBy, sortDir, tc]);
 
   useEffect(() => {
     void loadTypes();
@@ -143,9 +203,19 @@ export default function PennuengMembersClient() {
   const handleSubmit = async (values: PennuengMemberInput) => {
     setSubmitting(true);
     try {
-      const { birthDate: _birth, expireDate: _expire, ...withoutDates } = values;
+      const {
+        memberNo: formMemberNo,
+        birthDate: _birth,
+        expireDate: _expire,
+        ...fields
+      } = values;
       if (editing) {
-        const { memberNo: _no, ...patch } = withoutDates;
+        const patch: PennuengMemberUpdateInput = { ...fields };
+        const normalizedCurrent = normalizeMemberNo(editing.memberNo);
+        const normalizedNew = normalizeMemberNo(formMemberNo);
+        if (normalizedNew !== normalizedCurrent) {
+          patch.memberNo = normalizedNew;
+        }
         await updatePennuengMemberApi(editing.memberNo, patch);
         notifications.show({
           title: tc('success'),
@@ -154,7 +224,10 @@ export default function PennuengMembersClient() {
           icon: <IconCheck size={16} />,
         });
       } else {
-        await createPennuengMemberApi(withoutDates);
+        await createPennuengMemberApi({
+          ...fields,
+          memberNo: normalizeMemberNo(formMemberNo),
+        });
         notifications.show({
           title: tc('success'),
           message: t('createSuccess'),
@@ -282,11 +355,41 @@ export default function PennuengMembersClient() {
           <Table verticalSpacing="sm" highlightOnHover>
             <Table.Thead bg="var(--bg-tertiary)">
               <Table.Tr>
-                <Table.Th>{t('memberNo')}</Table.Th>
-                <Table.Th>{t('name')}</Table.Th>
-                <Table.Th>{t('memberType')}</Table.Th>
-                <Table.Th>{t('contact')}</Table.Th>
-                <Table.Th>{t('expireDate')}</Table.Th>
+                <SortableTh
+                  label={t('memberNo')}
+                  field="memberNo"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
+                <SortableTh
+                  label={t('name')}
+                  field="name"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
+                <SortableTh
+                  label={t('memberType')}
+                  field="memberType"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
+                <SortableTh
+                  label={t('contact')}
+                  field="contact"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
+                <SortableTh
+                  label={t('expireDate')}
+                  field="expireDate"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
                 <Table.Th w={140} />
               </Table.Tr>
             </Table.Thead>
@@ -325,6 +428,17 @@ export default function PennuengMembersClient() {
                   </Table.Td>
                   <Table.Td>
                     <Group gap={4} justify="flex-end" wrap="nowrap">
+                      <Tooltip label={t('viewAccessHistory')}>
+                        <ActionIcon
+                          component={Link}
+                          href={`/admin/history?memberNo=${encodeURIComponent(m.memberNo)}`}
+                          variant="light"
+                          color="teal"
+                          aria-label={t('viewAccessHistory')}
+                        >
+                          <IconHistory size={16} />
+                        </ActionIcon>
+                      </Tooltip>
                       <Tooltip label={t('keyAccess')}>
                         <ActionIcon
                           variant="light"
