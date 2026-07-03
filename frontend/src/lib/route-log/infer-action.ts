@@ -52,7 +52,7 @@ const API_ACTIONS: Record<string, string> = {
   '/api/admin/history': 'api.admin.history',
   '/api/admin/qr/cleanup': 'api.admin.qr.cleanup',
   '/api/admin/qr-policies': 'api.admin.qr_policies',
-  '/api/logs/route': 'api.logs.route',
+  '/api/logs': 'api.logs.ingest',
 };
 
 const FASTAPI_ACTIONS: Record<string, string> = {

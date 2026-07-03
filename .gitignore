@@ -100,8 +100,8 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 
-# Logs
-logs/
+# Logs (root-level only — don't shadow app/api/logs/ route folders)
+/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*

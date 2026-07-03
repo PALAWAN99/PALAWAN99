@@ -33,7 +33,8 @@ const querySchema = z.object({
   direction: z.string().trim().optional(),
   department: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  pageSize: z.coerce.number().int().min(1).max(1000).optional(),
+  all: z.coerce.boolean().optional(),
 });
 
 function assertSqlReady() {
@@ -72,13 +73,14 @@ export async function GET(req: NextRequest) {
       department: searchParams.get('department') ?? undefined,
       page: searchParams.get('page') ?? '1',
       pageSize: searchParams.get('pageSize') ?? undefined,
+      all: searchParams.get('all') ?? undefined,
     });
 
     if (!parsed.success) {
       return ApiBadRequest('พารามิเตอร์ startDate/endDate ไม่ถูกต้อง (YYYY-MM-DD)');
     }
 
-    let { startDate, endDate, gateId, search, memberNo, memberType, decision, direction, department, page, pageSize } =
+    let { startDate, endDate, gateId, search, memberNo, memberType, decision, direction, department, page, pageSize, all } =
       parsed.data;
     if (dayjs(endDate).isBefore(dayjs(startDate))) {
       [startDate, endDate] = [endDate, startDate];
@@ -96,6 +98,7 @@ export async function GET(req: NextRequest) {
       department: department || undefined,
       page,
       pageSize: pageSize || PAGE_SIZE,
+      all,
     });
 
     return ApiSuccess(data);

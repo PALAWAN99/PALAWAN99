@@ -1,5 +1,5 @@
 const SKIP_PATH_PREFIXES = [
-  '/api/logs/route',
+  '/api/logs',
   '/api/health',
   '/_next/',
   '/favicon',

@@ -50,7 +50,8 @@ import {
 } from '../lib/gate-history-api';
 import { GateHistoryRecordFormModal } from './GateHistoryRecordFormModal';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_CHOICES = [100, 200, 300, 400, 500, 1000] as const;
+const DEFAULT_PAGE_SIZE = 100;
 
 type FormMode = 'create' | 'edit' | 'copy';
 
@@ -78,6 +79,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [debouncedMemberNo, setDebouncedMemberNo] = useState(initialMemberNo ?? '');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number | 'all'>(DEFAULT_PAGE_SIZE);
   const [gates, setGates] = useState<ReportGateOption[]>([]);
   const [result, setResult] = useState<PennuengGateHistoryResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +103,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
 
   useEffect(() => {
     setPage(1);
-  }, [startDate, endDate, gateId, debouncedSearch, debouncedMemberNo]);
+  }, [startDate, endDate, gateId, debouncedSearch, debouncedMemberNo, pageSize]);
 
   useEffect(() => {
     void (async () => {
@@ -123,6 +125,14 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
     [gates, t],
   );
 
+  const pageSizeOptions = useMemo(
+    () => [
+      ...PAGE_SIZE_CHOICES.map((size) => ({ value: String(size), label: String(size) })),
+      { value: 'all', label: t('pageSizeAll') },
+    ],
+    [t],
+  );
+
   const fetchHistory = useCallback(async () => {
     if (!startDate || !endDate) return;
     setLoading(true);
@@ -135,7 +145,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
         gateId,
         search: debouncedSearch || undefined,
         memberNo: debouncedMemberNo || undefined,
-        pageSize: PAGE_SIZE,
+        pageSize,
       });
       setResult(data);
     } catch (error) {
@@ -144,7 +154,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [debouncedMemberNo, debouncedSearch, endDate, gateId, page, startDate, tc]);
+  }, [debouncedMemberNo, debouncedSearch, endDate, gateId, page, pageSize, startDate, tc]);
 
   useEffect(() => {
     void fetchHistory();
@@ -202,6 +212,8 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   };
 
   const rows = result?.rows ?? [];
+  // ใช้ pageSize ที่ server คืนมาจริง เพราะโหมด "ทั้งหมด" อาจถูกจำกัดด้วยเพดานความปลอดภัยฝั่ง server
+  const effectivePageSize = result?.pageSize ?? (typeof pageSize === 'number' ? pageSize : DEFAULT_PAGE_SIZE);
 
   return (
     <Stack gap="lg">
@@ -269,15 +281,20 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
           <Group justify="space-between">
             <Text size="sm" c="dimmed">
               {t('resultSummary', {
-                from: (page - 1) * PAGE_SIZE + (rows.length > 0 ? 1 : 0),
-                to: (page - 1) * PAGE_SIZE + rows.length,
+                from: (page - 1) * effectivePageSize + (rows.length > 0 ? 1 : 0),
+                to: (page - 1) * effectivePageSize + rows.length,
                 total: result?.total ?? 0,
               })}
             </Text>
             <Group gap="xs">
-              <Badge variant="light" color="navy">
-                {t('pageSizeLabel', { size: PAGE_SIZE })}
-              </Badge>
+              <Select
+                data={pageSizeOptions}
+                value={pageSize === 'all' ? 'all' : String(pageSize)}
+                onChange={(value) => setPageSize(value === 'all' ? 'all' : Number(value) || DEFAULT_PAGE_SIZE)}
+                aria-label={t('pageSizeFilter')}
+                w={110}
+                allowDeselect={false}
+              />
               <Button
                 variant="light"
                 color="skyBlue"

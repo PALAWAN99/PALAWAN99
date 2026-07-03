@@ -469,6 +469,8 @@
     "searchPlaceholder": "Name, member no., ID card, member key...",
     "resultSummary": "Showing {from}–{to} of {total}",
     "pageSizeLabel": "{size} per page",
+    "pageSizeFilter": "Show per page",
+    "pageSizeAll": "All",
     "member": "Member",
     "gate": "Gate",
     "scannedAt": "Scanned at",

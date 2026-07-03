@@ -15,6 +15,9 @@ import type {
   PennuengGateHistoryRow,
 } from '@/types/pennueng-gate-history';
 
+/** เพดานความปลอดภัยของจำนวนแถวต่อคำขอ (รวมโหมด "ทั้งหมด") กันคำขอช่วงวันที่กว้างโหลดหนักเกินไป */
+const MAX_PAGE_SIZE = 5000;
+
 type SqlHistoryRow = {
   id: number;
   operate_date: Date;
@@ -181,9 +184,7 @@ export async function fetchPennuengGateHistory(
 ): Promise<PennuengGateHistoryResult> {
   const pool = await getSqlServerPool();
   const labels = await loadGateDisplayRegistry('th');
-  const page = Math.max(1, query.page);
-  const pageSize = Math.min(100, Math.max(1, query.pageSize));
-  const offset = (page - 1) * pageSize;
+  const page = query.all ? 1 : Math.max(1, query.page);
 
   const countReq = pool.request();
   const where = buildWhereClause(countReq, query);
@@ -193,7 +194,14 @@ export async function fetchPennuengGateHistory(
     WHERE ${where}
   `);
   const total = countResult.recordset[0]?.total ?? 0;
+
+  // "ทั้งหมด" ดึงทุกแถวในเงื่อนไขปัจจุบันเป็นหน้าเดียว แต่ยังจำกัดด้วย MAX_PAGE_SIZE
+  // เพื่อกันคำขอที่ช่วงวันที่กว้างเกินไปจนโหลด/ส่งข้อมูลหนักเกินไป
+  const pageSize = query.all
+    ? Math.min(MAX_PAGE_SIZE, Math.max(1, total))
+    : Math.min(MAX_PAGE_SIZE, Math.max(1, query.pageSize));
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const offset = (page - 1) * pageSize;
 
   const dataReq = pool.request();
   const dataWhere = buildWhereClause(dataReq, query);

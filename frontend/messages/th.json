@@ -469,6 +469,8 @@
     "searchPlaceholder": "ชื่อ, รหัสสมาชิก, เลขบัตร, member key...",
     "resultSummary": "แสดง {from}–{to} จาก {total} รายการ",
     "pageSizeLabel": "หน้าละ {size} รายการ",
+    "pageSizeFilter": "แสดงหน้าละ",
+    "pageSizeAll": "ทั้งหมด",
     "member": "สมาชิก",
     "gate": "ประตู",
     "scannedAt": "เวลาสแกน",

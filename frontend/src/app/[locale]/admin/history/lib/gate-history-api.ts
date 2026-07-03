@@ -18,7 +18,7 @@ export async function fetchGateHistoryApi(params: {
   gateId?: string | null;
   search?: string;
   memberNo?: string | null;
-  pageSize?: number;
+  pageSize?: number | 'all';
 }): Promise<PennuengGateHistoryResult> {
   const q = new URLSearchParams({
     startDate: params.startDate,
@@ -28,7 +28,11 @@ export async function fetchGateHistoryApi(params: {
   if (params.gateId) q.set('gateId', params.gateId);
   if (params.search) q.set('search', params.search);
   if (params.memberNo) q.set('memberNo', params.memberNo);
-  if (params.pageSize) q.set('pageSize', String(params.pageSize));
+  if (params.pageSize === 'all') {
+    q.set('all', '1');
+  } else if (params.pageSize) {
+    q.set('pageSize', String(params.pageSize));
+  }
 
   const res = await fetch(apiPath(`/api/admin/history?${q}`));
   const json = await parseJson(res);

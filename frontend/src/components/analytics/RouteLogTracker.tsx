@@ -7,7 +7,7 @@ import { apiPath } from '@/lib/base-path';
 import { normalizeRoutePattern, shouldSkipRouteLog } from '@/lib/route-log/paths';
 import { inferPageAction } from '@/lib/route-log/infer-action';
 
-const ROUTE_LOG_INGEST = apiPath('/api/logs/route');
+const ROUTE_LOG_INGEST = apiPath('/api/logs');
 
 const SESSION_KEY = 'route_log_session_id';
 

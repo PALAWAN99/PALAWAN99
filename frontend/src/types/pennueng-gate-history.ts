@@ -42,4 +42,6 @@ export type PennuengGateHistoryQuery = {
   memberNo?: string;
   page: number;
   pageSize: number;
+  /** เมื่อ true จะดึงทุกแถวที่ตรงเงื่อนไข (จำกัดด้วย MAX_PAGE_SIZE) แทนการแบ่งหน้าตาม pageSize */
+  all?: boolean;
 };

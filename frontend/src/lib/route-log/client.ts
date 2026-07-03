@@ -3,7 +3,7 @@
 import { apiPath } from '@/lib/base-path';
 import { normalizeRoutePattern, shouldSkipRouteLog } from './paths';
 
-const ROUTE_LOG_INGEST = apiPath('/api/logs/route');
+const ROUTE_LOG_INGEST = apiPath('/api/logs');
 
 /** บันทึก action ฝั่ง client (เช่น กดปุ่มอ่านบัตร, ยินยอม PDPA) */
 export function logClientAction(

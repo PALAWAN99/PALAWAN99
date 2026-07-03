@@ -469,6 +469,8 @@
     "searchPlaceholder": "姓名、会员号、身份证、member key...",
     "resultSummary": "显示 {from}–{to}，共 {total} 条",
     "pageSizeLabel": "每页 {size} 条",
+    "pageSizeFilter": "每页显示",
+    "pageSizeAll": "全部",
     "member": "成员",
     "gate": "门禁",
     "scannedAt": "扫描时间",
