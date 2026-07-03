@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useTranslations } from 'next-intl';
 import {
@@ -37,6 +37,8 @@ import {
   IconCopy,
   IconEdit,
   IconCheck,
+  IconDownload,
+  IconCamera,
 } from '@tabler/icons-react';
 import { apiPath } from '@/lib/base-path';
 import { getApiErrorMessage, unwrapApiData } from '@/lib/parse-api-response';
@@ -60,6 +62,21 @@ function defaultRange() {
     startDate: dayjs().subtract(6, 'day').format('YYYY-MM-DD'),
     endDate: dayjs().format('YYYY-MM-DD'),
   };
+}
+
+function escapeCsvCell(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 type Props = {
@@ -88,6 +105,9 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   const [formMode, setFormMode] = useState<FormMode | null>(null);
   const [formRow, setFormRow] = useState<PennuengGateHistoryRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const tableCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (initialMemberNo) setMemberNo(initialMemberNo);
@@ -159,6 +179,97 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   useEffect(() => {
     void fetchHistory();
   }, [fetchHistory]);
+
+  const handleExportCsv = useCallback(async () => {
+    if (!startDate || !endDate) return;
+    setExporting(true);
+    try {
+      const data = await fetchGateHistoryApi({
+        startDate,
+        endDate,
+        gateId,
+        search: debouncedSearch || undefined,
+        memberNo: debouncedMemberNo || undefined,
+        pageSize: 'all',
+      });
+
+      const header = [
+        t('member'),
+        t('memberNo'),
+        t('personId'),
+        t('memberKey'),
+        t('memberType'),
+        t('gate'),
+        t('scannedAt'),
+        t('direction'),
+        t('decision'),
+        t('remark'),
+      ];
+      const lines = [
+        header,
+        ...data.rows.map((row) => [
+          row.fullName,
+          row.memberNo ?? '',
+          row.personId ?? '',
+          row.memberKey ?? '',
+          row.memberTypeLabel ?? row.memberType ?? '',
+          row.gateLabel,
+          row.scannedAtLabel,
+          row.direction === 'IN' ? t('directionIn') : t('directionOut'),
+          row.decision === 'ALLOWED' ? t('allowed') : t('denied'),
+          row.remark ?? '',
+        ]),
+      ];
+      const csv = lines.map((line) => line.map((cell) => escapeCsvCell(String(cell))).join(',')).join('\r\n');
+      // BOM ให้ Excel เปิดไฟล์แล้วอ่านตัวอักษรไทยถูกต้อง
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `access-history_${startDate}_${endDate}.csv`);
+
+      const truncated = data.total > data.rows.length;
+      notifications.show({
+        title: tc('success'),
+        message: truncated
+          ? t('exportPartial', { count: data.rows.length, total: data.total })
+          : t('exportSuccess', { count: data.rows.length }),
+        color: truncated ? 'yellow' : 'teal',
+        icon: <IconCheck size={16} />,
+      });
+    } catch (error) {
+      notifications.show({
+        title: tc('error'),
+        message: error instanceof Error ? error.message : tc('error'),
+        color: 'red',
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [startDate, endDate, gateId, debouncedSearch, debouncedMemberNo, t, tc]);
+
+  const handleCaptureImage = useCallback(async () => {
+    if (!tableCardRef.current || !startDate || !endDate) return;
+    setCapturing(true);
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(tableCardRef.current, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `access-history_${startDate}_${endDate}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      notifications.show({
+        title: tc('error'),
+        message: error instanceof Error ? error.message : tc('error'),
+        color: 'red',
+      });
+    } finally {
+      setCapturing(false);
+    }
+  }, [startDate, endDate]);
 
   const openCreate = () => {
     setFormMode('create');
@@ -297,6 +408,24 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
               />
               <Button
                 variant="light"
+                color="green"
+                leftSection={<IconDownload size={16} />}
+                onClick={() => void handleExportCsv()}
+                loading={exporting}
+              >
+                {t('exportCsv')}
+              </Button>
+              <Button
+                variant="light"
+                color="grape"
+                leftSection={<IconCamera size={16} />}
+                onClick={() => void handleCaptureImage()}
+                loading={capturing}
+              >
+                {t('captureImage')}
+              </Button>
+              <Button
+                variant="light"
                 color="skyBlue"
                 leftSection={<IconPlus size={16} />}
                 onClick={openCreate}
@@ -316,7 +445,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
         </Stack>
       </Card>
 
-      <Card withBorder radius="md" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
+      <Card ref={tableCardRef} withBorder radius="md" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ blur: 2 }} />
         <Table.ScrollContainer minWidth={1020}>
           <Table verticalSpacing="sm" highlightOnHover>
