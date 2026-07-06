@@ -14,7 +14,7 @@ export interface ThaiIdData {
  * Class สำหรับเชื่อมต่อและอ่านข้อมูลจากเครื่องอ่านบัตรประชาชนไทยผ่าน Web USB API
  */
 export class ThaiIdCardReader {
-  private device: USBDevice | null = null;
+  private device: any = null;
   private endpointIn = 0;
   private endpointOut = 0;
 
@@ -24,7 +24,7 @@ export class ThaiIdCardReader {
   async connect(): Promise<boolean> {
     try {
       // ค้นหาเครื่องอ่านบัตรมาตรฐาน (ACS, SCM, HID, Identiv, Gemalto)
-      this.device = await navigator.usb.requestDevice({
+      this.device = await (navigator as any).usb.requestDevice({
         filters: [
           { vendorId: 0x072f }, // ACS
           { vendorId: 0x04e6 }, // SCM / Identiv
@@ -45,7 +45,7 @@ export class ThaiIdCardReader {
       const interface0 = this.device.configuration?.interfaces[0];
       const alternate = interface0?.alternates[0];
       
-      alternate?.endpoints.forEach(ep => {
+      alternate?.endpoints.forEach((ep: any) => {
         if (ep.direction === 'in') this.endpointIn = ep.endpointNumber;
         if (ep.direction === 'out') this.endpointOut = ep.endpointNumber;
       });

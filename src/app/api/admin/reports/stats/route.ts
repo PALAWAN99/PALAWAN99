@@ -28,12 +28,12 @@ export async function GET(req: NextRequest) {
 
     // ดึงชื่อประตูมาประกอบ
     const gates = await prisma.gate.findMany({
-      where: { id: { in: accessByGate.map(g => g.gateId) } },
+      where: { id: { in: accessByGate.map((g: any) => g.gateId) } },
       select: { id: true, nameTh: true }
     });
 
-    const gateStats = accessByGate.map(g => ({
-      name: gates.find(gate => gate.id === g.gateId)?.nameTh || 'Unknown',
+    const gateStats = accessByGate.map((g: any) => ({
+      name: gates.find((gate: any) => gate.id === g.gateId)?.nameTh || 'Unknown',
       value: g._count.id
     }));
 
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       summary,
       gateStats,
       // จัดรูปแบบข้อมูลสำหรับ Chart (Bar Chart)
-      dailyStats: accessByDay.map(d => ({
+      dailyStats: accessByDay.map((d: any) => ({
         date: dayjs(d.createdAt).format('DD MMM'),
         count: d._count.id
       }))

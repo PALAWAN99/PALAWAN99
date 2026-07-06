@@ -227,7 +227,7 @@ export default function IdCardClient() {
               </Group>
             </Paper>
 
-            <Grid gutter="md">
+            <Grid gap="md">
               <Grid.Col span={{ base: 12, md: 5 }}>
                 <Card withBorder radius="md" p="xl" h="100%">
                   <Stack align="center" gap="lg" h="100%" justify="center">
@@ -325,7 +325,7 @@ export default function IdCardClient() {
                       value={manualData.citizenId}
                       onChange={(e) => setManualData({ ...manualData, citizenId: e.target.value })}
                     />
-                    <Grid gutter="xs">
+                    <Grid gap="xs">
                       <Grid.Col span={6}>
                         <TextInput
                           label="ชื่อ (TH)"
@@ -344,7 +344,7 @@ export default function IdCardClient() {
                       </Grid.Col>
                     </Grid>
                     
-                    <Grid gutter="xs">
+                    <Grid gap="xs">
                       <Grid.Col span={6}>
                         <TextInput 
                           label="เบอร์โทรศัพท์" 
@@ -458,7 +458,7 @@ export default function IdCardClient() {
                         </Stack>
                       </Group>
 
-                      <Grid gutter="xs">
+                      <Grid gap="xs">
                         <Grid.Col span={6}>
                           <Paper p="xs" withBorder bg="var(--bg-secondary)">
                             <Text size="xs" c="dimmed">ชื่อ-นามสกุล (TH)</Text>
@@ -503,7 +503,7 @@ export default function IdCardClient() {
                       {!isManualMode && (
                         <>
                           <Text fw={600} size="sm">ข้อมูลเพิ่มเติมสำหรับการติดต่อ</Text>
-                          <Grid gutter="xs">
+                          <Grid gap="xs">
                             <Grid.Col span={6}>
                               <TextInput 
                                 label="เบอร์โทรศัพท์" 
@@ -626,7 +626,7 @@ export default function IdCardClient() {
                 โดยไม่จำเป็นต้องติดตั้ง Driver เพิ่มเติม (เฉพาะเครื่องอ่านที่รองรับมาตรฐาน CCID)
               </Text>
 
-              <Grid gutter="md">
+              <Grid gap="md">
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <Paper withBorder p="md" radius="md">
                     <Stack gap="xs">
@@ -701,7 +701,7 @@ export default function IdCardClient() {
               </Stack>
             </Group>
 
-            <Grid gutter="xs">
+            <Grid gap="xs">
               <Grid.Col span={6}>
                 <Paper p="xs" withBorder bg="var(--bg-secondary)">
                   <Text size="xs" c="dimmed">ชื่อ-นามสกุล (TH)</Text>

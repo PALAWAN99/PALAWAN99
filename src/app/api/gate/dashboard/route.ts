@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 4. ตรวจสอบสถานะอุปกรณ์ (ถ้ามีอุปกรณ์ไหนออนไลน์ ประตูถือว่าออนไลน์)
-    const isOnline = gate.devices.some(d => d.status === 'ONLINE');
+    const isOnline = gate.devices.some((d: any) => d.status === 'ONLINE');
 
     return NextResponse.json({
       gate: {
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
         todayOut,
         todayDenied,
       },
-      recentEvents: recentEvents.map(e => ({
+      recentEvents: recentEvents.map((e: any) => ({
         id: e.id,
         member: e.member,
         direction: e.direction,

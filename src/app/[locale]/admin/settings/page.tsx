@@ -138,7 +138,7 @@ export default function SettingsPage() {
                 </Avatar>
                 <div>
                   <Text size="xl" fw={700}>{session?.user?.name}</Text>
-                  <Text size="sm" c="dimmed">{session?.user?.role}</Text>
+                  <Text size="sm" c="dimmed">{(session?.user as any)?.role}</Text>
                 </div>
               </Group>
 

@@ -57,3 +57,7 @@ test-*.ts
 check-*.js
 seed-direct.js
 docs_backup/
+
+# scratch directory
+/scratch/
+

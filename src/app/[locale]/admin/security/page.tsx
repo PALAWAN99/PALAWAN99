@@ -104,7 +104,7 @@ export default function SecurityPage() {
         </Group>
       </Table.Td>
       <Table.Td>
-        <Text size="xs" c="dimmed" fontFamily="monospace">
+        <Text size="xs" c="dimmed" ff="monospace">
           {log.resourceId?.substring(0, 8)}...
         </Text>
       </Table.Td>

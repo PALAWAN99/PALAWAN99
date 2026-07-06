@@ -39,7 +39,7 @@ export default function MembersPage() {
   if (error) {
     return (
       <Stack align="center" gap="md" mt={100}>
-        <Title order={3} color="red">เกิดข้อผิดพลาด</Title>
+        <Title order={3} c="red">เกิดข้อผิดพลาด</Title>
         <Text>{error}</Text>
       </Stack>
     );

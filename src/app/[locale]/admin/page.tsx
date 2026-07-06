@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
 import {
   Title,
   Text,
@@ -103,6 +104,7 @@ const GATE_TRAFFIC = [
 export default function AdminDashboard() {
   const t = useTranslations();
   const locale = useLocale();
+  const router = useRouter();
 
   return (
     <Stack gap="xl">

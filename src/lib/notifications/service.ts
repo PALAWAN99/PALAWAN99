@@ -25,7 +25,7 @@ export class NotificationService {
       // 2. บันทึกลง Database (In-app)
       if (recipients.length > 0) {
         await prisma.notification.createMany({
-          data: recipients.map(user => ({
+          data: recipients.map((user: any) => ({
             userId: user.id,
             type: payload.type,
             title: payload.title,

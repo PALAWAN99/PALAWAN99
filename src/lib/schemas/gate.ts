@@ -30,7 +30,7 @@ export const createGateSchema = z.object({
   branchId: z.string().uuid("Invalid branch ID format"),
   direction: gateDirectionSchema.default('BIDIRECTIONAL'),
   status: gateStatusSchema.default('ACTIVE'),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const updateGateSchema = createGateSchema.partial();

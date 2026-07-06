@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Title, Text, Stack, Card, Button, Group, SimpleGrid, ThemeIcon, Box, SegmentedControl, Divider } from '@mantine/core';
+import { Title, Text, Stack, Card, Button, Group, SimpleGrid, ThemeIcon, Box, SegmentedControl, Divider, ActionIcon } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconFileTypeCsv, IconFileTypePdf, IconChartPie, IconUsers, IconCalendarStats, IconPrinter } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -106,7 +106,7 @@ export default function MemberReportsPage() {
               label="Select Date Range"
               placeholder="Pick dates range"
               value={dateRange}
-              onChange={setDateRange}
+              onChange={setDateRange as any}
               radius="md"
               leftSection={<IconCalendarStats size={18} stroke={1.5} />}
             />

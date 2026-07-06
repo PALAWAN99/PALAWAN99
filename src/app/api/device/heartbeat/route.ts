@@ -6,7 +6,7 @@ import { z } from 'zod';
 const heartbeatSchema = z.object({
   deviceCode: z.string().min(1, 'ต้องมีรหัสอุปกรณ์'),
   status: z.enum(['ONLINE', 'OFFLINE', 'MAINTENANCE']).default('ONLINE'),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**

@@ -11,7 +11,7 @@ export async function GET() {
   try {
     const settings = await prisma.systemSetting.findMany();
     // แปลงจาก array เป็น object { key: value }
-    const config = settings.reduce((acc: any, curr) => {
+    const config = settings.reduce((acc: any, curr: any) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {});

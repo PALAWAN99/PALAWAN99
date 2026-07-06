@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.errors }, { status: 422 });
+      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 422 });
     }
     console.error('[QR_ISSUE_POST]', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
