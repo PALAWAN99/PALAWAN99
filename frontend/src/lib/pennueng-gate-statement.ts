@@ -5,6 +5,7 @@ import { getSqlServerPool } from '@/lib/sqlserver';
 import { assertSqlServerReady } from '@/lib/pennueng-members';
 import type { PennuengGateHistoryRow } from '@/types/pennueng-gate-history';
 import type { GateHistoryRecordInput } from '@/validators/gateHistoryRecordValidator';
+import { isoToPennuengSqlDate } from '@/lib/pennueng-datetime';
 
 const MANUAL_REMARK_PREFIX = '[Smart Access manual]';
 
@@ -113,7 +114,7 @@ export async function createPennuengGateStatement(
   assertSqlServerReady();
   const pool = await getSqlServerPool();
   const req = pool.request();
-  req.input('operateDate', sql.DateTime, new Date(data.operateDate));
+  req.input('operateDate', sql.DateTime, isoToPennuengSqlDate(data.operateDate));
   req.input('status', sql.Int, directionToStatus(data.direction));
   req.input('success', sql.Int, decisionToSuccess(data.decision));
   req.input('memberNo', sql.VarChar, data.memberNo?.trim() || null);
@@ -153,7 +154,7 @@ export async function updatePennuengGateStatement(
   const pool = await getSqlServerPool();
   const req = pool.request();
   req.input('id', sql.Int, id);
-  req.input('operateDate', sql.DateTime, new Date(data.operateDate));
+  req.input('operateDate', sql.DateTime, isoToPennuengSqlDate(data.operateDate));
   req.input('status', sql.Int, directionToStatus(data.direction));
   req.input('success', sql.Int, decisionToSuccess(data.decision));
   req.input('memberNo', sql.VarChar, data.memberNo?.trim() || null);
@@ -194,4 +195,15 @@ export async function updatePennuengGateStatement(
 export async function getPennuengGateStatementById(id: number): Promise<PennuengGateHistoryRow | null> {
   assertSqlServerReady();
   return fetchRowById(id);
+}
+
+export async function deletePennuengGateStatement(id: number): Promise<void> {
+  assertSqlServerReady();
+  const pool = await getSqlServerPool();
+  const result = await pool.request().input('id', sql.Int, id).query(`
+    DELETE FROM gatestatement WHERE id = @id
+  `);
+  if ((result.rowsAffected[0] ?? 0) === 0) {
+    throw new Error('Gate statement record not found');
+  }
 }

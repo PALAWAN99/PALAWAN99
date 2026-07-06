@@ -15,7 +15,7 @@ import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { zodResolver } from 'mantine-form-zod-resolver';
 import { useTranslations } from 'next-intl';
-import dayjs from 'dayjs';
+import { bangkokNowIso, pickerValueToBangkokIso } from '@/lib/pennueng-datetime';
 import {
   gateHistoryRecordSchema,
   type GateHistoryRecordInput,
@@ -37,7 +37,7 @@ type Props = {
 };
 
 const EMPTY: GateHistoryRecordInput = {
-  operateDate: new Date().toISOString(),
+  operateDate: bangkokNowIso(),
   direction: 'IN',
   decision: 'ALLOWED',
   gateId: '',
@@ -52,7 +52,7 @@ const EMPTY: GateHistoryRecordInput = {
 
 function rowToForm(row: PennuengGateHistoryRow, copy: boolean): GateHistoryRecordInput {
   return {
-    operateDate: copy ? new Date().toISOString() : row.scannedAt,
+    operateDate: copy ? bangkokNowIso() : row.scannedAt,
     direction: row.direction,
     decision: row.decision,
     gateId: row.gateId,
@@ -91,7 +91,7 @@ export function GateHistoryRecordFormModal({
     } else {
       form.setValues({
         ...EMPTY,
-        operateDate: new Date().toISOString(),
+        operateDate: bangkokNowIso(),
       });
     }
     form.resetDirty();
@@ -126,9 +126,13 @@ export function GateHistoryRecordFormModal({
           <DateTimePicker
             label={t('scannedAt')}
             value={form.values.operateDate ? new Date(form.values.operateDate) : null}
-            onChange={(value) =>
-              form.setFieldValue('operateDate', value ? dayjs(value).toISOString() : '')
-            }
+            onChange={(value) => {
+              if (!value) {
+                form.setFieldValue('operateDate', '');
+                return;
+              }
+              form.setFieldValue('operateDate', pickerValueToBangkokIso(new Date(value)));
+            }}
             valueFormat="DD/MM/YYYY HH:mm"
             required
           />

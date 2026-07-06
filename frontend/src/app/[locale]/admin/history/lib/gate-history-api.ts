@@ -40,6 +40,29 @@ export async function fetchGateHistoryApi(params: {
   return unwrapApiData<PennuengGateHistoryResult>(json);
 }
 
+export async function fetchAllGateHistoryApi(params: {
+  startDate: string;
+  endDate: string;
+  gateId?: string | null;
+  search?: string;
+  memberNo?: string | null;
+  pageSize?: number;
+}): Promise<PennuengGateHistoryRow[]> {
+  const pageSize = params.pageSize ?? 100;
+  const all: PennuengGateHistoryRow[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const data = await fetchGateHistoryApi({ ...params, page, pageSize });
+    all.push(...data.rows);
+    totalPages = data.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+
+  return all;
+}
+
 export async function createGateHistoryRecordApi(
   data: GateHistoryRecordInput,
 ): Promise<PennuengGateHistoryRow> {
@@ -65,4 +88,10 @@ export async function updateGateHistoryRecordApi(
   const json = await parseJson(res);
   await assertOk(res, json);
   return unwrapApiData<PennuengGateHistoryRow>(json);
+}
+
+export async function deleteGateHistoryRecordApi(id: number): Promise<void> {
+  const res = await fetch(apiPath(`/api/admin/history/${id}`), { method: 'DELETE' });
+  const json = await parseJson(res);
+  await assertOk(res, json);
 }

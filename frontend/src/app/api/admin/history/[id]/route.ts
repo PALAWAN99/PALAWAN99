@@ -13,6 +13,7 @@ import {
 import {
   getPennuengGateStatementById,
   updatePennuengGateStatement,
+  deletePennuengGateStatement,
 } from '@/lib/pennueng-gate-statement';
 import { checkAccess } from '@/lib/rbac';
 import { checkStandardRateLimit } from '@/lib/rate-limit';
@@ -83,6 +84,42 @@ export async function PATCH(req: NextRequest, { params }: RouteCtx) {
     });
 
     return ApiSuccess(after, 'แก้ไขรายการเข้า-ออกเรียบร้อยแล้ว');
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: RouteCtx) {
+  const rateLimitError = await checkStandardRateLimit(req);
+  if (rateLimitError) return rateLimitError;
+
+  const session = await auth();
+  if (!session) return ApiUnauthorized();
+  if (!checkAccess(session, 'ACCESS_EVENT', 'DELETE')) return ApiForbidden();
+
+  if (!isSqlServerConfigured()) {
+    return ApiServiceUnavailable('ยังไม่ได้ตั้งค่า SQL Server');
+  }
+
+  try {
+    const { id: raw } = await params;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) return ApiNotFound('ไม่พบรายการ');
+
+    const before = await getPennuengGateStatementById(id);
+    if (!before) return ApiNotFound('ไม่พบรายการ');
+
+    await deletePennuengGateStatement(id);
+
+    await logAction({
+      action: 'DELETE',
+      resource: 'ACCESS_EVENT',
+      resourceId: String(id),
+      before,
+      req,
+    });
+
+    return ApiSuccess({ id }, 'ลบรายการเข้า-ออกเรียบร้อยแล้ว');
   } catch (error) {
     return handleError(error);
   }

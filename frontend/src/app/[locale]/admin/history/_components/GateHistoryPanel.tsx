@@ -24,7 +24,10 @@ import {
   Alert,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
+import { useSession } from 'next-auth/react';
+import type { UserRole } from '@prisma/client';
 import {
   IconRefresh,
   IconSearch,
@@ -39,7 +42,10 @@ import {
   IconCheck,
   IconDownload,
   IconCamera,
+  IconTrash,
 } from '@tabler/icons-react';
+import { captureTableElementAsPng } from '@/lib/capture-table-image';
+import { hasPermission } from '@/lib/rbac';
 import { apiPath } from '@/lib/base-path';
 import { getApiErrorMessage, unwrapApiData } from '@/lib/parse-api-response';
 import type { PennuengGateHistoryRow, PennuengGateHistoryResult } from '@/types/pennueng-gate-history';
@@ -49,8 +55,10 @@ import {
   createGateHistoryRecordApi,
   fetchGateHistoryApi,
   updateGateHistoryRecordApi,
+  deleteGateHistoryRecordApi,
 } from '../lib/gate-history-api';
 import { GateHistoryRecordFormModal } from './GateHistoryRecordFormModal';
+import { HistoryDataSourceReference } from './HistoryDataSourceReference';
 
 const PAGE_SIZE_CHOICES = [100, 200, 300, 400, 500, 1000] as const;
 const DEFAULT_PAGE_SIZE = 100;
@@ -86,6 +94,8 @@ type Props = {
 export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   const t = useTranslations('History');
   const tc = useTranslations('Common');
+  const { data: session } = useSession();
+  const canDelete = hasPermission(session?.user?.role as UserRole, 'ACCESS_EVENT', 'DELETE');
 
   const defaults = defaultRange();
   const [startDate, setStartDate] = useState<string | null>(defaults.startDate);
@@ -106,8 +116,9 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   const [formRow, setFormRow] = useState<PennuengGateHistoryRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [capturing, setCapturing] = useState(false);
-  const tableCardRef = useRef<HTMLDivElement>(null);
+  const [savingImage, setSavingImage] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const tableExportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (initialMemberNo) setMemberNo(initialMemberNo);
@@ -245,32 +256,6 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
     }
   }, [startDate, endDate, gateId, debouncedSearch, debouncedMemberNo, t, tc]);
 
-  const handleCaptureImage = useCallback(async () => {
-    if (!tableCardRef.current || !startDate || !endDate) return;
-    setCapturing(true);
-    try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(tableCardRef.current, {
-        backgroundColor: '#ffffff',
-        pixelRatio: 2,
-      });
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `access-history_${startDate}_${endDate}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      notifications.show({
-        title: tc('error'),
-        message: error instanceof Error ? error.message : tc('error'),
-        color: 'red',
-      });
-    } finally {
-      setCapturing(false);
-    }
-  }, [startDate, endDate]);
-
   const openCreate = () => {
     setFormMode('create');
     setFormRow(null);
@@ -286,6 +271,48 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
     setFormMode('copy');
     setFormRow(row);
     setSelectedRow(null);
+  };
+
+  const confirmDelete = (row: PennuengGateHistoryRow) => {
+    modals.openConfirmModal({
+      title: t('deleteConfirmTitle'),
+      centered: true,
+      children: (
+        <Text size="sm">
+          {t('deleteConfirmMessage', {
+            name: row.fullName,
+            time: row.scannedAtLabel,
+            id: row.id,
+          })}
+        </Text>
+      ),
+      labels: { confirm: t('deleteRecord'), cancel: tc('cancel') },
+      confirmProps: { color: 'red' },
+      onConfirm: () => void handleDelete(row),
+    });
+  };
+
+  const handleDelete = async (row: PennuengGateHistoryRow) => {
+    setDeletingId(row.id);
+    try {
+      await deleteGateHistoryRecordApi(row.id);
+      if (selectedRow?.id === row.id) setSelectedRow(null);
+      notifications.show({
+        title: tc('success'),
+        message: t('deleteSuccess'),
+        color: 'teal',
+        icon: <IconCheck size={16} />,
+      });
+      await fetchHistory();
+    } catch (error) {
+      notifications.show({
+        title: tc('error'),
+        message: error instanceof Error ? error.message : tc('error'),
+        color: 'red',
+      });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleFormSubmit = async (values: GateHistoryRecordInput) => {
@@ -326,8 +353,42 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
   // ใช้ pageSize ที่ server คืนมาจริง เพราะโหมด "ทั้งหมด" อาจถูกจำกัดด้วยเพดานความปลอดภัยฝั่ง server
   const effectivePageSize = result?.pageSize ?? (typeof pageSize === 'number' ? pageSize : DEFAULT_PAGE_SIZE);
 
+  const handleSaveTableImage = useCallback(async () => {
+    const el = tableExportRef.current;
+    if (!el || rows.length === 0) {
+      notifications.show({
+        title: tc('error'),
+        message: t('saveTableImageEmpty'),
+        color: 'orange',
+      });
+      return;
+    }
+
+    setSavingImage(true);
+    try {
+      const stamp = dayjs().format('YYYYMMDD-HHmm');
+      await captureTableElementAsPng(el, `history-table-${stamp}.png`);
+      notifications.show({
+        title: tc('success'),
+        message: t('saveTableImageSuccess'),
+        color: 'teal',
+        icon: <IconCheck size={16} />,
+      });
+    } catch (error) {
+      notifications.show({
+        title: tc('error'),
+        message: error instanceof Error ? error.message : tc('error'),
+        color: 'red',
+      });
+    } finally {
+      setSavingImage(false);
+    }
+  }, [rows.length, t, tc]);
+
   return (
     <Stack gap="lg">
+      <HistoryDataSourceReference />
+
       {unavailable ? (
         <Alert color="orange" title={t('sqlUnavailableTitle')}>
           {unavailable}
@@ -419,10 +480,11 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
                 variant="light"
                 color="grape"
                 leftSection={<IconCamera size={16} />}
-                onClick={() => void handleCaptureImage()}
-                loading={capturing}
+                onClick={() => void handleSaveTableImage()}
+                loading={savingImage}
+                disabled={loading || rows.length === 0}
               >
-                {t('captureImage')}
+                {t('saveTableImage')}
               </Button>
               <Button
                 variant="light"
@@ -445,8 +507,57 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
         </Stack>
       </Card>
 
-      <Card ref={tableCardRef} withBorder radius="md" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
+      <Card withBorder radius="md" p={0} style={{ position: 'relative', overflow: 'hidden' }}>
         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ blur: 2 }} />
+        {rows.length > 0 ? (
+          <div
+            ref={tableExportRef}
+            aria-hidden
+            style={{
+              position: 'fixed',
+              left: '-9999px',
+              top: 0,
+              width: 920,
+              background: '#ffffff',
+              pointerEvents: 'none',
+            }}
+          >
+            <Table verticalSpacing="sm">
+              <Table.Thead bg="var(--bg-tertiary)">
+                <Table.Tr>
+                  <Table.Th>{t('member')}</Table.Th>
+                  <Table.Th>{t('gate')}</Table.Th>
+                  <Table.Th>{t('scannedAt')}</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {rows.map((item) => (
+                  <Table.Tr key={`export-${item.id}`}>
+                    <Table.Td>
+                      <Text size="sm" fw={500}>
+                        {item.fullName}
+                      </Text>
+                      <Text size="xs" c="dimmed" ff="monospace">
+                        {item.memberKey || '—'}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{item.gateLabel}</Text>
+                      <Text size="xs" c="dimmed" ff="monospace">
+                        {item.gateName}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="xs" fw={500}>
+                        {item.scannedAtLabel}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </div>
+        ) : null}
         <Table.ScrollContainer minWidth={1020}>
           <Table verticalSpacing="sm" highlightOnHover>
             <Table.Thead bg="var(--bg-tertiary)">
@@ -456,7 +567,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
                 <Table.Th>{t('scannedAt')}</Table.Th>
                 <Table.Th>{t('direction')}</Table.Th>
                 <Table.Th>{t('decision')}</Table.Th>
-                <Table.Th w={120} />
+                <Table.Th w={160} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -472,7 +583,7 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
                           {item.fullName}
                         </Text>
                         <Text size="xs" c="dimmed" ff="monospace">
-                          {item.memberNo || item.personId || item.memberKey || '—'}
+                          {item.memberKey || '—'}
                         </Text>
                       </div>
                     </Group>
@@ -530,6 +641,19 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
                           <IconEdit size={16} />
                         </ActionIcon>
                       </Tooltip>
+                      {canDelete ? (
+                        <Tooltip label={t('deleteRecord')}>
+                          <ActionIcon
+                            variant="light"
+                            color="red"
+                            size="sm"
+                            loading={deletingId === item.id}
+                            onClick={() => confirmDelete(item)}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Tooltip>
+                      ) : null}
                     </Group>
                   </Table.Td>
                 </Table.Tr>
@@ -602,6 +726,17 @@ export function GateHistoryPanel({ initialMemberNo = null }: Props) {
               <Button variant="light" color="skyBlue" leftSection={<IconEdit size={16} />} onClick={() => openEdit(selectedRow)}>
                 {tc('edit')}
               </Button>
+              {canDelete ? (
+                <Button
+                  variant="light"
+                  color="red"
+                  leftSection={<IconTrash size={16} />}
+                  loading={deletingId === selectedRow.id}
+                  onClick={() => confirmDelete(selectedRow)}
+                >
+                  {t('deleteRecord')}
+                </Button>
+              ) : null}
             </Group>
           </Stack>
         ) : null}
